@@ -1,6 +1,6 @@
 /**
  * Skyline Dashboard Core Logic
- * Version: 2.0.0 - Cleaned up
+ * Version: 3.0.0 - Final Fix
  */
 
 /* ══════════════════════════════════════
@@ -10,13 +10,8 @@ async function loadComponent(containerId, filePath) {
     const container = document.getElementById(containerId);
     if (!container) return;
     try {
-        // auto base path for GitHub Pages
-        const base = '/skyline-drones';
-        const normalizedPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-        const fullPath = normalizedPath.startsWith('/skyline-drones')
-            ? normalizedPath
-            : base + normalizedPath;
-
+        // مسار ثابت دائماً بغض النظر عن موقع الصفحة
+        const fullPath = window.location.origin + '/skyline-drones/components/' + filePath.replace(/^.*components\//, '').replace(/^\//, '');
         const res = await fetch(fullPath);
         if (!res.ok) throw new Error(`HTTP ${res.status} – ${fullPath}`);
         container.innerHTML = await res.text();
@@ -129,10 +124,10 @@ window.logout = function () {
 document.addEventListener('DOMContentLoaded', async () => {
     initLanguage();
 
-    // تحميل المكونات — الدالة تضيف /skyline-drones تلقائياً
+    // تحميل المكونات — مسار ثابت دائماً
     await Promise.all([
-        loadComponent('sidebar-container', 'components/sidebar.html'),
-        loadComponent('topbar-container',  'components/topbar.html'),
+        loadComponent('sidebar-container', 'sidebar.html'),
+        loadComponent('topbar-container',  'topbar.html'),
     ]);
 
     // بعد تحميل المكونات

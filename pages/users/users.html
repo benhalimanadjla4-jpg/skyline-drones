@@ -538,8 +538,8 @@ function togglePasswordVisibility(inputId, iconId) {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await Promise.all([
-            loadComponent?.('sidebar-container', '/components/sidebar.html'),
-            loadComponent?.('topbar-container',  '/components/topbar.html'),
+            loadComponent?.('sidebar-container', '/skyline-drones/components/sidebar.html'),
+            loadComponent?.('topbar-container',  '/skyline-drones/components/topbar.html'),
         ]);
         if (window.highlightActiveLink) highlightActiveLink();
     } catch(e) {}

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00E5FF;
+            --neon-green: #00FFA3;
+            --glass-bg: rgba(15, 23, 42, 0.6);
+        }
+        body { background-color: #0B1120; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .switch input:checked + .slider { background-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+        .switch input:checked + .slider:before { transform: translateX(22px); }
+        .tab-btn { border: 1px solid transparent; }
+        .tab-btn.active { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.4); color: var(--neon-cyan); box-shadow: 0 0 20px rgba(6,182,212,0.15); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+        /* Toast */
+        #toast { position:fixed; bottom:28px; right:28px; z-index:9999; display:none; padding: 12px 20px; border-radius: 16px; font-size: 14px; font-weight: 700; }
+        #toast.show { display:block; animation: tIn .3s ease; }
+        @keyframes tIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        #toast.success { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        #toast.error   { background: rgba(239,68,68,0.1);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    </style>
+</head>
+<body class="antialiased overflow-hidden">
+
+<div class="flex h-screen w-full">
+    <aside id="sidebar-container" class="w-72 bg-[#0F172A] border-r border-white/5 z-50"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar relative">
+        <header id="topbar-container" class="h-20 sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-md border-b border-white/5"></header>
+
+        <div class="p-8 max-w-6xl mx-auto w-full space-y-8 pb-20">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-4xl font-black text-white tracking-tight" data-i18n="settings">Settings</h1>
+                    <p class="text-slate-500 mt-2" data-i18n="settings_desc">Manage your account, security, and drone fleet preferences.</p>
+                </div>
+                <!-- Status indicator -->
+                <div id="auth-status" class="px-4 py-2 rounded-xl text-xs font-bold border hidden">
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 p-1.5 bg-slate-900/80 rounded-2xl w-fit border border-white/5">
+                <button onclick="location.hash='profile'" id="btn-profile" class="tab-btn px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4"></i> <span data-i18n="profile">Profile</span>
+                </button>
+                <button onclick="location.hash='security'" id="btn-security" class="tab-btn px-6 py-3 rounded-xl text-sm font-bold text-slate-400 transition-all flex items-center gap-2">
+                    <i data-lucide="shield-lock" class="w-4 h-4"></i> <span data-i18n="security">Security</span>
+                </button>
+                <button onclick="location.hash='permissions'" id="btn-permissions" class="tab-btn px-6 py-3 rounded-xl text-sm font-bold text-slate-400 transition-all flex items-center gap-2">
+                    <i data-lucide="key" class="w-4 h-4"></i> <span data-i18n="permissions">Permissions</span>
+                </button>
+                <button onclick="location.hash='notifications'" id="btn-notifications" class="tab-btn px-6 py-3 rounded-xl text-sm font-bold text-slate-400 transition-all flex items-center gap-2">
+                    <i data-lucide="bell" class="w-4 h-4"></i> <span data-i18n="notifications">Notifications</span>
+                </button>
+            </div>
+
+            <div class="glass-card rounded-[2.5rem] p-10 min-h-[500px]">
+
+                <!-- ══════════ TAB: PROFILE ══════════ -->
+                <div id="tab-profile" class="tab-content space-y-10 animate-fade-in">
+                    <div class="flex flex-col md:flex-row gap-10 items-center pb-10 border-b border-white/5">
+                        <div class="relative group">
+                            <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden border-2 border-cyan-500/30 shadow-2xl">
+                                <img id="profile-preview" src="/assets/default-avatar.jpg" class="w-full h-full object-cover">
+                            </div>
+                            <label class="absolute -bottom-2 -right-2 p-3 bg-cyan-500 rounded-2xl cursor-pointer hover:scale-110 transition-all shadow-xl group-hover:rotate-6">
+                                <i data-lucide="camera" class="w-5 h-5 text-white"></i>
+                                <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="previewImage(event)">
+                            </label>
+                        </div>
+                        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1" data-i18n="full_name">Full Name</label>
+                                <input type="text" id="user-name-input"
+                                    class="w-full bg-[#1e293b]/40 border border-slate-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all placeholder-slate-600"
+                                    placeholder="Skyline Pilot">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1" data-i18n="email">Email Address</label>
+                                <input type="email" id="user-email-input"
+                                    class="w-full bg-[#1e293b]/40 border border-slate-700 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-cyan-500 outline-none transition-all placeholder-slate-600"
+                                    placeholder="pilot@skyline.land">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Password -->
+                    <div class="space-y-6 bg-[#111827]/50 rounded-[2rem] p-8 border border-white/5">
+                        <h4 class="text-lg font-bold text-white flex items-center gap-3">
+                            <div class="p-2.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                                <i data-lucide="lock" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <span data-i18n="change_password">Change Password</span>
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 block" data-i18n="current_password">Current Password</label>
+                                <div class="relative group">
+                                    <input type="password" id="current_pwd" placeholder="••••••••"
+                                        class="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl px-6 py-4 pr-12 text-sm outline-none focus:border-cyan-500 transition-all text-white placeholder-slate-600">
+                                    <button type="button" onclick="togglePassword('current_pwd', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 transition-colors p-1">
+                                        <i data-lucide="eye" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 block" data-i18n="new_password">New Password</label>
+                                <div class="relative group">
+                                    <input type="password" id="new_pwd" placeholder="••••••••"
+                                        class="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl px-6 py-4 pr-12 text-sm outline-none focus:border-cyan-500 transition-all text-white placeholder-slate-600">
+                                    <button type="button" onclick="togglePassword('new_pwd', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 transition-colors p-1">
+                                        <i data-lucide="eye" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 block" data-i18n="confirm_password">Confirm New Password</label>
+                                <div class="relative group">
+                                    <input type="password" id="confirm_pwd" placeholder="••••••••"
+                                        class="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl px-6 py-4 pr-12 text-sm outline-none focus:border-cyan-500 transition-all text-white placeholder-slate-600">
+                                    <button type="button" onclick="togglePassword('confirm_pwd', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 transition-colors p-1">
+                                        <i data-lucide="eye" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="changePassword()" class="px-8 py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-cyan-500/20 transition-all">
+                            Update Password
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ══════════ TAB: SECURITY ══════════ -->
+                <div id="tab-security" class="tab-content hidden space-y-8 animate-fade-in">
+                    <div class="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400">
+                                <i data-lucide="shield-check"></i>
+                            </div>
+                            <div>
+                                <h5 class="font-bold text-white" data-i18n="two_factor">Two-Factor Authentication</h5>
+                                <p class="text-xs text-slate-400" data-i18n="two_factor_desc">Secure your account with an extra layer of protection.</p>
+                            </div>
+                        </div>
+                        <button class="px-6 py-2.5 bg-emerald-500 text-black font-black rounded-xl text-[11px] uppercase tracking-wider hover:shadow-lg hover:shadow-emerald-500/20 transition-all">Enable</button>
+                    </div>
+
+                    <!-- Active Sessions from Supabase -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center pb-4 border-b border-white/5">
+                            <h4 class="text-lg font-bold text-white" data-i18n="active_sessions">Active Sessions</h4>
+                            <button onclick="logoutAllDevices()" class="text-[10px] text-rose-500 font-bold border border-rose-500/20 px-3 py-1.5 rounded-xl hover:bg-rose-500/10 transition-all" data-i18n="logout_all">Logout All Devices</button>
+                        </div>
+                        <div id="sessions-list">
+                            <div class="flex items-center gap-5 p-5 bg-white/5 rounded-3xl border border-white/5">
+                                <i data-lucide="monitor" class="w-8 h-8 text-cyan-400"></i>
+                                <div class="flex-1">
+                                    <p class="font-bold text-white text-sm" id="session-device">Loading...</p>
+                                    <p class="text-[10px] text-slate-500 font-medium" id="session-location">Algeria • <span class="text-cyan-400">Active Now</span></p>
+                                </div>
+                                <span id="session-since" class="text-[10px] text-slate-600"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="p-6 bg-red-500/5 border border-red-500/10 rounded-3xl space-y-3">
+                        <h5 class="font-bold text-red-400 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i> Danger Zone
+                        </h5>
+                        <p class="text-xs text-slate-500">Permanently delete your account and all associated data.</p>
+                        <button onclick="deleteAccount()" class="px-6 py-2.5 bg-red-500/10 text-red-400 font-black rounded-xl text-[11px] uppercase tracking-wider border border-red-500/20 hover:bg-red-500/20 transition-all">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ══════════ TAB: PERMISSIONS ══════════ -->
+                <div id="tab-permissions" class="tab-content hidden space-y-6 animate-fade-in">
+                    <h4 class="text-xl font-bold text-white mb-6" data-i18n="permissions_settings">Drone Access & Fleet Permissions</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-6 bg-[#1e293b]/40 border border-white/5 rounded-[2rem] flex justify-between items-center hover:border-cyan-500/40 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-400">
+                                    <i data-lucide="navigation-2" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white" data-i18n="drone_control">Manual Flight Control</p>
+                                    <p class="text-[11px] text-slate-500">Control access level</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm-flight" checked onchange="savePermission('flight_control', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="p-6 bg-[#1e293b]/40 border border-white/5 rounded-[2rem] flex justify-between items-center hover:border-rose-500/40 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-400">
+                                    <i data-lucide="eye" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white">Thermal Imagery Feed</p>
+                                    <p class="text-[11px] text-slate-500">Access sensors</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm-thermal" onchange="savePermission('thermal_feed', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="p-6 bg-[#1e293b]/40 border border-white/5 rounded-[2rem] flex justify-between items-center hover:border-amber-500/40 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400">
+                                    <i data-lucide="cpu" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white">Autonomous Mode</p>
+                                    <p class="text-[11px] text-slate-500">AI-controlled missions</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm-auto" onchange="savePermission('autonomous_mode', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="p-6 bg-[#1e293b]/40 border border-white/5 rounded-[2rem] flex justify-between items-center hover:border-purple-500/40 transition-all">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400">
+                                    <i data-lucide="database" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white">Fleet Data Export</p>
+                                    <p class="text-[11px] text-slate-500">Export mission logs</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm-export" checked onchange="savePermission('data_export', this.checked)"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══════════ TAB: NOTIFICATIONS ══════════ -->
+                <div id="tab-notifications" class="tab-content hidden space-y-6 animate-fade-in">
+                    <h4 class="text-xl font-bold text-white mb-6" data-i18n="notifications_settings">Notification Preferences</h4>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-6 bg-white/5 rounded-3xl">
+                            <div class="flex gap-4 items-center">
+                                <i data-lucide="bell" class="text-amber-500"></i>
+                                <div>
+                                    <span class="text-sm font-medium" data-i18n="security_alerts">Security & Login Alerts</span>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Get notified on new logins</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="notif-security" checked onchange="saveNotifPref('security_alerts', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="flex items-center justify-between p-6 bg-white/5 rounded-3xl">
+                            <div class="flex gap-4 items-center">
+                                <i data-lucide="check-circle" class="text-cyan-400"></i>
+                                <div>
+                                    <span class="text-sm font-medium" data-i18n="mission_alerts">Mission Status Alerts</span>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Updates on mission progress</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="notif-missions" checked onchange="saveNotifPref('mission_alerts', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="flex items-center justify-between p-6 bg-white/5 rounded-3xl">
+                            <div class="flex gap-4 items-center">
+                                <i data-lucide="zap" class="text-rose-400"></i>
+                                <div>
+                                    <span class="text-sm font-medium">Battery & Maintenance</span>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Drone health warnings</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="notif-battery" onchange="saveNotifPref('battery_alerts', this.checked)"><span class="slider"></span></label>
+                        </div>
+                        <div class="flex items-center justify-between p-6 bg-white/5 rounded-3xl">
+                            <div class="flex gap-4 items-center">
+                                <i data-lucide="cloud-rain" class="text-blue-400"></i>
+                                <div>
+                                    <span class="text-sm font-medium">Weather Warnings</span>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Alerts for unsafe conditions</p>
+                                </div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="notif-weather" checked onchange="saveNotifPref('weather_alerts', this.checked)"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Save / Discard -->
+            <div class="flex justify-end gap-6 pt-4">
+                <button onclick="discardChanges()" class="px-8 py-4 text-slate-500 font-bold hover:text-white hover:bg-white/5 rounded-2xl transition-all tracking-wider" data-i18n="btn_discard">Discard</button>
+                <button id="btn-save-settings" onclick="saveAllSettings()"
+                    class="relative px-12 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-400/20 hover:scale-[1.02] active:scale-95 transition-all tracking-widest uppercase text-xs flex items-center justify-center min-w-[180px] gap-2">
+                    <span data-i18n="btn_save">Save Changes</span>
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/js/language.js"></script>
+<script>
+/* ══════════════════════════════════════════
+   SUPABASE INIT
+══════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type + ' show';
+    setTimeout(() => t.className = '', 3200);
+}
+
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.classList.remove('hidden');
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'text-cyan-400');
+        btn.classList.add('text-slate-400');
+    });
+    const btn = document.getElementById('btn-' + tabId);
+    if (btn) { btn.classList.add('active', 'text-cyan-400'); btn.classList.remove('text-slate-400'); }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+/* ══════════════════════════════════════════
+   LOAD USER FROM SUPABASE AUTH
+══════════════════════════════════════════ */
+async function loadCurrentUser() {
+    try {
+        const { data: { user }, error } = await _sb.auth.getUser();
+
+        if (error || !user) {
+            // No Supabase session — fallback to localStorage
+            const savedName   = localStorage.getItem('skyline_user_name')   || '';
+            const savedEmail  = localStorage.getItem('skyline_user_email')  || '';
+            const savedAvatar = localStorage.getItem('skyline_user_avatar') || '/assets/default-avatar.jpg';
+
+            document.getElementById('user-name-input').value  = savedName;
+            document.getElementById('user-email-input').value = savedEmail;
+            document.getElementById('profile-preview').src    = savedAvatar;
+
+            showAuthStatus('localStorage mode', 'warn');
+            return;
+        }
+
+        // Fill profile fields from Supabase user
+        const meta = user.user_metadata || {};
+        document.getElementById('user-name-input').value  = meta.full_name || meta.name || '';
+        document.getElementById('user-email-input').value = user.email || '';
+
+        const avatar = meta.avatar_url || localStorage.getItem('skyline_user_avatar') || '/assets/default-avatar.jpg';
+        document.getElementById('profile-preview').src = avatar;
+
+        showAuthStatus('Supabase Auth ✓', 'ok');
+
+        // Show session info
+        const sessionDiv = document.getElementById('session-device');
+        const sessionSince = document.getElementById('session-since');
+        if (sessionDiv) sessionDiv.textContent = (meta.full_name || user.email || 'User') + ' — Browser Session';
+        if (sessionSince) {
+            const since = new Date(user.created_at).toLocaleDateString();
+            sessionSince.textContent = 'Since ' + since;
+        }
+
+        // Load preferences from profiles table if exists
+        loadUserPreferences(user.id);
+
+    } catch (e) {
+        console.warn('Auth load error:', e);
+        showAuthStatus('Offline mode', 'warn');
+    }
+}
+
+function showAuthStatus(msg, type) {
+    const el = document.getElementById('auth-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    if (type === 'ok') {
+        el.className = 'px-4 py-2 rounded-xl text-xs font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    } else {
+        el.className = 'px-4 py-2 rounded-xl text-xs font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20';
+    }
+}
+
+/* ══════════════════════════════════════════
+   LOAD PREFERENCES FROM `profiles` TABLE
+══════════════════════════════════════════ */
+async function loadUserPreferences(userId) {
+    try {
+        const { data, error } = await _sb
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (error || !data) return;
+
+        // Notifications
+        if (data.notif_security  != null) document.getElementById('notif-security').checked = data.notif_security;
+        if (data.notif_missions  != null) document.getElementById('notif-missions').checked  = data.notif_missions;
+        if (data.notif_battery   != null) document.getElementById('notif-battery').checked   = data.notif_battery;
+        if (data.notif_weather   != null) document.getElementById('notif-weather').checked   = data.notif_weather;
+
+        // Permissions
+        if (data.perm_flight     != null) document.getElementById('perm-flight').checked   = data.perm_flight;
+        if (data.perm_thermal    != null) document.getElementById('perm-thermal').checked  = data.perm_thermal;
+        if (data.perm_auto       != null) document.getElementById('perm-auto').checked     = data.perm_auto;
+        if (data.perm_export     != null) document.getElementById('perm-export').checked   = data.perm_export;
+
+    } catch (e) {
+        // profiles table might not exist yet — silent fail
+    }
+}
+
+/* ══════════════════════════════════════════
+   SAVE ALL SETTINGS
+══════════════════════════════════════════ */
+async function saveAllSettings() {
+    const btn = document.getElementById('btn-save-settings');
+    const originalHTML = btn.innerHTML;
+
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Saving...</span>`;
+    btn.disabled = true;
+    if (window.lucide) lucide.createIcons({ root: btn });
+
+    try {
+        const name  = document.getElementById('user-name-input').value.trim();
+        const email = document.getElementById('user-email-input').value.trim();
+
+        const { data: { user } } = await _sb.auth.getUser();
+
+        if (user) {
+            // ── Update Supabase Auth metadata ──
+            const updates = {};
+            if (name)  updates.data = { full_name: name };
+            if (email && email !== user.email) updates.email = email;
+
+            const { error: authErr } = await _sb.auth.updateUser(updates);
+            if (authErr) throw authErr;
+
+            // ── Upsert into profiles table ──
+            const profileData = {
+                id:              user.id,
+                full_name:       name  || null,
+                email:           email || null,
+                // notifications
+                notif_security:  document.getElementById('notif-security').checked,
+                notif_missions:  document.getElementById('notif-missions').checked,
+                notif_battery:   document.getElementById('notif-battery').checked,
+                notif_weather:   document.getElementById('notif-weather').checked,
+                // permissions
+                perm_flight:     document.getElementById('perm-flight').checked,
+                perm_thermal:    document.getElementById('perm-thermal').checked,
+                perm_auto:       document.getElementById('perm-auto').checked,
+                perm_export:     document.getElementById('perm-export').checked,
+                // avatar (if updated)
+                avatar_url:      window.tempAvatarData || null,
+                updated_at:      new Date().toISOString(),
+            };
+
+            // Remove null avatar to avoid overwriting existing
+            if (!window.tempAvatarData) delete profileData.avatar_url;
+
+            const { error: profileErr } = await _sb
+                .from('profiles')
+                .upsert(profileData, { onConflict: 'id' });
+
+            if (profileErr) {
+                // Table might not exist — save to localStorage as fallback
+                console.warn('profiles upsert failed:', profileErr.message);
+            }
+
+            showToast('✅ Settings saved to Supabase!', 'success');
+
+        } else {
+            // No auth session — save to localStorage only
+            if (name)  localStorage.setItem('skyline_user_name',  name);
+            if (email) localStorage.setItem('skyline_user_email', email);
+            if (window.tempAvatarData) localStorage.setItem('skyline_user_avatar', window.tempAvatarData);
+            showToast('💾 Saved to local storage.', 'success');
+        }
+
+        // Always update localStorage for offline support
+        if (name)  localStorage.setItem('skyline_user_name',  name);
+        if (email) localStorage.setItem('skyline_user_email', email);
+        if (window.tempAvatarData) {
+            localStorage.setItem('skyline_user_avatar', window.tempAvatarData);
+            window.tempAvatarData = null;
+        }
+
+        refreshUserDisplay();
+        window.dispatchEvent(new CustomEvent('profileUpdated'));
+
+        // Success state
+        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Saved!</span>`;
+        btn.classList.add('from-emerald-500', 'to-emerald-600');
+        btn.classList.remove('from-cyan-500', 'to-blue-600');
+        if (window.lucide) lucide.createIcons({ root: btn });
+
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('from-emerald-500', 'to-emerald-600');
+            btn.classList.add('from-cyan-500', 'to-blue-600');
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons({ root: btn });
+        }, 2000);
+
+    } catch (err) {
+        showToast('❌ ' + (err.message || 'Save failed'), 'error');
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        if (window.lucide) lucide.createIcons({ root: btn });
+    }
+}
+
+/* ══════════════════════════════════════════
+   CHANGE PASSWORD
+══════════════════════════════════════════ */
+async function changePassword() {
+    const current = document.getElementById('current_pwd').value;
+    const newPwd  = document.getElementById('new_pwd').value;
+    const confirm = document.getElementById('confirm_pwd').value;
+
+    if (!newPwd || !confirm) { showToast('⚠️ Please fill in all password fields.', 'error'); return; }
+    if (newPwd !== confirm)  { showToast('⚠️ Passwords do not match.', 'error'); return; }
+    if (newPwd.length < 6)   { showToast('⚠️ Password must be at least 6 characters.', 'error'); return; }
+
+    try {
+        const { error } = await _sb.auth.updateUser({ password: newPwd });
+        if (error) throw error;
+
+        showToast('🔐 Password updated successfully!', 'success');
+        document.getElementById('current_pwd').value = '';
+        document.getElementById('new_pwd').value     = '';
+        document.getElementById('confirm_pwd').value = '';
+
+    } catch (err) {
+        showToast('❌ ' + (err.message || 'Password update failed'), 'error');
+    }
+}
+
+/* ══════════════════════════════════════════
+   LOGOUT ALL DEVICES
+══════════════════════════════════════════ */
+async function logoutAllDevices() {
+    if (!confirm('Sign out from all devices?')) return;
+    try {
+        const { error } = await _sb.auth.signOut({ scope: 'global' });
+        if (error) throw error;
+        showToast('👋 Signed out from all devices.', 'success');
+        setTimeout(() => window.location.href = '/login.html', 1500);
+    } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+    }
+}
+
+/* ══════════════════════════════════════════
+   DELETE ACCOUNT
+══════════════════════════════════════════ */
+async function deleteAccount() {
+    const confirmed = prompt('Type DELETE to confirm account deletion:');
+    if (confirmed !== 'DELETE') return;
+
+    try {
+        // Note: Supabase anon key cannot delete users directly.
+        // This would require a server-side function or admin key.
+        // For now, we sign out and show a message.
+        await _sb.auth.signOut();
+        showToast('⚠️ Contact admin to fully delete account.', 'error');
+    } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+    }
+}
+
+/* ══════════════════════════════════════════
+   QUICK TOGGLE SAVES (permissions/notifs)
+══════════════════════════════════════════ */
+async function savePermission(key, value) {
+    const { data: { user } } = await _sb.auth.getUser();
+    if (!user) { localStorage.setItem('perm_' + key, value); return; }
+
+    const col = 'perm_' + key.replace('_control','').replace('_feed','').replace('_mode','').replace('_export','');
+    // Map key names to column names
+    const colMap = {
+        'flight_control':  'perm_flight',
+        'thermal_feed':    'perm_thermal',
+        'autonomous_mode': 'perm_auto',
+        'data_export':     'perm_export',
+    };
+    const colName = colMap[key];
+    if (!colName) return;
+
+    await _sb.from('profiles').upsert({ id: user.id, [colName]: value, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+}
+
+async function saveNotifPref(key, value) {
+    const { data: { user } } = await _sb.auth.getUser();
+    if (!user) { localStorage.setItem('notif_' + key, value); return; }
+
+    const colMap = {
+        'security_alerts': 'notif_security',
+        'mission_alerts':  'notif_missions',
+        'battery_alerts':  'notif_battery',
+        'weather_alerts':  'notif_weather',
+    };
+    const colName = colMap[key];
+    if (!colName) return;
+
+    await _sb.from('profiles').upsert({ id: user.id, [colName]: value, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+}
+
+/* ══════════════════════════════════════════
+   DISCARD
+══════════════════════════════════════════ */
+function discardChanges() {
+    loadCurrentUser();
+    showToast('↩️ Changes discarded.', 'success');
+}
+
+/* ══════════════════════════════════════════
+   AVATAR PREVIEW
+══════════════════════════════════════════ */
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const data = e.target.result;
+        document.getElementById('profile-preview').src = data;
+        window.tempAvatarData = data;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* ══════════════════════════════════════════
+   TOGGLE PASSWORD VISIBILITY
+══════════════════════════════════════════ */
+function togglePassword(inputId, btnEl) {
+    const input = document.getElementById(inputId);
+    const icon  = btnEl.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+        btnEl.classList.add('text-cyan-400');
+    } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+        btnEl.classList.remove('text-cyan-400');
+    }
+    if (window.lucide) lucide.createIcons({ root: btnEl });
+}
+
+/* ══════════════════════════════════════════
+   REFRESH TOPBAR DISPLAY
+══════════════════════════════════════════ */
+function refreshUserDisplay() {
+    const name   = localStorage.getItem('skyline_user_name')   || document.getElementById('user-name-input')?.value || '';
+    const avatar = localStorage.getItem('skyline_user_avatar') || '/assets/default-avatar.jpg';
+    const topName   = document.getElementById('topbar-user-name');
+    const topAvatar = document.getElementById('topbar-user-avatar');
+    if (topName)   topName.textContent = name;
+    if (topAvatar) topAvatar.src = avatar;
+}
+
+/* ══════════════════════════════════════════
+   LOAD COMPONENT HELPER
+══════════════════════════════════════════ */
+async function loadComponent(id, path) {
+    try {
+        const res  = await fetch(path);
+        const html = await res.text();
+        document.getElementById(id).innerHTML = html;
+        if (id === 'topbar-container') refreshUserDisplay();
+        if (window.lucide) lucide.createIcons();
+    } catch (e) { console.warn('loadComponent failed:', path); }
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load sidebar & topbar
+    await Promise.all([
+        loadComponent('sidebar-container', '/components/sidebar.html'),
+        loadComponent('topbar-container',  '/components/topbar.html'),
+    ]).catch(() => {});
+
+    // Routing by hash
+    const handleRoute = () => {
+        const hash = window.location.hash.replace('#', '') || 'profile';
+        switchTab(hash);
+    };
+    window.addEventListener('hashchange', handleRoute);
+    handleRoute();
+
+    // Apply language
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (typeof updatePageText === 'function') updatePageText(lang);
+
+    lucide.createIcons();
+
+    // Load user data from Supabase
+    await loadCurrentUser();
+});
+
+window.addEventListener('storage',        refreshUserDisplay);
+window.addEventListener('profileUpdated', refreshUserDisplay);
+</script>
+</body>
+</html>

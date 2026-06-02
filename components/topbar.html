@@ -1,0 +1,201 @@
+<div class="flex items-center justify-between w-full h-full px-4">
+    <div class="relative group w-96">
+        <span class="absolute inset-y-0 left-4 flex items-center pr-2">
+            <i data-lucide="search" class="w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
+        </span>
+        <input 
+            type="text" 
+            id="global-search"
+            class="w-full bg-[#111827]/50 border border-slate-800 text-slate-300 text-sm rounded-xl py-2.5 pl-12 pr-4 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder:text-slate-600"
+            placeholder="Search missions, drones, or users..."
+        >
+    </div>
+
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 border-r border-slate-800 pr-6">
+            <button id="theme-btn" onclick="toggleThemeVisual()" class="relative overflow-hidden p-2.5 text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-700/80 border border-slate-700/50 hover:border-slate-500 rounded-xl transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] group">
+                <i data-lucide="moon" class="w-5 h-5 group-active:scale-95 transition-transform duration-300"></i>
+            </button>
+            
+            <div class="relative group/notify">
+                <button onclick="toggleNotifyPanel()" class="relative overflow-hidden p-2.5 text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-700/80 border border-slate-700/50 hover:border-slate-500 rounded-xl transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] group">
+                    <i data-lucide="bell" class="w-5 h-5 group-hover:-rotate-12 group-active:scale-95 transition-transform duration-300 origin-top"></i>
+                    <span id="notify-dot" class="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#111827] shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse"></span>
+                </button>
+            </div>
+
+            <button onclick="runSystemCheck()" class="relative overflow-hidden p-2.5 text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-700/80 border border-slate-700/50 hover:border-slate-500 rounded-xl transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] group">
+                <i data-lucide="settings-2" class="w-5 h-5 group-hover:rotate-90 group-active:scale-95 transition-transform duration-500"></i>
+            </button>
+        </div>
+
+        <div class="relative group flex items-center gap-4 pl-2 cursor-pointer">
+            <div class="text-right hidden sm:block">
+                <p id="topbar-user-name" class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">—</p>
+                <p id="topbar-user-role" class="text-xs text-slate-500 font-medium">—</p>
+            </div>
+            
+            <div class="relative">
+                <div class="w-11 h-11 rounded-xl overflow-hidden border-2 border-slate-800 group-hover:border-cyan-500/50 transition-all shadow-lg bg-slate-800 flex items-center justify-center">
+                    <!-- Shown when avatar exists -->
+                    <img id="topbar-user-avatar"
+                         src=""
+                         alt="Profile"
+                         class="w-full h-full object-cover hidden"
+                         onerror="this.classList.add('hidden'); document.getElementById('topbar-user-initials').classList.remove('hidden');">
+                    <!-- Shown when no avatar -->
+                    <span id="topbar-user-initials"
+                          class="text-white text-sm font-black select-none">?</span>
+                </div>
+                <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#0B1120] shadow-[0_0_5px_#10b981]"></span>
+            </div>
+
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-500 group-hover:text-white transition-all group-hover:rotate-180"></i>
+
+            <div class="absolute top-full right-0 mt-2 w-48 bg-[#111827] border border-white/5 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2 backdrop-blur-xl">
+                <a href="/pages/settings/settings.html#profile" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-slate-300 text-xs transition-colors">
+                    <i data-lucide="user" class="w-4 h-4 text-cyan-500"></i>
+                    <span>Profile Details</span>
+                </a>
+                <div class="h-[1px] bg-white/5 my-1"></div>
+                <button onclick="logout()" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 text-red-400 text-xs transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    /* ── Config ── */
+    const SB_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+    const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+
+    /* ── DOM refs ── */
+    const nameEl     = document.getElementById('topbar-user-name');
+    const roleEl     = document.getElementById('topbar-user-role');
+    const avatarEl   = document.getElementById('topbar-user-avatar');
+    const initialsEl = document.getElementById('topbar-user-initials');
+
+    /* ── Helpers ── */
+    function getInitials(name) {
+        if (!name) return '?';
+        return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function applyUserUI(name, role, avatarUrl) {
+        /* Name */
+        if (nameEl) nameEl.textContent = name || 'Unknown';
+
+        /* Role */
+        if (roleEl) roleEl.textContent = role ? role.charAt(0).toUpperCase() + role.slice(1) : '—';
+
+        /* Avatar or initials */
+        if (avatarUrl) {
+            /* Test the image URL before showing it */
+            const img = new Image();
+            img.onload = () => {
+                if (avatarEl)   { avatarEl.src = avatarUrl; avatarEl.classList.remove('hidden'); }
+                if (initialsEl) { initialsEl.classList.add('hidden'); }
+            };
+            img.onerror = () => {
+                /* URL broken → show initials */
+                showInitials(name);
+            };
+            img.src = avatarUrl;
+        } else {
+            showInitials(name);
+        }
+    }
+
+    function showInitials(name) {
+        if (avatarEl)   { avatarEl.classList.add('hidden'); avatarEl.src = ''; }
+        if (initialsEl) { initialsEl.textContent = getInitials(name); initialsEl.classList.remove('hidden'); }
+    }
+
+    /* ── Main: fetch from Supabase every load ── */
+    async function loadTopbarUser() {
+        /* 1. Wait for the supabase global to be ready (loaded by parent page) */
+        if (typeof supabase === 'undefined') {
+            setTimeout(loadTopbarUser, 150);
+            return;
+        }
+
+        try {
+            const _sb = supabase.createClient(SB_URL, SB_ANON);
+
+            /* 2. Get current session */
+            const { data: { session }, error: sessErr } = await _sb.auth.getSession();
+            if (sessErr || !session?.user) {
+                applyUserUI('Guest', 'visitor', null);
+                return;
+            }
+
+            const userId = session.user.id;
+
+            /* 3. Fetch profile from DB (always fresh, never from cache) */
+            const { data: profile, error: profErr } = await _sb
+                .from('profiles')
+                .select('full_name, role, avatar_url')
+                .eq('id', userId)
+                .single();
+
+            if (profErr || !profile) {
+                /* Fallback to auth metadata */
+                const meta = session.user.user_metadata || {};
+                applyUserUI(meta.full_name || session.user.email, 'user', meta.avatar_url || null);
+                return;
+            }
+
+            /* 4. Update UI with real profile data */
+            applyUserUI(profile.full_name, profile.role, profile.avatar_url || null);
+
+            /* 5. Also keep localStorage in sync (for other components that still read it) */
+            if (profile.full_name)  localStorage.setItem('skyline_user_name',   profile.full_name);
+            if (profile.role)       localStorage.setItem('skyline_user_role',   profile.role);
+            if (profile.avatar_url) localStorage.setItem('skyline_user_avatar', profile.avatar_url);
+            else                    localStorage.removeItem('skyline_user_avatar');
+
+        } catch (err) {
+            console.error('[Topbar] loadTopbarUser error:', err);
+            applyUserUI('Error', '—', null);
+        }
+    }
+
+    /* ── Theme toggle (unchanged) ── */
+    window.toggleThemeVisual = function () {
+        const current  = localStorage.getItem('skyline_theme') || 'dark';
+        const nextMode = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('skyline_theme', nextMode);
+        applyThemeBtn(nextMode);
+    };
+
+    function applyThemeBtn(mode) {
+        const btn = document.getElementById('theme-btn');
+        if (!btn) return;
+        if (mode === 'light') {
+            btn.innerHTML = '<i data-lucide="sun" class="w-5 h-5 group-active:scale-95 transition-transform duration-300"></i>';
+            btn.className = 'relative overflow-hidden p-2.5 text-amber-400 bg-amber-400/10 border border-amber-400/30 hover:border-amber-400/60 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(251,191,36,0.15)] group';
+        } else {
+            btn.innerHTML = '<i data-lucide="moon" class="w-5 h-5 group-active:scale-95 transition-transform duration-300"></i>';
+            btn.className = 'relative overflow-hidden p-2.5 text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-700/80 border border-slate-700/50 hover:border-slate-500 rounded-xl transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] group';
+        }
+        if (window.lucide) lucide.createIcons({ root: btn });
+    }
+
+    /* ── Run ── */
+    applyThemeBtn(localStorage.getItem('skyline_theme') || 'dark');
+    loadTopbarUser();
+
+    /* Re-run if profile was updated elsewhere */
+    window.addEventListener('profileUpdated', loadTopbarUser);
+    window.addEventListener('storage', (e) => {
+        /* Only re-fetch on session-related changes, not every key */
+        if (e.key === 'sb-' + SB_URL.split('//')[1].split('.')[0] + '-auth-token') {
+            loadTopbarUser();
+        }
+    });
+})();
+</script>

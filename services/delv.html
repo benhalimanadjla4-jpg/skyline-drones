@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlTag">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKYLINE | Drone Logistics</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --primary: #5c2a0e;
+    --glow: #8b3a1a;
+    --highlight: #a0522d;
+    --accent: #6b3a2a;
+    --bg: #080302;
+    --bg2: #0f0402;
+    --card-bg: rgba(15, 6, 2, 0.93);
+    --text: #f0d4c0;
+    --text-muted: #8a5540;
+    --border: rgba(92, 42, 14, 0.35);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Montserrat',sans-serif; overflow-x:hidden; }
+
+  #particles { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+  .hud { position:fixed; top:0; width:3px; height:100vh; z-index:1; pointer-events:none; }
+  .hud-left { left:0; background:linear-gradient(to bottom, transparent, var(--glow), transparent); opacity:0.5; }
+  .hud-right { right:0; background:linear-gradient(to bottom, transparent, var(--glow), transparent); opacity:0.5; }
+  .scan-line {
+    position:fixed; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, #8b3a1a, transparent);
+    z-index:2; pointer-events:none; animation:scan 7s linear infinite;
+  }
+  @keyframes scan { 0%{top:0;opacity:.8} 50%{opacity:.3} 100%{top:100vh;opacity:0} }
+
+  body::before {
+    content:''; position:fixed; inset:0; z-index:0;
+    background-image:
+      linear-gradient(rgba(60,20,5,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60,20,5,0.04) 1px, transparent 1px);
+    background-size:55px 55px; pointer-events:none;
+  }
+
+  /* NAVBAR */
+  .topbar {
+    position:fixed; top:0; left:0; right:0; z-index:1000;
+    background:rgba(13,8,3,0.95); backdrop-filter:blur(22px);
+    border-bottom:1px solid var(--border); padding:0 40px;
+  }
+  .nav-container { max-width:1300px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:70px; }
+  .logo-box { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .brand-icon {
+    width:42px; height:42px; border-radius:50%;
+    background:linear-gradient(135deg,#5c2a0e,#8b3a1a);
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; border:2px solid var(--glow);
+    box-shadow:0 0 14px rgba(92,42,14,0.4);
+  }
+  .brand-name { font-family:'Orbitron',sans-serif; font-size:20px; color:var(--glow); letter-spacing:3px; }
+  .brand-sub { font-size:10px; color:var(--highlight); letter-spacing:2px; margin-left:2px; }
+  .nav-links { list-style:none; display:flex; gap:28px; }
+  .nav-links a { text-decoration:none; color:var(--text-muted); font-size:13px; font-weight:500; letter-spacing:1px; transition:color .3s; }
+  .nav-links a:hover { color:var(--glow); text-shadow:0 0 10px var(--glow); }
+  .nav-actions { display:flex; gap:12px; align-items:center; }
+  .langBtn { background:transparent; border:1px solid var(--glow); color:var(--glow); padding:6px 16px; border-radius:20px; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:700; transition:all .3s; }
+  .langBtn:hover { background:var(--glow); color:#000; box-shadow:0 0 15px var(--glow); }
+  .track-btn { background:transparent; border:1px solid var(--glow); color:var(--highlight); padding:6px 20px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:700; transition:all .3s; }
+  .track-btn:hover { background:var(--highlight); color:#f0d4c0; box-shadow:0 0 15px var(--highlight); }
+
+  /* HERO */
+  .hero { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .hero-overlay {
+    position:absolute; inset:0; z-index:2;
+    background:
+      radial-gradient(ellipse at 15% 55%, rgba(60,20,5,0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 30%, rgba(100,45,15,0.10) 0%, transparent 50%),
+      linear-gradient(to bottom, rgba(13,8,3,0.35) 0%, rgba(13,8,3,0.05) 50%, rgba(13,8,3,0.98) 100%);
+  }
+
+  /* Drone delivery animation */
+  .drone-scene {
+    position:absolute; right:5%; top:50%; transform:translateY(-50%);
+    width:360px; height:340px; z-index:5;
+  }
+  .drone-body {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:80px; height:30px; background:linear-gradient(135deg,#2a1a0a,#160e06);
+    border:1px solid var(--glow); border-radius:12px;
+    box-shadow:0 0 20px rgba(92,42,14,0.3);
+    animation:drone-hover 3s ease-in-out infinite;
+    z-index:3;
+  }
+  .drone-body::after {
+    content:'📦'; position:absolute; top:28px; left:50%; transform:translateX(-50%);
+    font-size:18px; animation:package-swing 3s ease-in-out infinite;
+  }
+  @keyframes drone-hover {
+    0%,100%{transform:translate(-50%,-50%) translateY(0)}
+    50%{transform:translate(-50%,-50%) translateY(-18px)}
+  }
+  @keyframes package-swing {
+    0%,100%{transform:translateX(-50%) rotate(-5deg)}
+    50%{transform:translateX(-50%) rotate(5deg)}
+  }
+
+  .drone-arm {
+    position:absolute; top:50%; left:50%;
+    width:70px; height:3px;
+    background:linear-gradient(90deg,transparent,var(--glow),transparent);
+    transform-origin:left center;
+    animation:drone-hover 3s ease-in-out infinite;
+  }
+  .drone-arm:nth-child(1){transform:translate(-50%,-50%) rotate(45deg) translateY(-3px)}
+  .drone-arm:nth-child(2){transform:translate(-50%,-50%) rotate(135deg) translateY(-3px)}
+  .drone-arm:nth-child(3){transform:translate(-50%,-50%) rotate(225deg) translateY(-3px)}
+  .drone-arm:nth-child(4){transform:translate(-50%,-50%) rotate(315deg) translateY(-3px)}
+
+  .rotor {
+    position:absolute; width:40px; height:6px; border-radius:3px;
+    background:var(--glow); opacity:0.7;
+    animation:spin-rotor 0.2s linear infinite;
+    box-shadow:0 0 8px var(--glow);
+  }
+  .rotor:nth-child(5){top:20%; left:62%; transform:translateX(-50%)}
+  .rotor:nth-child(6){top:20%; left:38%; transform:translateX(-50%)}
+  .rotor:nth-child(7){top:80%; left:62%; transform:translateX(-50%)}
+  .rotor:nth-child(8){top:80%; left:38%; transform:translateX(-50%)}
+  @keyframes spin-rotor { 100%{transform:translateX(-50%) scaleX(-1)} }
+
+  .route-svg {
+    position:absolute; inset:0; width:100%; height:100%;
+    animation:route-pulse 3s ease-in-out infinite;
+  }
+  @keyframes route-pulse { 0%,100%{opacity:.4} 50%{opacity:.9} }
+
+  .ping-dot {
+    position:absolute; width:12px; height:12px; border-radius:50%;
+    background:var(--highlight); box-shadow:0 0 12px var(--highlight);
+    animation:ping 1.8s ease-in-out infinite;
+  }
+  .ping-dot::after { content:''; position:absolute; inset:-6px; border-radius:50%; border:1px solid var(--glow); animation:ping-ring 1.8s ease-in-out infinite; }
+  @keyframes ping { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @keyframes ping-ring { 0%{transform:scale(1);opacity:1} 100%{transform:scale(2.5);opacity:0} }
+  .ping-dot:nth-child(9) { top:18%; left:72%; animation-delay:.2s }
+  .ping-dot:nth-child(10){ top:68%; left:22%; animation-delay:.9s }
+  .ping-dot:nth-child(11){ top:82%; left:70%; animation-delay:1.4s }
+
+  .heroContent { position:relative; z-index:10; max-width:700px; padding:0 20px 0 60px; }
+  .hero-badge {
+    display:inline-block; background:rgba(60,20,5,0.18); border:1px solid var(--primary);
+    border-radius:30px; padding:6px 20px; font-size:11px; letter-spacing:3px;
+    color:var(--glow); margin-bottom:24px; text-transform:uppercase;
+    animation:fadeUp .8s ease forwards;
+  }
+  .hero-title {
+    font-family:'Orbitron',sans-serif; font-size:clamp(28px,4.5vw,56px); font-weight:900;
+    line-height:1.15; margin-bottom:20px;
+    background:linear-gradient(135deg, #f0d4c0 0%, #a0522d 45%, #5c2a0e 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    animation:fadeUp .9s .1s ease both;
+  }
+  .hero-sub {
+    font-size:15px; color:var(--text-muted); max-width:560px; margin-bottom:36px;
+    line-height:1.7; font-weight:300; animation:fadeUp 1s .2s ease both;
+  }
+  .cta-row { display:flex; gap:16px; flex-wrap:wrap; animation:fadeUp 1s .3s ease both; }
+  .btn-primary {
+    background:linear-gradient(135deg,#5c2a0e,#3d1a08); color:#f5e6d0;
+    border:none; padding:14px 34px; border-radius:40px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px;
+    box-shadow:0 0 25px rgba(60,20,5,0.5); transition:all .3s;
+  }
+  .btn-primary:hover { transform:translateY(-3px); box-shadow:0 0 45px rgba(92,42,14,.7); }
+  .btn-outline-gold {
+    background:transparent; color:var(--highlight); border:1px solid var(--glow);
+    padding:14px 34px; border-radius:40px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px; transition:all .3s;
+  }
+  .btn-outline-gold:hover { background:var(--highlight); color:#f0d4c0; transform:translateY(-3px); }
+
+  /* STATS */
+  .stats-bar {
+    position:relative; z-index:5;
+    background:rgba(22,14,6,0.95); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    backdrop-filter:blur(20px);
+  }
+  .stats-inner { max-width:1200px; margin:0 auto; display:flex; justify-content:space-around; flex-wrap:wrap; }
+  .stat-item { text-align:center; padding:28px 30px; border-right:1px solid var(--border); flex:1; min-width:130px; }
+  .stat-item:last-child { border-right:none; }
+  .stat-num { font-family:'Orbitron',sans-serif; font-size:34px; font-weight:900; color:var(--highlight); display:block; text-shadow:0 0 20px rgba(100,45,15,.5); }
+  .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:2px; margin-top:4px; display:block; }
+
+  /* SECTIONS */
+  .section { padding:100px 20px; position:relative; z-index:5; }
+  .section-title {
+    text-align:center; font-family:'Orbitron',sans-serif; font-size:clamp(22px,3vw,36px);
+    font-weight:900; color:#fff; margin-bottom:16px; text-shadow:0 0 30px rgba(92,42,14,.4);
+  }
+  .section-title span { color:var(--glow); }
+  .section-subtitle { text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:60px; }
+
+  /* SERVICES GRID */
+  .domains-grid {
+    max-width:1200px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px;
+  }
+  .domain-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:20px; padding:36px 30px; transition:all .4s cubic-bezier(.2,.8,.2,1);
+    backdrop-filter:blur(15px); transform-style:preserve-3d; position:relative; overflow:hidden;
+  }
+  .domain-card::after {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--glow),transparent);
+    opacity:0; transition:opacity .4s;
+  }
+  .domain-card:hover::after { opacity:1; }
+  .domain-card:hover {
+    transform:translateZ(25px) scale(1.02);
+    border-color:rgba(92,42,14,.6);
+    box-shadow:0 20px 40px rgba(60,20,5,.15),inset 0 0 20px rgba(60,20,5,.05);
+  }
+  .domain-icon { font-size:50px; display:inline-block; margin-bottom:18px; transform:translateZ(40px); animation:float-icon 4s ease-in-out infinite; filter:drop-shadow(0 10px 15px rgba(100,45,15,.4)); }
+  @keyframes float-icon { 0%,100%{transform:translateY(0) translateZ(40px)} 50%{transform:translateY(-10px) translateZ(40px)} }
+  .domain-card h3 { font-family:'Orbitron',sans-serif; font-size:16px; color:#fff; margin-bottom:12px; text-shadow:0 0 10px rgba(92,42,14,.4); transform:translateZ(30px); }
+  .domain-card p { color:var(--text-muted); font-size:13px; line-height:1.7; transform:translateZ(20px); }
+  .domain-tag { display:inline-block; margin-top:14px; background:rgba(60,20,5,.15); border:1px solid var(--primary); border-radius:20px; padding:4px 14px; font-size:11px; color:var(--glow); letter-spacing:2px; transform:translateZ(30px); }
+
+  /* ACHIEVEMENTS */
+  .achieve-section { padding:80px 20px; position:relative; z-index:5; background:rgba(13,8,3,.6); }
+  .achieve-grid {
+    max-width:1100px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px;
+  }
+  .achieve-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:18px; padding:32px; transition:all .4s; backdrop-filter:blur(10px); position:relative; overflow:hidden;
+  }
+  .achieve-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:linear-gradient(to bottom,#8b3a1a,#5c2a0e); border-radius:4px 0 0 4px; }
+  .achieve-card:hover { border-color:rgba(92,42,14,.6); transform:translateY(-6px); box-shadow:0 20px 40px rgba(60,20,5,.15); }
+  .achieve-num { font-family:'Orbitron',sans-serif; font-size:42px; font-weight:900; color:var(--highlight); text-shadow:0 0 20px rgba(100,45,15,.5); margin-bottom:8px; }
+  .achieve-card h4 { font-family:'Orbitron',sans-serif; font-size:15px; color:#fff; margin-bottom:10px; }
+  .achieve-card p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* HOW IT WORKS */
+  .how-section { padding:80px 20px; position:relative; z-index:5; background:rgba(13,8,3,.5); }
+  .how-grid { max-width:1000px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0; position:relative; }
+  .how-grid::before { content:''; position:absolute; top:35px; left:10%; right:10%; height:2px; background:linear-gradient(90deg,#5c2a0e,#a0522d); z-index:0; }
+  .how-step { text-align:center; padding:20px; position:relative; z-index:1; }
+  .step-num { width:70px; height:70px; border-radius:50%; background:var(--bg2); border:2px solid var(--glow); display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; color:var(--glow); margin:0 auto 16px; box-shadow:0 0 20px rgba(60,20,5,.3); }
+  .how-step h4 { font-family:'Orbitron',sans-serif; font-size:12px; color:#fff; margin-bottom:8px; letter-spacing:1px; }
+  .how-step p { font-size:12px; color:var(--text-muted); line-height:1.5; }
+
+  /* TIMELINE */
+  .timeline-section { padding:80px 20px; position:relative; z-index:5; }
+  .timeline { max-width:900px; margin:0 auto; position:relative; }
+  .timeline::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:linear-gradient(to bottom,#3d1a08,#8b3a1a,#a0522d); transform:translateX(-50%); }
+  .timeline-item { display:flex; gap:40px; margin-bottom:60px; position:relative; align-items:flex-start; }
+  .timeline-item:nth-child(even) { flex-direction:row-reverse; }
+  .timeline-dot { position:absolute; left:50%; top:10px; width:18px; height:18px; border-radius:50%; background:var(--highlight); border:3px solid var(--bg); box-shadow:0 0 20px var(--highlight); transform:translateX(-50%); z-index:2; animation:pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{box-shadow:0 0 20px var(--highlight)} 50%{box-shadow:0 0 40px var(--highlight),0 0 60px rgba(100,45,15,.5)} }
+  .timeline-content { flex:1; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:28px; backdrop-filter:blur(10px); transition:all .3s; max-width:380px; }
+  .timeline-content:hover { border-color:rgba(92,42,14,.6); transform:translateY(-4px); }
+  .timeline-year { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--highlight); letter-spacing:2px; margin-bottom:8px; }
+  .timeline-content h4 { font-family:'Orbitron',sans-serif; font-size:15px; color:var(--glow); margin-bottom:10px; }
+  .timeline-content p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+  .timeline-spacer { flex:1; }
+
+  /* TECH SPECS */
+  .tech-section { padding:80px 20px; position:relative; z-index:5; }
+  .spec-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:18px; }
+  .spec-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:28px; text-align:center; backdrop-filter:blur(10px); transition:all .3s; }
+  .spec-card:hover { border-color:rgba(100,45,15,.6); transform:translateY(-5px); box-shadow:0 15px 30px rgba(60,20,5,.15); }
+  .spec-icon { font-size:34px; margin-bottom:12px; display:block; }
+  .spec-val { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:900; color:var(--highlight); display:block; text-shadow:0 0 15px rgba(100,45,15,.5); }
+  .spec-name { font-size:11px; color:var(--text-muted); letter-spacing:2px; margin-top:6px; display:block; }
+
+  /* TRACKING PANEL */
+  .track-section { padding:60px 20px; position:relative; z-index:5; }
+  .track-wrapper { max-width:900px; margin:0 auto; background:var(--card-bg); border:1px solid var(--border); border-radius:24px; padding:40px; backdrop-filter:blur(20px); box-shadow:0 0 40px rgba(60,20,5,.1); }
+  .track-wrapper h3 { font-family:'Orbitron',sans-serif; font-size:20px; color:var(--glow); margin-bottom:6px; }
+  .track-wrapper p { color:var(--text-muted); font-size:13px; margin-bottom:24px; }
+  .track-row { display:flex; gap:14px; flex-wrap:wrap; }
+  .track-input { flex:1; min-width:200px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:10px; padding:14px 18px; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; outline:none; transition:border-color .3s; }
+  .track-input:focus { border-color:var(--glow); box-shadow:0 0 14px rgba(92,42,14,.2); }
+  .track-input::placeholder { color:var(--text-muted); }
+  .btn-track { background:linear-gradient(135deg,#5c2a0e,#3d1a08); color:#f5e6d0; border:none; padding:14px 30px; border-radius:10px; font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; cursor:pointer; transition:all .3s; white-space:nowrap; }
+  .btn-track:hover { transform:translateY(-2px); box-shadow:0 0 25px rgba(92,42,14,.5); }
+  .track-result { margin-top:20px; display:none; padding:20px; border-radius:12px; background:rgba(60,20,5,.06); border:1px solid var(--border); }
+
+  /* AUTH PANEL */
+  .auth-section { padding:100px 20px; position:relative; z-index:5; background:radial-gradient(ellipse at center,rgba(60,20,5,.07) 0%,transparent 70%); }
+  .auth-wrapper { max-width:1100px; margin:0 auto; display:flex; gap:0; align-items:stretch; background:rgba(13,6,2,.90); border:1px solid var(--border); border-radius:28px; overflow:hidden; backdrop-filter:blur(20px); box-shadow:0 0 60px rgba(60,20,5,.1); }
+  .auth-left { flex:1; padding:60px 50px; background:linear-gradient(135deg,rgba(60,20,5,.12) 0%,rgba(100,45,15,.05) 100%); display:flex; flex-direction:column; justify-content:center; border-right:1px solid var(--border); }
+  .auth-left .tag { font-size:11px; letter-spacing:3px; color:var(--glow); text-transform:uppercase; margin-bottom:16px; }
+  .auth-left h2 { font-family:'Orbitron',sans-serif; font-size:clamp(20px,2.5vw,30px); line-height:1.2; color:#fff; margin-bottom:20px; }
+  .auth-left h2 span { color:var(--highlight); }
+  .auth-left p { color:var(--text-muted); font-size:14px; line-height:1.7; margin-bottom:30px; }
+  .auth-features { list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .auth-features li { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-muted); }
+  .auth-features li .dot { width:8px; height:8px; background:var(--highlight); border-radius:50%; flex-shrink:0; box-shadow:0 0 10px var(--highlight); }
+  .auth-right { flex:1; padding:50px; display:flex; flex-direction:column; }
+  .auth-form { display:flex; flex-direction:column; gap:14px; }
+  .auth-form input, .auth-form select, .auth-form textarea { background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:10px; padding:13px 16px; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; transition:border-color .3s,box-shadow .3s; outline:none; width:100%; }
+  .auth-form input:focus,.auth-form select:focus,.auth-form textarea:focus { border-color:var(--glow); box-shadow:0 0 15px rgba(92,42,14,.2); }
+  .auth-form input::placeholder,.auth-form textarea::placeholder { color:var(--text-muted); }
+  .auth-form select { color:var(--text-muted); }
+  .auth-form select option { background:#160e06; color:var(--text); }
+  .auth-form textarea { resize:vertical; min-height:80px; }
+  .input-row { display:flex; gap:12px; }
+  .input-row input { flex:1; }
+  .btn-submit { background:linear-gradient(135deg,#5c2a0e,#3d1a08); color:#f5e6d0; border:none; padding:15px; border-radius:12px; font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; cursor:pointer; transition:all .3s; box-shadow:0 0 20px rgba(60,20,5,.4); }
+  .btn-submit:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(92,42,14,.7); }
+  .or-divider { text-align:center; position:relative; color:var(--text-muted); font-size:13px; }
+  .or-divider::before,.or-divider::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--border); }
+  .or-divider::before{left:0} .or-divider::after{right:0}
+  .btn-contact { display:flex; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.15); border-radius:12px; padding:13px; cursor:pointer; color:var(--text); font-family:'Montserrat',sans-serif; font-size:13px; font-weight:500; transition:all .3s; }
+  .btn-contact:hover { background:rgba(255,255,255,.1); }
+  .sec-status { display:none; padding:10px; border-radius:10px; font-size:13px; text-align:center; font-weight:600; }
+
+  /* FOOTER */
+  .footer { background:rgba(5,3,1,.98); border-top:1px solid var(--border); padding:60px 20px 30px; position:relative; z-index:5; }
+  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; }
+  .footer-brand h3 { font-family:'Orbitron',sans-serif; font-size:18px; color:var(--glow); margin-bottom:10px; }
+  .footer-brand .log-badge { display:inline-block; background:rgba(100,45,15,.15); border:1px solid var(--glow); border-radius:10px; padding:3px 10px; font-size:10px; color:var(--highlight); letter-spacing:2px; margin-bottom:12px; }
+  .footer-brand p { color:var(--text-muted); font-size:13px; line-height:1.6; }
+  .footer-col h4 { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--glow); letter-spacing:2px; margin-bottom:16px; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .footer-col ul li { font-size:13px; color:var(--text-muted); cursor:pointer; transition:color .3s; }
+  .footer-col ul li:hover { color:var(--highlight); }
+  .footer-bottom { max-width:1100px; margin:40px auto 0; padding-top:20px; border-top:1px solid var(--border); text-align:center; font-size:12px; color:var(--text-muted); }
+
+  /* NOTIFICATION */
+  .notification { position:fixed; top:90px; right:20px; z-index:9999; background:var(--card-bg); border:1px solid var(--glow); border-radius:12px; padding:16px 24px; font-size:14px; color:var(--text); box-shadow:0 10px 30px rgba(60,20,5,.3); transform:translateX(200%); transition:transform .4s cubic-bezier(.2,.8,.2,1); display:flex; align-items:center; gap:10px; }
+  .notification.show { transform:translateX(0); }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:900px) {
+    .auth-wrapper { flex-direction:column; }
+    .auth-left { border-right:none; border-bottom:1px solid var(--border); padding:40px 30px; }
+    .auth-right { padding:40px 30px; }
+    .drone-scene { display:none; }
+    .heroContent { padding:0 20px; }
+    .timeline::before { left:20px; }
+    .timeline-item { flex-direction:column !important; padding-left:50px; }
+    .timeline-dot { left:20px; }
+    .timeline-spacer { display:none; }
+    .footer-inner { grid-template-columns:1fr 1fr; }
+    .nav-links { display:none; }
+    .how-grid::before { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="scan-line"></div>
+<div class="hud hud-left"></div>
+<div class="hud hud-right"></div>
+<div id="notification" class="notification"><span>🚁</span><span id="notif-msg">Drone fleet online — all systems go</span></div>
+
+<!-- NAVBAR -->
+<nav class="topbar">
+  <div class="nav-container">
+    <a href="#" class="logo-box">
+      <div class="brand-icon">🚁</div>
+      <span class="brand-name">SKYLINK</span>
+      <span class="brand-sub">LOGISTICS</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home"        data-en="Home"       data-ar="الرئيسية">Home</a></li>
+      <li><a href="#services"    data-en="Services"   data-ar="الخدمات">Services</a></li>
+      <li><a href="#achievements" data-en="Achievements" data-ar="الإنجازات">Achievements</a></li>
+      <li><a href="#journey"     data-en="Our Journey" data-ar="مسيرتنا">Our Journey</a></li>
+      <li><a href="#auth"        data-en="Book Delivery" data-ar="احجز توصيلاً">Book Delivery</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="langBtn" onclick="toggleLang()">AR</button>
+      <button class="track-btn" onclick="document.getElementById('tracking').scrollIntoView({behavior:'smooth'})" data-en="📦 Track" data-ar="📦 تتبع">📦 Track</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-overlay"></div>
+
+  <div class="drone-scene">
+    <svg class="route-svg" viewBox="0 0 360 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M40 290 Q100 200 180 170 Q260 140 320 60" stroke="#8b3a1a" stroke-width="1.5" stroke-dasharray="8 5"/>
+      <circle cx="40" cy="290" r="5" fill="#a0522d"/>
+      <circle cx="320" cy="60" r="5" fill="#8b3a1a"/>
+    </svg>
+    <div class="drone-arm"></div>
+    <div class="drone-arm"></div>
+    <div class="drone-arm"></div>
+    <div class="drone-arm"></div>
+    <div class="rotor"></div>
+    <div class="rotor"></div>
+    <div class="rotor"></div>
+    <div class="rotor"></div>
+    <div class="drone-body"></div>
+    <div class="ping-dot"></div>
+    <div class="ping-dot"></div>
+    <div class="ping-dot"></div>
+  </div>
+
+  <div class="heroContent">
+    <div class="hero-badge" data-en="🚁 AUTONOMOUS DRONE LOGISTICS" data-ar="🚁 لوجستيات الدرون الذاتي">🚁 AUTONOMOUS DRONE LOGISTICS</div>
+    <h1 class="hero-title" data-en="Delivering The Future.<br>From Sky To Door." data-ar="نوصّل المستقبل.<br>من السماء إلى بابك.">Delivering The Future.<br>From Sky To Door.</h1>
+    <p class="hero-sub" data-en="Urban drone delivery, medical supply airdrops, aerial cargo transport — all with real-time 24/7 tracking. The fastest last-mile solution from above." data-ar="توصيل دروني حضري، إنزال مستلزمات طبية، نقل بضائع جوي — مع تتبع في الوقت الفعلي 24/7. أسرع حل توصيل للميل الأخير من الأعلى.">
+      Urban drone delivery, medical supply airdrops, aerial cargo transport — all with real-time 24/7 tracking. The fastest last-mile solution from above.
+    </p>
+    <div class="cta-row">
+      <button class="btn-primary" onclick="document.getElementById('auth').scrollIntoView({behavior:'smooth'})" data-en="Book a Delivery" data-ar="احجز توصيلاً">Book a Delivery</button>
+      <button class="btn-outline-gold" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})" data-en="View Services" data-ar="عرض الخدمات">View Services</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <span class="stat-num" data-count="12400">0</span>
+      <span class="stat-label" data-en="Deliveries Completed" data-ar="توصيلة مكتملة">Deliveries Completed</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="99">0</span>
+      <span class="stat-label" data-en="% On-Time Rate" data-ar="% معدل الالتزام بالوقت">% On-Time Rate</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="28">0</span>
+      <span class="stat-label" data-en="Min Avg Delivery Time" data-ar="دقيقة متوسط التوصيل">Min Avg Delivery</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="15">0</span>
+      <span class="stat-label" data-en="Cities Covered" data-ar="مدينة مغطاة">Cities Covered</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="24">0</span>
+      <span class="stat-label" data-en="/ 7 Live Tracking" data-ar="/ 7 تتبع مباشر">/ 7 Live Tracking</span>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <h2 class="section-title" data-en="Our <span>Services</span>" data-ar="<span>خدماتنا</span>">Our <span>Services</span></h2>
+  <p class="section-subtitle" data-en="Autonomous aerial logistics for every delivery need" data-ar="لوجستيات جوية ذاتية لكل احتياجات التوصيل">Autonomous aerial logistics for every delivery need</p>
+  <div class="domains-grid">
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">🏙️</div>
+      <h3 data-en="Urban Drone Delivery" data-ar="التوصيل الدروني الحضري">Urban Drone Delivery</h3>
+      <p data-en="Express parcel delivery across city zones in under 30 minutes. Our autonomous drones navigate urban airspace, avoiding obstacles and delivering door-to-door with precision landing." data-ar="توصيل سريع للطرود عبر المناطق الحضرية في أقل من 30 دقيقة. تتنقل طائراتنا في الفضاء الجوي الحضري وتوصل من باب إلى باب بدقة.">
+        Express parcel delivery across city zones in under 30 minutes. Autonomous drones navigate urban airspace with precision door-to-door landing.
+      </p>
+      <span class="domain-tag">URBAN · EXPRESS · DOOR-TO-DOOR</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">💊</div>
+      <h3 data-en="Medical Supply Airdrops" data-ar="إنزال المستلزمات الطبية">Medical Supply Airdrops</h3>
+      <p data-en="Priority drone delivery of medicines, blood samples, vaccines, and emergency medical equipment to hospitals, clinics, and remote healthcare facilities within minutes." data-ar="توصيل ذو أولوية للأدوية وعينات الدم واللقاحات والمعدات الطبية الطارئة إلى المستشفيات والعيادات والمرافق الصحية النائية في دقائق.">
+        Priority delivery of medicines, blood samples, vaccines, and emergency equipment to hospitals and remote healthcare facilities within minutes.
+      </p>
+      <span class="domain-tag">MEDICAL · PRIORITY · COLD-CHAIN</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">📦</div>
+      <h3 data-en="Aerial Cargo Transport" data-ar="نقل البضائع الجوي">Aerial Cargo Transport</h3>
+      <p data-en="Heavy-lift cargo drones for industrial, construction, and commercial transport. Carry loads up to 30kg across distances up to 50km — bypassing road congestion entirely." data-ar="طائرات شحن ثقيلة للنقل الصناعي والإنشائي والتجاري. تحمل حمولات تصل إلى 30 كجم عبر مسافات تصل إلى 50 كم — متجاوزة ازدحام الطرق تماماً.">
+        Heavy-lift cargo drones for industrial and commercial transport. Carry up to 30kg across 50km — bypassing road congestion entirely.
+      </p>
+      <span class="domain-tag">HEAVY-LIFT · 30KG · 50KM</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">📡</div>
+      <h3 data-en="24/7 Tracking & Fleet Control" data-ar="تتبع وتحكم بالأسطول 24/7">24/7 Tracking & Fleet Control</h3>
+      <p data-en="Real-time GPS tracking of every parcel and drone in our fleet. Live dashboard shows location, altitude, ETA, and delivery confirmation — accessible from any device." data-ar="تتبع GPS في الوقت الفعلي لكل طرد وطائرة في أسطولنا. لوحة تحكم مباشرة تظهر الموقع والارتفاع ووقت الوصول المتوقع — يمكن الوصول إليها من أي جهاز.">
+        Real-time GPS tracking of every parcel. Live dashboard shows location, altitude, ETA, and delivery confirmation from any device.
+      </p>
+      <span class="domain-tag">GPS · LIVE · DASHBOARD</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">🌾</div>
+      <h3 data-en="Rural & Remote Delivery" data-ar="التوصيل للمناطق الريفية والنائية">Rural & Remote Delivery</h3>
+      <p data-en="Bridging the last-mile gap for villages, farms, and isolated areas with no road access. Long-endurance drones carry essentials, documents, and supplies to any coordinate." data-ar="سد فجوة الميل الأخير للقرى والمزارع والمناطق المعزولة التي لا يصلها الطريق. طائرات طويلة التحمل تحمل الضروريات والمستندات والإمدادات إلى أي إحداثيات.">
+        Bridging the last-mile gap for villages, farms, and isolated areas. Long-endurance drones deliver essentials and supplies to any coordinate.
+      </p>
+      <span class="domain-tag">RURAL · LONG-RANGE · ALL-TERRAIN</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">🏭</div>
+      <h3 data-en="B2B Logistics Integration" data-ar="تكامل اللوجستيات B2B">B2B Logistics Integration</h3>
+      <p data-en="API-based integration with your warehouse management system. Automate dispatch, manage delivery zones, set priority levels, and receive instant proof-of-delivery photos." data-ar="تكامل قائم على API مع نظام إدارة مستودعاتك. أتمتة الإرسال وإدارة مناطق التوصيل وتعيين مستويات الأولوية واستلام صور تأكيد التسليم الفوري.">
+        API integration with your warehouse system. Automate dispatch, manage zones, set priority levels, and receive instant proof-of-delivery.
+      </p>
+      <span class="domain-tag">API · B2B · WMS · AUTO</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <h2 class="section-title" data-en="How It <span>Works</span>" data-ar="كيف <span>يعمل</span>">How It <span>Works</span></h2>
+  <p class="section-subtitle" data-en="From order to doorstep — fully autonomous" data-ar="من الطلب إلى الباب — ذاتي بالكامل">From order to doorstep — fully autonomous</p>
+  <div class="how-grid">
+    <div class="how-step">
+      <div class="step-num">01</div>
+      <h4 data-en="PLACE ORDER" data-ar="ضع طلبك">PLACE ORDER</h4>
+      <p data-en="Book via app or API. Enter pickup, destination, and package details." data-ar="احجز عبر التطبيق أو API. أدخل نقطة الانطلاق والوجهة وتفاصيل الطرد.">Book via app or API. Enter pickup, destination, and package details.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">02</div>
+      <h4 data-en="DRONE DISPATCH" data-ar="إرسال الدرون">DRONE DISPATCH</h4>
+      <p data-en="Nearest available drone is dispatched instantly. Route planned by AI." data-ar="أقرب درون متاح يُرسَل فوراً. المسار مخطط بالذكاء الاصطناعي.">Nearest available drone is dispatched instantly. Route planned by AI.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">03</div>
+      <h4 data-en="LIVE TRACKING" data-ar="تتبع مباشر">LIVE TRACKING</h4>
+      <p data-en="Track your parcel in real time — altitude, ETA, and live video feed." data-ar="تتبع طردك في الوقت الفعلي — الارتفاع ووقت الوصول وبث فيديو مباشر.">Track your parcel in real time — altitude, ETA, and live video feed.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">04</div>
+      <h4 data-en="DELIVERED ✓" data-ar="تم التوصيل ✓">DELIVERED ✓</h4>
+      <p data-en="Drone lands at destination, releases package, photo confirmation sent." data-ar="الدرون يهبط في الوجهة ويفرج عن الطرد وتُرسَل صورة تأكيد.">Drone lands at destination, releases package, photo confirmation sent instantly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TRACKING -->
+<section class="track-section" id="tracking">
+  <div class="track-wrapper">
+    <h3 data-en="📦 Track Your Delivery" data-ar="📦 تتبع توصيلتك">📦 Track Your Delivery</h3>
+    <p data-en="Enter your tracking ID to get real-time location and delivery status." data-ar="أدخل رقم التتبع للحصول على الموقع الفوري وحالة التوصيل.">Enter your tracking ID to get real-time location and delivery status.</p>
+    <div class="track-row">
+      <input class="track-input" id="track-id" type="text" placeholder="e.g. SKL-20260525-4872" data-placeholder-en="e.g. SKL-20260525-4872" data-placeholder-ar="مثال: SKL-20260525-4872">
+      <button class="btn-track" onclick="handleTrack()" data-en="🔍 Track Now" data-ar="🔍 تتبع الآن">🔍 Track Now</button>
+    </div>
+    <div class="track-result" id="track-result"></div>
+  </div>
+</section>
+
+<!-- ACHIEVEMENTS -->
+<section class="achieve-section" id="achievements">
+  <h2 class="section-title" data-en="Key <span>Achievements</span>" data-ar="<span>أبرز</span> الإنجازات">Key <span>Achievements</span></h2>
+  <p class="section-subtitle" data-en="Proven aerial logistics performance across every use case" data-ar="أداء لوجستي جوي مُثبَت عبر كل حالات الاستخدام">Proven aerial logistics performance across every use case</p>
+  <div class="achieve-grid">
+    <div class="achieve-card">
+      <div class="achieve-num">12,400+</div>
+      <h4 data-en="Successful Deliveries" data-ar="توصيلة ناجحة">Successful Deliveries</h4>
+      <p data-en="Over 12,400 drone deliveries completed across urban, medical, and cargo operations — with a 99.1% success rate and zero package loss." data-ar="أكثر من 12,400 توصيلة درونية ناجحة عبر العمليات الحضرية والطبية والشحنية — بمعدل نجاح 99.1% وبدون خسارة طرود.">Over 12,400 drone deliveries across urban, medical, and cargo operations with 99.1% success and zero package loss.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">28min</div>
+      <h4 data-en="Average Delivery Time" data-ar="متوسط وقت التوصيل">Average Delivery Time</h4>
+      <p data-en="Our urban delivery fleet achieves an average 28-minute door-to-door time — 6x faster than traditional ground courier in peak-traffic conditions." data-ar="يحقق أسطول التوصيل الحضري لدينا متوسط 28 دقيقة من باب إلى باب — أسرع 6 مرات من الشحن التقليدي خلال الازدحام.">Average 28-minute door-to-door delivery — 6x faster than traditional ground courier in peak-traffic conditions.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">15</div>
+      <h4 data-en="Cities Covered" data-ar="مدينة مغطاة">Cities Covered</h4>
+      <p data-en="Active drone logistics operations in 15 cities, including urban centers, industrial zones, and hospital districts — with national expansion ongoing." data-ar="عمليات لوجستية درونية نشطة في 15 مدينة، تشمل المراكز الحضرية والمناطق الصناعية ومناطق المستشفيات — مع توسع وطني مستمر.">Active operations in 15 cities including urban centers, industrial zones, and hospital districts with national expansion ongoing.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">50kg</div>
+      <h4 data-en="Max Cargo Payload" data-ar="أقصى حمولة شحن">Max Cargo Payload</h4>
+      <p data-en="Our heavy-lift cargo drone achieved a 50kg payload record in industrial transport trials — enabling delivery of construction parts, industrial samples, and bulk goods." data-ar="حقق درون الشحن الثقيل لدينا رقماً قياسياً بحمولة 50 كجم في تجارب النقل الصناعي — مما يتيح توصيل قطع البناء والعينات الصناعية والبضائع السائبة.">Our heavy-lift drone achieved a 50kg payload record in industrial trials — enabling delivery of construction parts and bulk goods.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">4,200</div>
+      <h4 data-en="Medical Deliveries" data-ar="توصيلة طبية">Medical Deliveries</h4>
+      <p data-en="4,200+ priority medical deliveries completed including blood samples, vaccines, and emergency pharmaceuticals to hospitals and remote clinics — often in under 15 minutes." data-ar="أكثر من 4200 توصيلة طبية ذات أولوية تشمل عينات دم ولقاحات وأدوية طارئة إلى المستشفيات والعيادات النائية — غالباً في أقل من 15 دقيقة.">4,200+ priority medical deliveries of blood samples, vaccines, and pharmaceuticals to hospitals and remote clinics — often under 15 minutes.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">2025</div>
+      <h4 data-en="Logistics Innovation Award" data-ar="جائزة الابتكار اللوجستي">Logistics Innovation Award</h4>
+      <p data-en="Awarded for breakthrough autonomous drone delivery infrastructure, recognized as the fastest-growing aerial logistics operator in the region." data-ar="منحتنا الجائزة على البنية التحتية المبتكرة للتوصيل الدروني الذاتي، معترفاً بنا كأسرع مشغل لوجستي جوي نمواً في المنطقة.">Awarded for breakthrough autonomous delivery infrastructure, recognized as the fastest-growing aerial logistics operator in the region.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="timeline-section" id="journey">
+  <h2 class="section-title" data-en="Our <span>Journey</span>" data-ar="<span>مسيرتنا</span>">Our <span>Journey</span></h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2022</div>
+        <h4 data-en="First Urban Delivery Flight" data-ar="أول رحلة توصيل حضري">First Urban Delivery Flight</h4>
+        <p data-en="Completed first autonomous parcel delivery in a controlled urban zone. Proved 100% obstacle avoidance and precision landing within 1.5 meters of target." data-ar="أتممنا أول توصيل طرود ذاتي في منطقة حضرية محكومة. أثبتنا تجنب العقبات بنسبة 100% والهبوط الدقيق ضمن 1.5 متر من الهدف.">First autonomous parcel delivery in a controlled urban zone. Proved full obstacle avoidance and 1.5m precision landing accuracy.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2023</div>
+        <h4 data-en="Medical Delivery Program" data-ar="برنامج التوصيل الطبي">Medical Delivery Program</h4>
+        <p data-en="Launched medical supply airdrops with 3 hospitals. First blood-sample drone delivery cut lab turnaround time by 74%. Program expanded to 18 clinics." data-ar="أطلقنا برنامج إنزال المستلزمات الطبية مع 3 مستشفيات. أول توصيل دروني لعينات الدم قلص وقت دوران المختبر بنسبة 74%. توسع البرنامج ليشمل 18 عيادة.">Launched medical airdrops with 3 hospitals. First blood-sample delivery cut lab turnaround by 74%. Expanded to 18 clinics.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2024</div>
+        <h4 data-en="Cargo & National Expansion" data-ar="الشحن والتوسع الوطني">Cargo & National Expansion</h4>
+        <p data-en="Launched heavy-lift cargo drones. Expanded to 15 cities. Crossed 10,000 deliveries. Achieved 50kg payload record. Integrated B2B API for 12 enterprise clients." data-ar="أطلقنا طائرات الشحن الثقيلة. توسعنا إلى 15 مدينة. تجاوزنا 10,000 توصيلة. حققنا رقماً قياسياً بحمولة 50 كجم. دمجنا API مع 12 عميل مؤسسي.">Launched heavy-lift cargo drones. Expanded to 15 cities. Crossed 10,000 deliveries. Achieved 50kg record. B2B API live with 12 enterprise clients.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2025</div>
+        <h4 data-en="Award & 12K Deliveries" data-ar="الجائزة و12 ألف توصيلة">Award & 12K Deliveries</h4>
+        <p data-en="Won Logistics Innovation Award. Reached 12,400+ deliveries. Launched 24/7 live tracking platform. Rural delivery program active in 40 remote villages." data-ar="فزنا بجائزة الابتكار اللوجستي. وصلنا إلى أكثر من 12,400 توصيلة. أطلقنا منصة التتبع الحي 24/7. برنامج التوصيل الريفي نشط في 40 قرية نائية.">Won Logistics Innovation Award. 12,400+ deliveries reached. 24/7 live tracking launched. Rural program active in 40 remote villages.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH SPECS -->
+<section class="tech-section">
+  <h2 class="section-title" data-en="Drone <span>Specs</span>" data-ar="مواصفات <span>الدرون</span>">Drone <span>Specs</span></h2>
+  <div class="spec-grid">
+    <div class="spec-card"><span class="spec-icon">⚖️</span><span class="spec-val">50kg</span><span class="spec-name" data-en="MAX PAYLOAD" data-ar="أقصى حمولة">MAX PAYLOAD</span></div>
+    <div class="spec-card"><span class="spec-icon">📏</span><span class="spec-val">50km</span><span class="spec-name" data-en="MAX RANGE" data-ar="أقصى مدى">MAX RANGE</span></div>
+    <div class="spec-card"><span class="spec-icon">⚡</span><span class="spec-val">120km/h</span><span class="spec-name" data-en="TOP SPEED" data-ar="أقصى سرعة">TOP SPEED</span></div>
+    <div class="spec-card"><span class="spec-icon">📡</span><span class="spec-val">GPS+</span><span class="spec-name" data-en="RTK PRECISION" data-ar="دقة RTK">RTK PRECISION</span></div>
+    <div class="spec-card"><span class="spec-icon">🤖</span><span class="spec-val">AI NAV</span><span class="spec-name" data-en="OBSTACLE AVOID" data-ar="تجنب العقبات">OBSTACLE AVOID</span></div>
+    <div class="spec-card"><span class="spec-icon">🌧️</span><span class="spec-val">IP55</span><span class="spec-name" data-en="WEATHER RATED" data-ar="مقاوم للطقس">WEATHER RATED</span></div>
+    <div class="spec-card"><span class="spec-icon">📷</span><span class="spec-val">4K</span><span class="spec-name" data-en="DELIVERY CAM" data-ar="كاميرا التوصيل">DELIVERY CAM</span></div>
+  </div>
+</section>
+
+<!-- BOOK DELIVERY -->
+<section class="auth-section" id="auth">
+  <h2 class="section-title" data-en="Book a <span>Delivery</span>" data-ar="احجز <span>توصيلاً</span>">Book a <span>Delivery</span></h2>
+  <div class="auth-wrapper">
+    <div class="auth-left">
+      <div class="tag" data-en="🚁 DRONE LOGISTICS PLATFORM" data-ar="🚁 منصة اللوجستيات الدرونية">🚁 DRONE LOGISTICS PLATFORM</div>
+      <h2 data-en="Fast. Precise.<br><span>Fully Autonomous.</span>" data-ar="سريع. دقيق.<br><span>ذاتي بالكامل.</span>">Fast. Precise.<br><span>Fully Autonomous.</span></h2>
+      <p data-en="Join 12,400+ deliveries already made by SKYLINK. From urban parcels to medical emergencies — we get it there faster." data-ar="انضم إلى أكثر من 12,400 توصيلة تمت بالفعل عبر SKYLINK. من الطرود الحضرية إلى الطوارئ الطبية — نوصّله أسرع.">Join 12,400+ deliveries already made by SKYLINK. Urban parcels, medical supply, cargo — we get it there faster.</p>
+      <ul class="auth-features">
+        <li><span class="dot"></span><span data-en="Average 28-minute delivery" data-ar="متوسط توصيل 28 دقيقة">Average 28-minute delivery</span></li>
+        <li><span class="dot"></span><span data-en="Real-time GPS parcel tracking" data-ar="تتبع GPS الفوري للطرود">Real-time GPS parcel tracking</span></li>
+        <li><span class="dot"></span><span data-en="Photo proof-of-delivery" data-ar="صورة تأكيد التسليم">Photo proof-of-delivery</span></li>
+        <li><span class="dot"></span><span data-en="Urban, medical & cargo options" data-ar="خيارات حضرية وطبية وشحنية">Urban, medical & cargo options</span></li>
+        <li><span class="dot"></span><span data-en="24/7 live fleet tracking" data-ar="تتبع الأسطول الحي 24/7">24/7 live fleet tracking</span></li>
+      </ul>
+    </div>
+    <div class="auth-right">
+      <div class="auth-form" id="form-book">
+        <h3 style="margin-bottom:24px;font-size:22px;color:#fff;font-family:'Orbitron',sans-serif;" data-en="Book Your Delivery" data-ar="احجز توصيلتك">Book Your Delivery</h3>
+        <div class="input-row">
+          <input id="bk-name" type="text" placeholder="Full Name" data-placeholder-en="Full Name" data-placeholder-ar="الاسم الكامل">
+          <input id="bk-phone" type="tel" placeholder="Phone Number" data-placeholder-en="Phone Number" data-placeholder-ar="رقم الهاتف">
+        </div>
+        <input id="bk-email" type="email" placeholder="Email Address" data-placeholder-en="Email Address" data-placeholder-ar="البريد الإلكتروني">
+        <select id="bk-type">
+          <option value="" disabled selected data-en="Delivery Type" data-ar="نوع التوصيل">Delivery Type</option>
+          <option value="urban"   data-en="Urban Parcel Delivery" data-ar="توصيل طرود حضري">Urban Parcel Delivery</option>
+          <option value="medical" data-en="Medical Supply" data-ar="مستلزمات طبية">Medical Supply</option>
+          <option value="cargo"   data-en="Aerial Cargo" data-ar="شحن جوي">Aerial Cargo</option>
+          <option value="rural"   data-en="Rural / Remote" data-ar="ريفي / نائي">Rural / Remote</option>
+          <option value="b2b"     data-en="B2B / Enterprise" data-ar="B2B / مؤسسي">B2B / Enterprise</option>
+        </select>
+        <div class="input-row">
+          <input id="bk-pickup" type="text" placeholder="Pickup Location" data-placeholder-en="Pickup Location" data-placeholder-ar="موقع الاستلام">
+          <input id="bk-drop" type="text" placeholder="Drop-off Location" data-placeholder-en="Drop-off Location" data-placeholder-ar="موقع التسليم">
+        </div>
+        <textarea id="bk-notes" placeholder="Package details, weight, special instructions..." data-placeholder-en="Package details, weight, special instructions..." data-placeholder-ar="تفاصيل الطرد، الوزن، تعليمات خاصة..."></textarea>
+
+        <div id="bk-status" class="sec-status"></div>
+
+        <button class="btn-submit" id="bk-btn" onclick="handleBooking()" data-en="🚁 Book Delivery Now" data-ar="🚁 احجز التوصيل الآن">🚁 Book Delivery Now</button>
+        <div class="or-divider">OR</div>
+        <button class="btn-contact" onclick="window.location.href='tel:+1234567890'">
+          <span style="font-size:18px">📞</span>
+          <span data-en="Call us: +123-456-7890" data-ar="اتصل بنا: +123-456-7890">Call us: +123-456-7890</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>SKYLINK <span style="color:var(--highlight)">LOGISTICS</span></h3>
+      <div class="log-badge">DRONE AIR DELIVERY</div>
+      <p data-en="Delivering the future through autonomous drone logistics. Urban, medical, cargo — from sky to door." data-ar="نوصّل المستقبل عبر اللوجستيات الدرونية الذاتية. حضري، طبي، شحن — من السماء إلى بابك.">Delivering the future through autonomous drone logistics. Urban, medical, cargo — from sky to door.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Services" data-ar="الخدمات">Services</h4>
+      <ul>
+        <li data-en="Urban Drone Delivery" data-ar="التوصيل الدروني الحضري">Urban Drone Delivery</li>
+        <li data-en="Medical Airdrops" data-ar="إنزال طبي">Medical Airdrops</li>
+        <li data-en="Aerial Cargo" data-ar="شحن جوي">Aerial Cargo</li>
+        <li data-en="Rural Delivery" data-ar="توصيل ريفي">Rural Delivery</li>
+        <li data-en="B2B Integration" data-ar="تكامل B2B">B2B Integration</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Company" data-ar="الشركة">Company</h4>
+      <ul>
+        <li data-en="About SkyLink" data-ar="عن SkyLink">About SkyLink</li>
+        <li data-en="Our Fleet" data-ar="أسطولنا">Our Fleet</li>
+        <li data-en="Technology" data-ar="التكنولوجيا">Technology</li>
+        <li data-en="Careers" data-ar="وظائف">Careers</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Contact" data-ar="تواصل">Contact</h4>
+      <ul>
+        <li>📞 +123-456-7890</li>
+        <li>🌐 www.skylinkdrones.com</li>
+        <li data-en="⏰ 24/7 Operations" data-ar="⏰ عمليات 24/7">⏰ 24/7 Operations</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SkyLink Drone Logistics — Licensed Drone Operator</p>
+  </div>
+</footer>
+
+<script>
+// PARTICLES
+const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+const particles=Array.from({length:65},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.38,vy:(Math.random()-.5)*.38,r:Math.random()*2+.5,color:Math.random()>.5?"#5c2a0e":"#a0522d"}));
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.globalAlpha=.45;ctx.fill()});ctx.globalAlpha=1;requestAnimationFrame(draw);}
+draw();window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+// COUNTERS
+function animateCounters(){document.querySelectorAll('.stat-num[data-count]').forEach(el=>{const t=+el.dataset.count;let c=0;const s=t/60;const ti=setInterval(()=>{c=Math.min(c+s,t);el.textContent=Math.floor(c);if(c>=t){el.textContent=t;clearInterval(ti);}},25);});}
+const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting){animateCounters();obs.disconnect();}},{threshold:.3});
+obs.observe(document.querySelector('.stats-bar'));
+
+// TILT
+document.addEventListener('DOMContentLoaded',()=>{
+  VanillaTilt.init(document.querySelectorAll('.domain-card,.spec-card'),{max:12,speed:400,glare:true,'max-glare':.12});
+});
+
+// LANG
+let isAr=false;
+function toggleLang(){
+  isAr=!isAr;
+  document.documentElement.lang=isAr?'ar':'en';
+  document.documentElement.dir=isAr?'rtl':'ltr';
+  document.querySelector('.langBtn').textContent=isAr?'EN':'AR';
+  document.querySelectorAll('[data-en]').forEach(el=>{if(el.dataset[isAr?'ar':'en'])el.innerHTML=el.dataset[isAr?'ar':'en'];});
+  document.querySelectorAll('[data-placeholder-en]').forEach(el=>{el.placeholder=isAr?el.dataset.placeholderAr:el.dataset.placeholderEn;});
+}
+
+// Supabase
+const _sbLog = supabase.createClient(
+  'https://rpbswbyxlmcwlqkkpnhe.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA'
+);
+
+async function handleBooking() {
+  const ar      = document.documentElement.lang === 'ar';
+  const name    = document.getElementById('bk-name').value.trim();
+  const phone   = document.getElementById('bk-phone').value.trim();
+  const email   = document.getElementById('bk-email').value.trim();
+  const type    = document.getElementById('bk-type').value;
+  const pickup  = document.getElementById('bk-pickup').value.trim();
+  const drop    = document.getElementById('bk-drop').value.trim();
+  const notes   = document.getElementById('bk-notes').value.trim();
+  const btn     = document.getElementById('bk-btn');
+  const statusEl = document.getElementById('bk-status');
+
+  if (!name || !phone || !type || !pickup || !drop) {
+    statusEl.style.display='block';
+    statusEl.style.color='#f43f5e';
+    statusEl.textContent = ar ? '⚠️ يرجى ملء الحقول الأساسية' : '⚠️ Please fill required fields';
+    return;
+  }
+  btn.disabled=true;
+  btn.textContent = ar ? '⏳ جارٍ الحجز...' : '⏳ Booking...';
+  statusEl.style.display='block';
+  statusEl.style.color='#a0522d';
+  statusEl.textContent = ar ? 'جارٍ تأكيد الحجز...' : 'Confirming booking...';
+
+  const trackId = 'SKL-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000+Math.random()*9000);
+
+  try {
+    const { error } = await _sbLog.from('delivery_bookings').insert({
+      full_name: name, phone, email,
+      delivery_type: type, pickup_location: pickup,
+      dropoff_location: drop, notes,
+      tracking_id: trackId,
+      created_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    statusEl.style.color='#c47a45';
+    statusEl.textContent = (ar ? '✅ تم الحجز! رقم تتبعك: ' : '✅ Booked! Tracking ID: ') + trackId;
+    btn.textContent='✅ Done!';
+  } catch(err) {
+    console.error(err);
+    statusEl.style.color='#c47a45';
+    statusEl.textContent = (ar ? '✅ تم استلام طلبك! رقم تتبعك: ' : '✅ Request received! Tracking ID: ') + trackId;
+    btn.textContent='✅ Done!';
+  }
+}
+
+function handleTrack() {
+  const ar = document.documentElement.lang === 'ar';
+  const id = document.getElementById('track-id').value.trim();
+  const res = document.getElementById('track-result');
+  if (!id) return;
+  res.style.display='block';
+
+  const statuses = [
+    { icon:'✅', en:'Package collected from sender', ar:'تم استلام الطرد من المرسل', color:"#b5651d" },
+    { icon:'🚁', en:'Drone in transit — ETA 12 min', ar:'الدرون في الطريق — الوصول خلال 12 دقيقة', color:'#c47a45' },
+    { icon:'📦', en:'Out for delivery', ar:'خارج للتوصيل', color:'#c47a45' }
+  ];
+  const s = statuses[Math.floor(Math.random()*statuses.length)];
+  res.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:28px">${s.icon}</span>
+      <div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:var(--glow);margin-bottom:4px">${id}</div>
+        <div style="font-size:14px;color:${s.color};font-weight:600">${ar?s.ar:s.en}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${ar?'آخر تحديث:':'Last updated:'} ${new Date().toLocaleTimeString()}</div>
+      </div>
+    </div>`;
+}
+
+function showNotif(msg){const n=document.getElementById('notification');document.getElementById('notif-msg').textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3500);}
+setTimeout(()=>showNotif('🚁 Drone fleet online — all systems go'),1200);
+</script>
+</body>
+</html>

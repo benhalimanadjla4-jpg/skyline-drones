@@ -1,0 +1,10 @@
+{
+  "image": "img_145.jpg",
+  "latitude": 34.848,
+  "longitude": 1.3165423,
+  "altitude": 861.9,
+  "flag": "red",
+  "diagnosis": "diseased",
+  "confidence": 52.6,
+  "timestamp": "2026-05-06T12:22:25.935035"
+}

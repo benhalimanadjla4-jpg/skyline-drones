@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlTag">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKYLINE | Smart Agriculture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --green:#3aab4a; --green-neon:#5ddb6a; --green-light:#a8e6b0;
+      --brown:#7a4f2d; --brown-light:#c8956a; --brown-dark:#4a2e16;
+      --soil:#2d1a0e; --bg:#080f05; --bg2:#0d1a08;
+      --card-bg:rgba(10,25,10,0.75); --text:#e8f5e9;
+      --text-muted:#7aab7a; --border:rgba(58,171,74,0.3);
+    }
+    *{margin:0;padding:0;box-sizing:border-box} html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:'Montserrat',sans-serif;overflow-x:hidden}
+    #particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    .hud{position:fixed;top:0;width:3px;height:100vh;z-index:1;pointer-events:none}
+    .hud-left{left:0;background:linear-gradient(to bottom,transparent,var(--green),transparent);opacity:.4}
+    .hud-right{right:0;background:linear-gradient(to bottom,transparent,var(--brown-light),transparent);opacity:.4}
+
+    /* NAVBAR */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,15,5,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 40px}
+    .nav-container{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:70px}
+    .logo-box{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand-logo{width:40px;height:40px;border-radius:50%;border:2px solid var(--green);object-fit:cover}
+    .brand-name{font-family:'Orbitron',sans-serif;font-size:20px;color:var(--green-neon);letter-spacing:3px}
+    .nav-links{list-style:none;display:flex;gap:30px}
+    .nav-links a{text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;letter-spacing:1px;transition:color .3s}
+    .nav-links a:hover{color:var(--green-neon);text-shadow:0 0 10px var(--green)}
+    .nav-actions{display:flex;gap:12px;align-items:center}
+    .langBtn{background:transparent;border:1px solid var(--green);color:var(--green-neon);padding:6px 16px;border-radius:20px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;transition:all .3s}
+    .langBtn:hover{background:var(--green);color:#000;box-shadow:0 0 15px var(--green)}
+    .login-btn{background:transparent;border:1px solid var(--brown-light);color:var(--brown-light);padding:6px 20px;border-radius:20px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;transition:all .3s}
+    .login-btn:hover{background:var(--brown-light);color:#000;box-shadow:0 0 15px var(--brown-light)}
+
+    /* HERO */
+    .hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .hero-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.18;z-index:1}
+    .hero-overlay{position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse at 30% 60%,rgba(58,171,74,.18) 0%,transparent 60%),radial-gradient(ellipse at 70% 40%,rgba(122,79,45,.15) 0%,transparent 55%),linear-gradient(to bottom,rgba(8,15,5,.6) 0%,rgba(8,15,5,.3) 50%,rgba(8,15,5,.9) 100%)}
+    .heroContent{position:relative;z-index:10;text-align:center;max-width:900px;padding:0 20px;transform-style:preserve-3d}
+    .hero-badge{display:inline-block;background:rgba(58,171,74,.15);border:1px solid var(--green);border-radius:30px;padding:6px 20px;font-size:12px;letter-spacing:3px;color:var(--green-neon);margin-bottom:24px;text-transform:uppercase;animation:fadeUp .8s ease forwards}
+    .hero-title{font-family:'Orbitron',sans-serif;font-size:clamp(32px,5vw,64px);font-weight:900;line-height:1.1;margin-bottom:20px;background:linear-gradient(135deg,#fff 0%,var(--green-neon) 50%,var(--brown-light) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:fadeUp .9s .1s ease both}
+    .hero-sub{font-size:16px;color:var(--text-muted);max-width:600px;margin:0 auto 36px;line-height:1.7;font-weight:300;animation:fadeUp 1s .2s ease both}
+    .cta-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;animation:fadeUp 1s .3s ease both}
+    .btn-green{background:linear-gradient(135deg,var(--green),#2d8a3a);color:#fff;border:none;padding:14px 34px;border-radius:40px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:2px;box-shadow:0 0 25px rgba(58,171,74,.4);transition:all .3s}
+    .btn-green:hover{transform:translateY(-3px);box-shadow:0 0 40px rgba(58,171,74,.7)}
+    .btn-outline-brown{background:transparent;color:var(--brown-light);border:1px solid var(--brown-light);padding:14px 34px;border-radius:40px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:2px;transition:all .3s}
+    .btn-outline-brown:hover{background:var(--brown-light);color:#000;transform:translateY(-3px)}
+    .leaf{position:absolute;z-index:3;font-size:28px;animation:floatLeaf linear infinite;pointer-events:none}
+    @keyframes floatLeaf{0%{transform:translateY(110vh) rotate(0deg);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(-10vh) rotate(360deg);opacity:0}}
+
+    /* STATS */
+    .stats-bar{position:relative;z-index:5;background:rgba(10,25,10,.8);border-top:1px solid var(--border);border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
+    .stats-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap}
+    .stat-item{text-align:center;padding:28px 30px;border-right:1px solid var(--border);flex:1;min-width:150px}
+    .stat-item:last-child{border-right:none}
+    .stat-num{font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;color:var(--green-neon);display:block;text-shadow:0 0 20px rgba(93,219,106,.5)}
+    .stat-label{font-size:12px;color:var(--text-muted);letter-spacing:2px;margin-top:4px;display:block}
+
+    /* SECTIONS */
+    .section{padding:100px 20px;position:relative;z-index:5}
+    .section-title{text-align:center;font-family:'Orbitron',sans-serif;font-size:clamp(22px,3vw,38px);font-weight:900;color:#fff;margin-bottom:60px;text-shadow:0 0 30px rgba(58,171,74,.5)}
+    .section-title span{color:var(--green-neon)}
+    .section-subtitle{text-align:center;color:var(--text-muted);font-size:15px;margin-top:-48px;margin-bottom:60px}
+    .achieve-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+    .achieve-card{background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:36px;transition:all .4s cubic-bezier(.2,.8,.2,1);backdrop-filter:blur(15px);transform-style:preserve-3d;position:relative;overflow:hidden}
+    .achieve-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(58,171,74,.05) 0%,transparent 60%);opacity:0;transition:opacity .4s}
+    .achieve-card:hover::before{opacity:1}
+    .achieve-card:hover{transform:translateZ(30px) scale(1.02);border-color:rgba(58,171,74,.6);box-shadow:0 20px 40px rgba(58,171,74,.15),inset 0 0 20px rgba(58,171,74,.05)}
+    .achieve-icon{font-size:52px;display:inline-block;margin-bottom:20px;filter:drop-shadow(0 10px 15px rgba(58,171,74,.4));animation:float-icon 4s ease-in-out infinite;transform:translateZ(40px)}
+    @keyframes float-icon{0%,100%{transform:translateY(0) translateZ(40px)}50%{transform:translateY(-10px) translateZ(40px)}}
+    .achieve-card h3{font-family:'Orbitron',sans-serif;font-size:18px;color:#fff;margin-bottom:12px;text-shadow:0 0 10px rgba(58,171,74,.4);transform:translateZ(30px)}
+    .achieve-card p{color:var(--text-muted);font-size:14px;line-height:1.7;transform:translateZ(20px)}
+    .achieve-tag{display:inline-block;margin-top:16px;background:rgba(58,171,74,.15);border:1px solid var(--green);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--green-neon);letter-spacing:2px;transform:translateZ(30px)}
+
+    /* TIMELINE */
+    .timeline-section{padding:80px 20px;position:relative;z-index:5}
+    .timeline{max-width:900px;margin:0 auto;position:relative}
+    .timeline::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--green),var(--brown-light),var(--green));transform:translateX(-50%)}
+    .timeline-item{display:flex;gap:40px;margin-bottom:60px;position:relative;align-items:flex-start}
+    .timeline-item:nth-child(even){flex-direction:row-reverse}
+    .timeline-dot{position:absolute;left:50%;top:10px;width:18px;height:18px;border-radius:50%;background:var(--green-neon);border:3px solid var(--bg);box-shadow:0 0 20px var(--green),0 0 40px rgba(58,171,74,.3);transform:translateX(-50%);z-index:2;animation:pulse-dot 2s ease-in-out infinite}
+    @keyframes pulse-dot{0%,100%{box-shadow:0 0 20px var(--green),0 0 40px rgba(58,171,74,.3)}50%{box-shadow:0 0 35px var(--green),0 0 60px rgba(58,171,74,.5)}}
+    .timeline-content{flex:1;background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:28px;backdrop-filter:blur(10px);transition:all .3s;max-width:380px}
+    .timeline-content:hover{border-color:rgba(58,171,74,.6);transform:translateY(-4px)}
+    .timeline-year{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--brown-light);letter-spacing:2px;margin-bottom:8px}
+    .timeline-content h4{font-family:'Orbitron',sans-serif;font-size:16px;color:var(--green-neon);margin-bottom:10px}
+    .timeline-content p{font-size:13px;color:var(--text-muted);line-height:1.6}
+    .timeline-spacer{flex:1}
+
+    /* TECH SPECS */
+    .tech-section{padding:80px 20px;position:relative;z-index:5;background:rgba(5,12,5,.5)}
+    .spec-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+    .spec-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center;backdrop-filter:blur(10px);transition:all .3s}
+    .spec-card:hover{border-color:rgba(93,219,106,.6);transform:translateY(-6px);box-shadow:0 15px 30px rgba(58,171,74,.15)}
+    .spec-icon{font-size:36px;margin-bottom:14px;display:block}
+    .spec-val{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--green-neon);display:block;text-shadow:0 0 15px rgba(93,219,106,.5)}
+    .spec-name{font-size:12px;color:var(--text-muted);letter-spacing:2px;margin-top:6px;display:block}
+
+    /* AUTH SECTION */
+    .auth-section{padding:100px 20px;position:relative;z-index:5;background:radial-gradient(ellipse at center,rgba(58,171,74,.08) 0%,transparent 70%)}
+    .auth-wrapper{max-width:1100px;margin:0 auto;display:flex;gap:50px;align-items:stretch;background:rgba(8,20,8,.7);border:1px solid var(--border);border-radius:28px;overflow:hidden;backdrop-filter:blur(20px);box-shadow:0 0 60px rgba(58,171,74,.1)}
+    .auth-left{flex:1;padding:60px 50px;background:linear-gradient(135deg,rgba(58,171,74,.12) 0%,rgba(122,79,45,.08) 100%);display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
+    .auth-left .tag{font-size:11px;letter-spacing:3px;color:var(--green-neon);text-transform:uppercase;margin-bottom:16px}
+    .auth-left h2{font-family:'Orbitron',sans-serif;font-size:clamp(22px,2.5vw,34px);line-height:1.2;color:#fff;margin-bottom:20px}
+    .auth-left h2 span{color:var(--green-neon)}
+    .auth-left p{color:var(--text-muted);font-size:14px;line-height:1.7;margin-bottom:32px}
+    .auth-features{list-style:none;display:flex;flex-direction:column;gap:12px}
+    .auth-features li{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-muted)}
+    .auth-features li span.dot{width:8px;height:8px;background:var(--green-neon);border-radius:50%;flex-shrink:0;box-shadow:0 0 10px var(--green)}
+    .auth-right{flex:1;padding:50px;display:flex;flex-direction:column}
+    .auth-form{display:none;flex-direction:column;gap:14px}
+    .auth-form.active{display:flex}
+    .auth-form input,.auth-form select{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'Montserrat',sans-serif;font-size:14px;transition:border-color .3s,box-shadow .3s;outline:none;width:100%}
+    .auth-form input:focus,.auth-form select:focus{border-color:var(--green);box-shadow:0 0 15px rgba(58,171,74,.2)}
+    .auth-form input::placeholder{color:var(--text-muted)}
+    .auth-form select{color:var(--text-muted)}
+    .auth-form select option{background:#0d1a08;color:var(--text)}
+    .remember-row{display:flex;justify-content:space-between;align-items:center}
+    .remember-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);cursor:pointer}
+    .remember-row a{font-size:13px;color:var(--green-neon);text-decoration:none}
+    .btn-submit{background:linear-gradient(135deg,var(--green),#2d8a3a);color:#fff;border:none;padding:15px;border-radius:12px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .3s;box-shadow:0 0 20px rgba(58,171,74,.3)}
+    .btn-submit:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(58,171,74,.6)}
+    .or-divider{text-align:center;position:relative;color:var(--text-muted);font-size:13px}
+    .or-divider::before,.or-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border)}
+    .or-divider::before{left:0} .or-divider::after{right:0}
+    .btn-google{display:flex;align-items:center;justify-content:center;gap:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px;cursor:pointer;color:var(--text);font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;transition:all .3s}
+    .btn-google:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3)}
+    .btn-google img{width:22px;height:22px;border-radius:50%}
+    .switch-link{text-align:center;font-size:13px;color:var(--text-muted)}
+    .switch-link button{background:none;border:none;color:var(--green-neon);cursor:pointer;font-size:13px;font-weight:700}
+
+    /* FOOTER */
+    .footer{background:rgba(5,10,5,.95);border-top:1px solid var(--border);padding:60px 20px 30px;position:relative;z-index:5}
+    .footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
+    .footer-brand img{width:50px;height:50px;border-radius:50%;border:2px solid var(--green);object-fit:cover;margin-bottom:14px}
+    .footer-brand h3{font-family:'Orbitron',sans-serif;font-size:18px;color:var(--green-neon);margin-bottom:10px}
+    .footer-brand p{color:var(--text-muted);font-size:13px;line-height:1.6}
+    .footer-col h4{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--brown-light);letter-spacing:2px;margin-bottom:16px}
+    .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+    .footer-col ul li{font-size:13px;color:var(--text-muted);cursor:pointer;transition:color .3s}
+    .footer-col ul li:hover{color:var(--green-neon)}
+    .footer-bottom{max-width:1100px;margin:40px auto 0;padding-top:20px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--text-muted)}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:8px 20px;border-radius:20px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:13px;transition:all .3s;text-decoration:none}
+    .back-btn:hover{border-color:var(--green);color:var(--green-neon)}
+
+    /* NOTIFICATION */
+    .notification{position:fixed;top:90px;right:20px;z-index:9999;background:var(--card-bg);border:1px solid var(--green);border-radius:12px;padding:16px 24px;font-size:14px;color:var(--text);box-shadow:0 10px 30px rgba(58,171,74,.3);transform:translateX(200%);transition:transform .4s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:10px}
+    .notification.show{transform:translateX(0)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes agriSpin{100%{transform:translateY(-50%) rotate(360deg)}}
+    button[onclick^="toggleVis"]:hover{color:var(--green-neon)!important}
+
+    @media(max-width:900px){
+      .auth-wrapper{flex-direction:column}
+      .auth-left{border-right:none;border-bottom:1px solid var(--border);padding:40px 30px}
+      .auth-right{padding:40px 30px}
+      .timeline::before{left:20px}
+      .timeline-item{flex-direction:column!important;padding-left:50px}
+      .timeline-dot{left:20px}
+      .timeline-spacer{display:none}
+      .footer-inner{grid-template-columns:1fr 1fr}
+      .nav-links{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="hud hud-left"></div>
+<div class="hud hud-right"></div>
+
+<div id="notification" class="notification">
+  <span>🌱</span>
+  <span id="notif-msg">Welcome to Smart Agriculture</span>
+</div>
+
+<!-- NAVBAR -->
+<nav class="topbar">
+  <div class="nav-container">
+    <a href="" class="logo-box">
+      <img src="../assets/logo.jpg" alt="Logo" class="brand-logo">
+      <span class="brand-name">SKYLINE</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home"         data-en="Home"          data-ar="الرئيسية">Home</a></li>
+      <li><a href="#achievements" data-en="Achievements"  data-ar="الإنجازات">Achievements</a></li>
+      <li><a href="#journey"      data-en="Our Journey"   data-ar="مسيرتنا">Our Journey</a></li>
+      <li><a href="#auth"         data-en="Join Us"       data-ar="انضم إلينا">Join Us</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="langBtn" onclick="toggleLang()">AR</button>
+      <button class="login-btn" onclick="window.location.href='/agriculture/login.html'" data-en="Login" data-ar="دخول">Login</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <video autoplay muted loop playsinline class="hero-bg-video">
+    <source src="../assets/drone.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+  <span class="leaf" style="left:8%;animation-duration:12s;animation-delay:0s;font-size:24px">🌿</span>
+  <span class="leaf" style="left:18%;animation-duration:9s;animation-delay:2s;font-size:18px">🍃</span>
+  <span class="leaf" style="left:72%;animation-duration:14s;animation-delay:1s;font-size:20px">🌱</span>
+  <span class="leaf" style="left:85%;animation-duration:11s;animation-delay:3s;font-size:22px">🍀</span>
+  <span class="leaf" style="left:45%;animation-duration:10s;animation-delay:5s;font-size:16px">🌿</span>
+  <div class="heroContent">
+    <div class="hero-badge" data-en="🌱 SMART AGRICULTURE DIVISION" data-ar="🌱 قسم الزراعة الذكية">🌱 SMART AGRICULTURE DIVISION</div>
+    <h1 class="hero-title" data-en="Growing Tomorrow<br>With Drone Intelligence" data-ar="نزرع الغد<br>بذكاء الدرون">
+      Growing Tomorrow<br>With Drone Intelligence
+    </h1>
+    <p class="hero-sub" data-en="Precision crop monitoring, AI soil analysis, and autonomous irrigation — transforming agriculture from the sky." data-ar="مراقبة دقيقة للمحاصيل، تحليل التربة بالذكاء الاصطناعي، وري ذاتي — نحوّل الزراعة من السماء.">
+      Precision crop monitoring, AI soil analysis, and autonomous irrigation — transforming agriculture from the sky.
+    </p>
+    <div class="cta-row">
+      <button class="btn-green" onclick="document.getElementById('auth').scrollIntoView({behavior:'smooth'})" data-en="Get Started" data-ar="ابدأ الآن">Get Started</button>
+      <button class="btn-outline-brown" onclick="document.getElementById('achievements').scrollIntoView({behavior:'smooth'})" data-en="Our Achievements" data-ar="إنجازاتنا">Our Achievements</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><span class="stat-num" data-count="2400">0</span><span class="stat-label" data-en="Hectares Monitored" data-ar="هكتار مُراقب">Hectares Monitored</span></div>
+    <div class="stat-item"><span class="stat-num" data-count="98">0</span><span class="stat-label" data-en="% Crop Detection Accuracy" data-ar="% دقة كشف المحاصيل">% Crop Detection Accuracy</span></div>
+    <div class="stat-item"><span class="stat-num" data-count="340">0</span><span class="stat-label" data-en="Farms Serviced" data-ar="مزرعة مُخدومة">Farms Serviced</span></div>
+    <div class="stat-item"><span class="stat-num" data-count="62">0</span><span class="stat-label" data-en="% Water Saved" data-ar="% ماء موفَّر">% Water Saved</span></div>
+    <div class="stat-item"><span class="stat-num" data-count="15">0</span><span class="stat-label" data-en="Active Regions" data-ar="منطقة نشطة">Active Regions</span></div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<section class="section" id="achievements">
+  <h2 class="section-title" data-en="Our <span>Key</span> Achievements" data-ar="<span>أبرز</span> إنجازاتنا">Our <span>Key</span> Achievements</h2>
+  <p class="section-subtitle" data-en="Milestones that redefined precision agriculture in Algeria and beyond" data-ar="إنجازات أعادت تعريف الزراعة الدقيقة في الجزائر وخارجها">Milestones that redefined precision agriculture in Algeria and beyond</p>
+  <div class="achieve-grid">
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">🛰️</div>
+      <h3 data-en="Multispectral NDVI Mapping" data-ar="رسم خرائط NDVI متعدد الأطياف">Multispectral NDVI Mapping</h3>
+      <p data-en="Deployed AI-powered spectral drone imaging across 2,400 hectares, enabling real-time vegetation health index mapping for early disease detection — 3 weeks ahead of manual inspection." data-ar="نشرنا تصوير طيفي بالدرون مدعوم بالذكاء الاصطناعي على 2400 هكتار للكشف المبكر عن الأمراض.">Deployed AI-powered spectral drone imaging across 2,400 hectares, enabling real-time vegetation health index mapping for early disease detection — 3 weeks ahead of manual inspection.</p>
+      <span class="achieve-tag">NDVI · AI · MAPPING</span>
+    </div>
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">💧</div>
+      <h3 data-en="Smart Irrigation Protocol" data-ar="بروتوكول الري الذكي">Smart Irrigation Protocol</h3>
+      <p data-en="Implemented autonomous irrigation scheduling based on drone soil moisture data and weather APIs. Reduced water usage by 62% while increasing wheat yield by 28% in pilot farms." data-ar="طبّقنا جدولة ري ذاتية. خفّضنا استهلاك الماء بنسبة 62% مع زيادة محصول القمح بنسبة 28%.">Implemented autonomous irrigation scheduling based on drone soil moisture data and weather APIs. Reduced water usage by 62% while increasing wheat yield by 28% in pilot farms.</p>
+      <span class="achieve-tag">IRRIGATION · AUTONOMOUS</span>
+    </div>
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">🦟</div>
+      <h3 data-en="Precision Pesticide Spraying" data-ar="رش مبيدات دقيق">Precision Pesticide Spraying</h3>
+      <p data-en="Achieved 94% reduction in chemical usage through GPS-guided variable rate spraying. Our drones target only affected crop zones identified by the AI model." data-ar="حققنا تخفيضاً بنسبة 94% في استخدام المواد الكيميائية. تستهدف طائراتنا فقط المناطق المصابة.">Achieved 94% reduction in chemical usage through GPS-guided variable rate spraying.</p>
+      <span class="achieve-tag">SPRAYING · GPS · AI</span>
+    </div>
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">🌾</div>
+      <h3 data-en="Harvest Yield Prediction" data-ar="التنبؤ بغلة الحصاد">Harvest Yield Prediction</h3>
+      <p data-en="Trained a deep-learning model on 3 years of drone imagery to forecast yields with 96.4% accuracy. Enabled 340 farms to optimize resource allocation before harvest season." data-ar="درّبنا نموذج تعلم عميق على 3 سنوات من صور الدرون للتنبؤ بالغلة بدقة 96.4%.">Trained a deep-learning model on 3 years of drone imagery to forecast yields with 96.4% accuracy.</p>
+      <span class="achieve-tag">ML · PREDICTION · YIELD</span>
+    </div>
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">🌡️</div>
+      <h3 data-en="Soil Health Analytics Platform" data-ar="منصة تحليل صحة التربة">Soil Health Analytics Platform</h3>
+      <p data-en="Built an end-to-end soil monitoring dashboard aggregating drone thermal, LiDAR, and hyperspectral data. Provides actionable reports within 2 hours of flight." data-ar="بنيّنا لوحة مراقبة تربة شاملة تجمع بيانات الدرون الحرارية وLiDAR. تقارير في ساعتين بعد الرحلة.">Built an end-to-end soil monitoring dashboard aggregating drone thermal, LiDAR, and hyperspectral data.</p>
+      <span class="achieve-tag">ANALYTICS · LIDAR · THERMAL</span>
+    </div>
+    <div class="achieve-card" data-tilt data-tilt-max="10">
+      <div class="achieve-icon">🏆</div>
+      <h3 data-en="National AgriTech Award 2025" data-ar="جائزة التكنولوجيا الزراعية 2025">National AgriTech Award 2025</h3>
+      <p data-en="Recognized by Algeria's Ministry of Agriculture as the leading agri-drone innovation of the year. Our system is now piloted in 15 wilayas." data-ar="تكريم من وزارة الفلاحة الجزائرية. نظامنا مُطبَّق الآن في 15 ولاية.">Recognized by Algeria's Ministry of Agriculture as the leading agri-drone innovation of the year.</p>
+      <span class="achieve-tag">AWARD · NATIONAL · 2025</span>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="timeline-section" id="journey">
+  <h2 class="section-title" data-en="Our <span>Journey</span>" data-ar="<span>مسيرتنا</span>">Our <span>Journey</span></h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-content"><div class="timeline-year">2022</div><h4 data-en="Foundation & First Field Test" data-ar="التأسيس والاختبار الأول">Foundation & First Field Test</h4><p data-en="SKYLINE Agriculture division launched. First NDVI mapping on 50 hectares in Blida." data-ar="أُطلق قسم الزراعة. أول اختبارات NDVI في البليدة.">SKYLINE Agriculture division launched. First NDVI mapping on 50 hectares in Blida.</p></div>
+      <div class="timeline-dot"></div><div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div><div class="timeline-dot"></div>
+      <div class="timeline-content"><div class="timeline-year">2023</div><h4 data-en="Smart Irrigation Pilot" data-ar="تجريب الري الذكي">Smart Irrigation Pilot</h4><p data-en="Deployed autonomous irrigation in 40 partner farms. 62% water savings confirmed." data-ar="نشرنا الري الذاتي في 40 مزرعة. تأكّد توفير 62% من الماء.">Deployed autonomous irrigation in 40 partner farms. 62% water savings confirmed.</p></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-content"><div class="timeline-year">2024</div><h4 data-en="National Expansion" data-ar="التوسع الوطني">National Expansion</h4><p data-en="Scaled to 15 wilayas. Launched Soil Health Analytics Platform. 200+ farms serviced." data-ar="توسّعنا إلى 15 ولاية. أطلقنا منصة تحليل التربة. 200+ مزرعة مُخدومة.">Scaled to 15 wilayas. Launched Soil Health Analytics Platform.</p></div>
+      <div class="timeline-dot"></div><div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div><div class="timeline-dot"></div>
+      <div class="timeline-content"><div class="timeline-year">2025</div><h4 data-en="Award & 340 Farms Milestone" data-ar="الجائزة و340 مزرعة">Award & 340 Farms Milestone</h4><p data-en="Won National AgriTech Award. 340+ active farm clients. 96.4% yield prediction accuracy." data-ar="فزنا بالجائزة الوطنية. 340+ عميل. دقة التنبؤ 96.4%.">Won National AgriTech Award. Surpassed 340 active farm clients.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH SPECS -->
+<section class="tech-section">
+  <h2 class="section-title" data-en="Drone <span>Specifications</span>" data-ar="مواصفات <span>الدرون</span>">Drone <span>Specifications</span></h2>
+  <div class="spec-grid">
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">🛸</span><span class="spec-val">6km</span><span class="spec-name" data-en="MAX FLIGHT RANGE" data-ar="أقصى مدى طيران">MAX FLIGHT RANGE</span></div>
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">🎥</span><span class="spec-val">4K</span><span class="spec-name" data-en="MULTISPECTRAL CAMERA" data-ar="كاميرا متعددة الأطياف">MULTISPECTRAL CAMERA</span></div>
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">⏱️</span><span class="spec-val">40m</span><span class="spec-name" data-en="BATTERY ENDURANCE" data-ar="عمر البطارية">BATTERY ENDURANCE</span></div>
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">📡</span><span class="spec-val">RTK</span><span class="spec-name" data-en="GPS PRECISION" data-ar="دقة GPS">GPS PRECISION</span></div>
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">💦</span><span class="spec-val">10L</span><span class="spec-name" data-en="SPRAY TANK CAPACITY" data-ar="خزان الرش">SPRAY TANK CAPACITY</span></div>
+    <div class="spec-card" data-tilt data-tilt-max="12"><span class="spec-icon">🤖</span><span class="spec-val">AI</span><span class="spec-name" data-en="AUTONOMOUS MISSION" data-ar="مهمة ذاتية">AUTONOMOUS MISSION</span></div>
+  </div>
+</section>
+
+<!-- AUTH SECTION -->
+<section class="auth-section" id="auth">
+  <h2 class="section-title" data-en="Join the <span>AgriCloud</span>" data-ar="انضم إلى <span>سحابة الزراعة</span>">Join the <span>AgriCloud</span></h2>
+  <div class="auth-wrapper">
+    <div class="auth-left">
+      <div class="tag" data-en="🌿 SMART AGRICULTURE PLATFORM" data-ar="🌿 منصة الزراعة الذكية">🌿 SMART AGRICULTURE PLATFORM</div>
+      <h2 data-en="Access Full <span>Crop Intelligence</span> Dashboard" data-ar="الوصول إلى لوحة <span>الذكاء الزراعي</span> الكاملة">Access Full <span>Crop Intelligence</span> Dashboard</h2>
+      <p data-en="Join 340+ farms already leveraging SKYLINE's precision agriculture technology. Monitor your fields from anywhere, anytime." data-ar="انضم إلى أكثر من 340 مزرعة تستفيد من تقنية SKYLINE. راقب حقولك من أي مكان.">Join 340+ farms already leveraging SKYLINE's precision agriculture technology.</p>
+      <ul class="auth-features">
+        <li><span class="dot"></span><span data-en="Real-time NDVI crop health maps" data-ar="خرائط صحة المحاصيل NDVI">Real-time NDVI crop health maps</span></li>
+        <li><span class="dot"></span><span data-en="Autonomous irrigation scheduling" data-ar="جدولة الري الذاتية">Autonomous irrigation scheduling</span></li>
+        <li><span class="dot"></span><span data-en="Soil & pest analytics reports" data-ar="تقارير تحليل التربة والآفات">Soil & pest analytics reports</span></li>
+        <li><span class="dot"></span><span data-en="Harvest yield prediction AI" data-ar="ذكاء اصطناعي للتنبؤ بالحصاد">Harvest yield prediction AI</span></li>
+        <li><span class="dot"></span><span data-en="On-demand drone mission dispatch" data-ar="إرسال مهام درون عند الطلب">On-demand drone mission dispatch</span></li>
+      </ul>
+    </div>
+
+    <div class="auth-right">
+      <h3 style="margin-bottom:20px;font-size:24px;color:#fff;" data-en="Create Account" data-ar="إنشاء حساب">Create Account</h3>
+
+      <!-- REGISTER FORM -->
+      <div class="auth-form active" id="form-register">
+        <input type="text" id="reg-name" placeholder="Full Name" data-placeholder-en="Full Name" data-placeholder-ar="الاسم الكامل">
+        <input type="email" id="reg-email" placeholder="Email Address" data-placeholder-en="Email Address" data-placeholder-ar="البريد الإلكتروني">
+
+        <select id="reg-usertype">
+          <option value="" disabled selected>Select User Type</option>
+          <option value="farmer" data-en="Farmer" data-ar="مزارع">Farmer</option>
+          <option value="company" data-en="Company" data-ar="شركة">Company</option>
+          <option value="agronomist" data-en="Agronomist" data-ar="مهندس زراعي">Agronomist</option>
+          <option value="cooperative" data-en="Cooperative" data-ar="تعاونية">Cooperative</option>
+        </select>
+
+        <select id="reg-wilaya">
+          <option value="" disabled selected>Select your wilaya</option>
+          <option value="01">01 – Adrar</option><option value="02">02 – Chlef</option><option value="03">03 – Laghouat</option>
+          <option value="04">04 – Oum El Bouaghi</option><option value="05">05 – Batna</option><option value="06">06 – Béjaïa</option>
+          <option value="07">07 – Biskra</option><option value="08">08 – Béchar</option><option value="09">09 – Blida</option>
+          <option value="10">10 – Bouira</option><option value="11">11 – Tamanrasset</option><option value="12">12 – Tébessa</option>
+          <option value="13">13 – Tlemcen</option><option value="14">14 – Tiaret</option><option value="15">15 – Tizi Ouzou</option>
+          <option value="16">16 – Alger</option><option value="17">17 – Djelfa</option><option value="18">18 – Jijel</option>
+          <option value="19">19 – Sétif</option><option value="20">20 – Saïda</option><option value="21">21 – Skikda</option>
+          <option value="22">22 – Sidi Bel Abbès</option><option value="23">23 – Annaba</option><option value="24">24 – Guelma</option>
+          <option value="25">25 – Constantine</option><option value="26">26 – Médéa</option><option value="27">27 – Mostaganem</option>
+          <option value="28">28 – M'Sila</option><option value="29">29 – Mascara</option><option value="30">30 – Ouargla</option>
+          <option value="31">31 – Oran</option><option value="32">32 – El Bayadh</option><option value="33">33 – Illizi</option>
+          <option value="34">34 – Bordj Bou Arréridj</option><option value="35">35 – Boumerdès</option><option value="36">36 – El Tarf</option>
+          <option value="37">37 – Tindouf</option><option value="38">38 – Tissemsilt</option><option value="39">39 – El Oued</option>
+          <option value="40">40 – Khenchela</option><option value="41">41 – Souk Ahras</option><option value="42">42 – Tipaza</option>
+          <option value="43">43 – Mila</option><option value="44">44 – Aïn Defla</option><option value="45">45 – Naâma</option>
+          <option value="46">46 – Aïn Témouchent</option><option value="47">47 – Ghardaïa</option><option value="48">48 – Relizane</option>
+        </select>
+
+        <div style="position:relative">
+          <input type="password" id="reg-pass" placeholder="Password" data-placeholder-en="Password" data-placeholder-ar="كلمة المرور" style="padding-right:44px;width:100%">
+          <button type="button" onclick="toggleVis('reg-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
+        </div>
+        <div style="position:relative">
+          <input type="password" id="reg-confirm" placeholder="Confirm Password" data-placeholder-en="Confirm Password" data-placeholder-ar="تأكيد كلمة المرور" oninput="checkPwMatch()" style="padding-right:44px;width:100%">
+          <button type="button" onclick="toggleVis('reg-confirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
+        </div>
+        <p id="pw-match-msg" style="font-size:11px;font-weight:700;min-height:14px;margin-top:-6px"></p>
+
+        <div class="remember-row">
+          <label><input type="checkbox" id="reg-remember"> <span data-en="Remember me" data-ar="تذكرني">Remember me</span></label>
+          <a href="#" data-en="Need help?" data-ar="تحتاج مساعدة؟">Need help?</a>
+        </div>
+
+        <div id="reg-status" style="display:none;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;border:1px solid"></div>
+
+        <button class="btn-submit" id="reg-btn" onclick="handleRegister()">
+          <span id="reg-btn-text" data-en="🌱 Create AgriCloud Account" data-ar="🌱 إنشاء حساب زراعي">🌱 Create AgriCloud Account</span>
+        </button>
+
+        <div class="or-divider">OR</div>
+
+        <button class="btn-google" onclick="handleGoogle(this)">
+          <img src="../assets/google.jpg" alt="Google">
+          <span data-en="Continue with Google" data-ar="المتابعة بـ Google">Continue with Google</span>
+        </button>
+
+        <p class="switch-link">
+          <span data-en="Already a member?" data-ar="عضو بالفعل؟">Already a member?</span>
+          <button onclick="window.location.href='/agriculture/login.html'" data-en="Log In" data-ar="سجّل دخولك">Log In</button>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="../assets/logo.jpg" alt="Logo">
+      <h3>SKYLINE</h3>
+      <p data-en="Empowering the sky with AI. Smart agriculture from above." data-ar="نمكّن السماء بالذكاء الاصطناعي. زراعة ذكية من الأعلى.">Empowering the sky with AI. Smart agriculture from above.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Agriculture" data-ar="الزراعة">Agriculture</h4>
+      <ul>
+        <li data-en="Crop Monitoring" data-ar="مراقبة المحاصيل">Crop Monitoring</li>
+        <li data-en="Soil Analysis" data-ar="تحليل التربة">Soil Analysis</li>
+        <li data-en="Smart Irrigation" data-ar="الري الذكي">Smart Irrigation</li>
+        <li data-en="Yield Prediction" data-ar="التنبؤ بالغلة">Yield Prediction</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Company" data-ar="الشركة">Company</h4>
+      <ul>
+        <li data-en="About SKYLINE" data-ar="عن SKYLINE">About SKYLINE</li>
+        <li data-en="Our Fleet" data-ar="أسطولنا">Our Fleet</li>
+        <li data-en="Technology" data-ar="التكنولوجيا">Technology</li>
+        <li data-en="Join Our Team" data-ar="انضم إلى فريقنا">Join Our Team</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Contact" data-ar="تواصل">Contact</h4>
+      <ul><li>📍 Algeria</li><li>📧 agri@skyline.com</li><li>📞 +213 555 111 222</li></ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <a href="../sky.html" class="back-btn">← <span data-en="Back to SKYLINE Home" data-ar="العودة إلى الرئيسية">Back to SKYLINE Home</span></a>
+    <p style="margin-top:14px">© 2026 SKYLINE Smart Agriculture Division</p>
+  </div>
+</footer>
+
+<script>
+/* ══════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ── Helpers ── */
+function toggleVis(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+}
+
+function checkPwMatch() {
+  const p1  = document.getElementById('reg-pass').value;
+  const p2  = document.getElementById('reg-confirm').value;
+  const msg = document.getElementById('pw-match-msg');
+  const ar  = document.documentElement.lang === 'ar';
+  if (!p2) { msg.textContent = ''; return; }
+  if (p1 === p2) { msg.textContent = ar ? '✓ كلمتا المرور متطابقتان' : '✓ Passwords match'; msg.style.color = '#5ddb6a'; }
+  else           { msg.textContent = ar ? '✗ كلمتا المرور غير متطابقتين' : '✗ Passwords do not match'; msg.style.color = '#f43f5e'; }
+}
+
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'block'; el.textContent = msg;
+  const s = { success:{bg:'rgba(93,219,106,0.1)',b:'#5ddb6a',c:'#5ddb6a'}, error:{bg:'rgba(244,63,94,0.1)',b:'#f43f5e',c:'#f43f5e'}, info:{bg:'rgba(58,171,74,0.08)',b:'#3aab4a',c:'#3aab4a'} }[type]||{};
+  el.style.background = s.bg; el.style.borderColor = s.b; el.style.color = s.c;
+}
+
+function showNotif(msg) {
+  const n = document.getElementById('notification');
+  document.getElementById('notif-msg').textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3500);
+}
+
+/* ══════════════════════════════════════
+   REGISTER — Supabase + role=agriculture
+══════════════════════════════════════ */
+async function handleRegister() {
+  const ar      = document.documentElement.lang === 'ar';
+  const name    = document.getElementById('reg-name').value.trim();
+  const email   = document.getElementById('reg-email').value.trim();
+  const utype   = document.getElementById('reg-usertype').value;
+  const wilaya  = document.getElementById('reg-wilaya').value;
+  const pass    = document.getElementById('reg-pass').value;
+  const confirm = document.getElementById('reg-confirm').value;
+  const btn     = document.getElementById('reg-btn');
+  const btnText = document.getElementById('reg-btn-text');
+
+  if (!name || !email || !utype || !wilaya || !pass || !confirm) {
+    showStatus('reg-status', ar ? '⚠️ يرجى ملء جميع الحقول' : '⚠️ Please fill all fields', 'error'); return;
+  }
+  if (pass !== confirm) {
+    showStatus('reg-status', ar ? '⚠️ كلمتا المرور غير متطابقتين' : '⚠️ Passwords do not match', 'error'); return;
+  }
+  if (pass.length < 6) {
+    showStatus('reg-status', ar ? '⚠️ كلمة المرور 6 أحرف على الأقل' : '⚠️ Min 6 characters', 'error'); return;
+  }
+
+  btn.style.opacity = '0.75'; btn.style.pointerEvents = 'none';
+  btnText.textContent = ar ? '⏳ جارٍ الإنشاء...' : '⏳ Creating...';
+  showStatus('reg-status', ar ? 'جارٍ إنشاء الحساب...' : 'Creating account...', 'info');
+
+  try {
+    /* 1️⃣ Supabase Auth — role مخزّن في metadata دائماً */
+    const { data: authData, error: authError } = await _sb.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, role: 'agriculture', user_type: utype, wilaya } }
+    });
+    if (authError) throw authError;
+
+    const user = authData.user;
+
+    /* 2️⃣ profiles table */
+    if (user) {
+      await _sb.from('profiles').upsert({
+        id: user.id, full_name: name, email,
+        role: 'agriculture', user_type: utype, wilaya,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' }).then(({ error: e }) => { if (e) console.warn('profiles:', e.message); });
+    }
+
+    /* 3️⃣ localStorage */
+    localStorage.setItem('skyline_user_name',  name);
+    localStorage.setItem('skyline_user_email', email);
+    localStorage.setItem('skyline_user_role',  'agriculture');
+    localStorage.setItem('skyline_agri_session', JSON.stringify({
+      id: user?.id, email, name, role: 'agriculture', user_type: utype, wilaya,
+    }));
+
+    showStatus('reg-status', ar ? '✅ تم إنشاء الحساب! تحقق من بريدك.' : '✅ Account created! Check your email.', 'success');
+    btnText.textContent = ar ? '✅ تم!' : '✅ Done!';
+    btn.style.background = 'linear-gradient(135deg,#5ddb6a,#3aab4a)';
+    btn.style.opacity = '1';
+    showNotif(ar ? '🌱 مرحباً بك في مجتمع الزراعة الذكية!' : '🌱 Welcome to the AgriCloud!');
+
+    setTimeout(() => { window.location.replace('/agriculture/index.html'); }, 1400);
+
+  } catch (err) {
+    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+    btnText.textContent = ar ? '🌱 إنشاء حساب زراعي' : '🌱 Create AgriCloud Account';
+    const msg = err.message.includes('already registered')
+      ? (ar ? '⚠️ هذا البريد مسجّل مسبقاً.' : '⚠️ Email already registered.')
+      : '❌ ' + err.message;
+    showStatus('reg-status', msg, 'error');
+  }
+}
+
+/* ── Google OAuth ── */
+async function handleGoogle(btn) {
+  const ar = document.documentElement.lang === 'ar';
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = `<span style="display:inline-block;width:16px;height:16px;border:2px solid #5ddb6a;border-top-color:transparent;border-radius:50%;animation:agriSpin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>${ar ? 'جارٍ التوثيق...' : 'Authenticating...'}`;
+  btn.style.pointerEvents = 'none';
+  try {
+    localStorage.setItem('skyline_pending_role', 'agriculture');
+    const { error } = await _sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/agriculture/oauth-callback.html' }
+    });
+    if (error) throw error;
+  } catch (err) {
+    btn.innerHTML = origHTML; btn.style.pointerEvents = 'auto';
+    showNotif('❌ Google: ' + err.message);
+  }
+}
+
+/* ══════════════════════════════════════
+   PARTICLES
+══════════════════════════════════════ */
+const canvas = document.getElementById('particles');
+const ctx    = canvas.getContext('2d');
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+const particles = Array.from({length:60}, () => ({
+  x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+  vx: (Math.random()-.5)*.4, vy: (Math.random()-.5)*.4,
+  r: Math.random()*2+.5,
+  color: Math.random()>.5 ? '#3aab4a' : '#c8956a'
+}));
+function drawParticles() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p => {
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>canvas.width) p.vx*=-1;
+    if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color; ctx.globalAlpha=.5; ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight});
+
+/* ══════════════════════════════════════
+   COUNTER ANIMATION
+══════════════════════════════════════ */
+function animateCounters() {
+  document.querySelectorAll('.stat-num[data-count]').forEach(el => {
+    const target = +el.dataset.count; let current = 0;
+    const step = target/60;
+    const timer = setInterval(()=>{
+      current = Math.min(current+step,target);
+      el.textContent = Math.floor(current);
+      if(current>=target){el.textContent=target;clearInterval(timer);}
+    },25);
+  });
+}
+const statsObs = new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting){animateCounters();statsObs.disconnect();}
+},{threshold:.3});
+statsObs.observe(document.querySelector('.stats-bar'));
+
+/* ══════════════════════════════════════
+   VANILLA TILT + LANGUAGE
+══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  VanillaTilt.init(document.querySelectorAll('.achieve-card,.spec-card'),{max:12,speed:400,glare:true,'max-glare':.15});
+  VanillaTilt.init(document.querySelectorAll('.auth-left'),{max:5,speed:600,glare:false});
+});
+
+let isAr = false;
+function toggleLang() {
+  isAr = !isAr;
+  document.documentElement.lang = isAr ? 'ar' : 'en';
+  document.documentElement.dir  = isAr ? 'rtl' : 'ltr';
+  document.querySelector('.langBtn').textContent = isAr ? 'EN' : 'AR';
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const key = isAr ? 'ar' : 'en';
+    if (el.dataset[key]) el.innerHTML = el.dataset[key];
+  });
+  document.querySelectorAll('[data-placeholder-en]').forEach(el => {
+    el.placeholder = isAr ? el.dataset.placeholderAr : el.dataset.placeholderEn;
+  });
+  document.querySelectorAll('option[data-en]').forEach(el => {
+    el.textContent = isAr ? el.dataset.ar : el.dataset.en;
+  });
+  const uOpt = document.querySelector('#reg-usertype option[disabled]');
+  if (uOpt) uOpt.textContent = isAr ? 'اختر نوع المستخدم' : 'Select User Type';
+  const wOpt = document.querySelector('#reg-wilaya option[disabled]');
+  if (wOpt) wOpt.textContent = isAr ? 'اختر ولايتك' : 'Select your wilaya';
+  checkPwMatch();
+}
+</script>
+</body>
+</html>

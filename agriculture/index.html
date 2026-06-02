@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyline | Agriculture AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Tajawal:wght@300;400;700&family=Syne:wght@400;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+    <div class="flex h-screen overflow-hidden">
+        <aside id="sidebar-container"
+            class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col transition-all duration-300 z-50 shadow-2xl">
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden bg-[#0B1120]">
+            <header id="topbar-container"
+                class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
+            </header>
+
+            <!-- STATS BAR -->
+            <div class="stats-bar">
+                <div class="stat-cell">
+                    <div class="stat-num c-blue" id="s-total">0</div>
+                    <div class="stat-lbl" data-ar="إجمالي النقاط" data-en="Total Points">إجمالي النقاط</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-num c-green" id="s-healthy">0</div>
+                    <div class="stat-lbl" data-ar="🟢 مناطق صحية" data-en="🟢 Healthy">🟢 مناطق صحية</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-num c-red" id="s-diseased">0</div>
+                    <div class="stat-lbl" data-ar="🔴 مناطق مريضة" data-en="🔴 Diseased">🔴 مناطق مريضة</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-num c-gold" id="s-rate">0%</div>
+                    <div class="stat-lbl" data-ar="نسبة الصحة" data-en="Health Rate">نسبة الصحة</div>
+                </div>
+            </div>
+
+            <!-- MAP + PANEL -->
+            <div class="map-panel-layout">
+
+                <!-- MAP -->
+                <div id="map"></div>
+
+                <!-- SIDE PANEL -->
+                <div class="panel">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('detail')" id="tab-btn-detail" data-ar="التفاصيل" data-en="Details">التفاصيل</button>
+                        <button class="tab" onclick="switchTab('list')" id="tab-btn-list" data-ar="القائمة" data-en="List">القائمة</button>
+                        <button class="tab" onclick="switchTab('upload')" id="tab-btn-upload" data-ar="رفع بيانات" data-en="Upload">رفع بيانات</button>
+                    </div>
+
+                    <!-- DETAIL TAB -->
+                    <div id="tab-detail" class="tab-body active">
+                        <div id="empty-state" class="empty-state">
+                            <div class="empty-icon">🛸</div>
+                            <div data-ar="اضغط على علامة في الخريطة لرؤية تفاصيل المنطقة" data-en="Click a marker on the map to view zone details">اضغط على علامة في الخريطة لرؤية تفاصيل المنطقة</div>
+                        </div>
+                        <div id="detail-view" class="detail-pad" style="display:none"></div>
+                    </div>
+
+                    <!-- LIST TAB -->
+                    <div id="tab-list" class="tab-body">
+                        <div class="list-header" id="list-header" data-ar="نتائج التشخيص" data-en="Diagnosis Results">نتائج التشخيص</div>
+                        <div class="results-scroll" id="results-scroll">
+                            <div class="empty-state" style="min-height:200px">
+                                <div class="empty-icon" style="font-size:28px">📂</div>
+                                <div data-ar="ارفع ملف results.json" data-en="Upload results.json file">ارفع ملف results.json</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UPLOAD TAB -->
+                    <div id="tab-upload" class="tab-body">
+                        <div class="upload-area">
+                            <div class="drop-zone" onclick="document.getElementById('json-file').click()">
+                                <div class="drop-icon">📡</div>
+                                <div class="drop-title" data-ar="رفع results.json" data-en="Upload results.json">رفع results.json</div>
+                                <div class="drop-sub" data-ar="اضغط لاختيار الملف" data-en="Click to select file">اضغط لاختيار الملف</div>
+                                <input type="file" id="json-file" accept=".json" onchange="loadJSON(this)"/>
+                            </div>
+                            <div class="how-to">
+                                <div class="how-title" data-ar="⚡ خطوات التشغيل" data-en="⚡ How to use">⚡ خطوات التشغيل</div>
+                                <div class="how-step">
+                                    <div class="step-num">1</div>
+                                    <div data-ar="شغّل كود Colab لإنتاج results.json" data-en="Run Colab notebook to generate results.json">شغّل كود Colab لإنتاج results.json</div>
+                                </div>
+                                <div class="how-step">
+                                    <div class="step-num">2</div>
+                                    <div>
+                                        <span data-ar="حمّل الملف من" data-en="Download file from">حمّل الملف من</span>
+                                        <code>MyDrive/results.json</code>
+                                    </div>
+                                </div>
+                                <div class="how-step">
+                                    <div class="step-num">3</div>
+                                    <div data-ar="ارفعه هنا وشاهد الخريطة!" data-en="Upload here and watch the map!">ارفعه هنا وشاهد الخريطة!</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- end map-panel-layout -->
+
+        </main>
+    </div>
+
+    <script src="js/language.js"></script>
+    <script src="js/core/main.js"></script>
+
+    <script>
+    // ════════════════════════════════════
+    //  الخريطة
+    // ════════════════════════════════════
+    const skyMap = L.map('map', { center: [34.85, 1.3167], zoom: 15, zoomControl: false });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(skyMap);
+
+    L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { attribution: 'Esri' }
+    ).addTo(skyMap);
+
+    L.tileLayer(
+        'https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png',
+        { opacity: 0.3 }
+    ).addTo(skyMap);
+
+    // ════════════════════════════════════
+    //  متغيرات
+    // ════════════════════════════════════
+    let allData      = [];
+    let markers      = [];
+    let selectedItem = null;
+    let selectedIdx  = -1;
+
+    function getLang() {
+        return (typeof currentLang !== 'undefined' ? currentLang : null)
+            || document.documentElement.lang
+            || 'ar';
+    }
+
+    // ════════════════════════════════════
+    //  تحميل JSON
+    // ════════════════════════════════════
+    function loadJSON(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                allData = JSON.parse(e.target.result);
+                renderAll(allData);
+                switchTab('list');
+            } catch { alert('Invalid JSON file'); }
+        };
+        reader.readAsText(file);
+    }
+
+    // ════════════════════════════════════
+    //  رسم كل شيء
+    // ════════════════════════════════════
+    function renderAll(data) {
+        const healthy  = data.filter(d => d.flag === 'green').length;
+        const diseased = data.length - healthy;
+        const rate     = data.length ? Math.round(healthy / data.length * 100) : 0;
+
+        animateNum('s-total',    0, data.length);
+        animateNum('s-healthy',  0, healthy);
+        animateNum('s-diseased', 0, diseased);
+        document.getElementById('s-rate').textContent = rate + '%';
+
+        markers.forEach(m => skyMap.removeLayer(m));
+        markers = [];
+        const bounds = [];
+
+        data.forEach((item, i) => {
+            const isG  = item.flag === 'green';
+            const icon = L.divIcon({
+                className: '',
+                html: `<div class="flag-marker ${isG ? 'flag-green' : 'flag-red'}"></div>`,
+                iconSize: [14, 14], iconAnchor: [7, 7]
+            });
+
+            const m = L.marker([item.latitude, item.longitude], { icon });
+            m.on('click', () => selectItem(item, i));
+            m.bindTooltip(
+                `${isG ? '🟢' : '🔴'} ${item.image}<br>${item.confidence}%`,
+                { direction: 'top', offset: [0, -10] }
+            );
+            m.addTo(skyMap);
+            markers.push(m);
+            bounds.push([item.latitude, item.longitude]);
+        });
+
+        if (bounds.length > 1) skyMap.fitBounds(bounds, { padding: [50, 50] });
+        renderList(data);
+    }
+
+    function animateNum(id, from, to) {
+        const el    = document.getElementById(id);
+        const dur   = 800;
+        const start = performance.now();
+        function step(now) {
+            const t = Math.min((now - start) / dur, 1);
+            el.textContent = Math.round(from + (to - from) * t);
+            if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    // ════════════════════════════════════
+    //  تحديد عنصر
+    // ════════════════════════════════════
+    function selectItem(item, idx) {
+        selectedItem = item;
+        selectedIdx  = idx;
+        switchTab('detail');
+        renderDetail(item);
+        skyMap.flyTo([item.latitude, item.longitude], 17, { duration: 1.2 });
+        document.querySelectorAll('.r-item').forEach((el, i) => {
+            el.classList.toggle('active', i === idx);
+        });
+    }
+
+    function renderDetail(item) {
+        const isG = item.flag === 'green';
+        const ar  = getLang() === 'ar';
+
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('detail-view').style.display = 'flex';
+        document.getElementById('detail-view').className     = 'detail-pad fade-in';
+
+        const diagText = isG
+            ? (ar ? '✅ المنطقة صحية — لا تحتاج تدخلاً' : '✅ Healthy Zone — No Action Needed')
+            : (ar ? '⚠️ المنطقة مريضة — تحتاج فحص ميداني' : '⚠️ Diseased Zone — Field Inspection Needed');
+
+        document.getElementById('detail-view').innerHTML = `
+            <div class="diag-badge ${isG ? 'badge-green' : 'badge-red'}">${diagText}</div>
+
+            <div class="img-frame">
+                <img src="${item.image_url || ''}" alt="drone"
+                    onerror="this.parentElement.innerHTML='<div class=no-img>📷 ${ar ? 'الصورة غير متاحة' : 'Image unavailable'}</div>'"/>
+                <div class="img-overlay">${item.image}</div>
+            </div>
+
+            <div class="conf-bar">
+                <div class="conf-label">
+                    <span>${ar ? 'ثقة النموذج' : 'Model Confidence'}</span>
+                    <span class="${isG ? 'c-green' : 'c-red'}">${item.confidence}%</span>
+                </div>
+                <div class="conf-track">
+                    <div class="conf-fill ${isG ? 'fill-green' : 'fill-red'}" style="width:${item.confidence}%"></div>
+                </div>
+            </div>
+
+            <div class="gps-grid">
+                <div class="gps-row">
+                    <span class="gps-key">${ar ? 'الصورة' : 'Image'}</span>
+                    <span class="gps-val">${item.image}</span>
+                </div>
+                <div class="gps-row">
+                    <span class="gps-key">Latitude</span>
+                    <span class="gps-val">${item.latitude?.toFixed(7)}</span>
+                </div>
+                <div class="gps-row">
+                    <span class="gps-key">Longitude</span>
+                    <span class="gps-val">${item.longitude?.toFixed(7)}</span>
+                </div>
+                <div class="gps-row">
+                    <span class="gps-key">${ar ? 'الارتفاع' : 'Altitude'}</span>
+                    <span class="gps-val">${item.altitude} m</span>
+                </div>
+                <div class="gps-row">
+                    <span class="gps-key">${ar ? 'التشخيص' : 'Diagnosis'}</span>
+                    <span class="gps-val ${isG ? 'c-green' : 'c-red'}">${isG ? (ar ? 'صحي' : 'Healthy') : (ar ? 'مريض' : 'Diseased')}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // ════════════════════════════════════
+    //  قائمة النتائج
+    // ════════════════════════════════════
+    function renderList(data) {
+        const container = document.getElementById('results-scroll');
+        if (!data.length) return;
+        container.innerHTML = data.map((item, i) => {
+            const isG = item.flag === 'green';
+            return `
+                <div class="r-item ${i === selectedIdx ? 'active' : ''}"
+                    onclick="selectItem(${JSON.stringify(item).replace(/"/g,"'")}, ${i})">
+                    <div class="r-dot ${isG ? 'r-dot-g' : 'r-dot-r'}"></div>
+                    <div class="r-info">
+                        <div class="r-name">${item.image}</div>
+                        <div class="r-coord">${item.latitude?.toFixed(5)}, ${item.longitude?.toFixed(5)}</div>
+                    </div>
+                    <div class="r-badge ${isG ? 'rb-g' : 'rb-r'}">${item.confidence}%</div>
+                </div>`;
+        }).join('');
+    }
+
+    // ════════════════════════════════════
+    //  التبويبات
+    // ════════════════════════════════════
+    function switchTab(name) {
+        ['detail', 'list', 'upload'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
+            document.getElementById(`tab-btn-${t}`)?.classList.toggle('active', t === name);
+        });
+    }
+
+    // ════════════════════════════════════
+    //  Supabase — بيانات المستخدم فقط
+    // ════════════════════════════════════
+    const SUPABASE_URL = "https://rpbswbyxlmcwlqkkpnhe.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function loadFromSupabase() {
+        try {
+            // 1. الحصول على المستخدم الحالي
+            const { data: { user }, error: authErr } = await db.auth.getUser();
+
+            if (authErr || !user) {
+                console.warn("User not logged in — no data loaded");
+                return;
+            }
+
+            // 2. جلب نتائج هذا المستخدم فقط
+            const { data, error } = await db
+                .from("field_results")
+                .select("*")
+                .eq("profile_id", user.id)   // ← عزل البيانات لكل مستخدم
+                .order("created_at", { ascending: true });
+
+            if (error) {
+                console.error("field_results error:", error);
+                return;
+            }
+
+            if (data && data.length > 0) {
+                renderAll(data);
+            } else {
+                document.getElementById('s-total').textContent    = '0';
+                document.getElementById('s-healthy').textContent  = '0';
+                document.getElementById('s-diseased').textContent = '0';
+                document.getElementById('s-rate').textContent     = '0%';
+            }
+
+        } catch (err) {
+            console.error("loadFromSupabase error:", err);
+        }
+    }
+
+    loadFromSupabase();
+    setInterval(loadFromSupabase, 30000);
+    </script>
+
+</body>
+</html>

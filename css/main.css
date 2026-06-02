@@ -1,0 +1,89 @@
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 10px;
+}
+
+/* Glassmorphism & Glow Effects */
+.active-nav-item {
+    background: rgba(56, 189, 248, 0.1);
+    border-left: 4px solid #38bdf8;
+    box-shadow: -10px 0 20px rgba(56, 189, 248, 0.05);
+}
+
+.card-glow:hover {
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    transition: all 0.3s ease;
+}
+
+/* RTL Adjustments */
+[dir="rtl"] .active-nav-item {
+    border-left: none;
+    border-right: 4px solid #38bdf8;
+}
+/* تأثير احترافي عند مرور الفأرة على البطاقات */
+.card-hover-effect {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.card-hover-effect:hover {
+    /* تحريك البطاقة للأعلى قليلاً */
+    transform: translateY(-5px) scale(1.02);
+    /* زيادة سطوع الحدود */
+    border-color: rgba(34, 211, 238, 0.6);
+    /* إضافة توهج خارجي (Neon Glow) */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.2);
+}
+
+/* تأثير خاص للبطاقة الأولى (الزرقاء) ليكون توهجها أقوى */
+.card-hover-effect.border-cyan-500\/30:hover {
+    box-shadow: 0 20px 40px rgba(6, 182, 212, 0.25);
+    border-color: #06b6d4;
+}
+
+/* تحريك الأيقونة داخل البطاقة عند الهوفر */
+.card-hover-effect:hover i {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px currentColor);
+    transition: all 0.3s ease;
+}
+
+
+
+
+/* ✅ الوضع الفاتح المُريح للعين (Soft Light Mode) */
+body.light-mode {
+    background-color: #e2e8f0 !important; /* رمادي فاتح مريح */
+    color: #0f172a !important; /* كحلي غامق بدلاً من الأسود القاسي */
+}
+
+body.light-mode .bg-\[\#0B1120\] {
+    background-color: #e2e8f0 !important;
+}
+
+body.light-mode .bg-\[\#111827\] {
+    background-color: #f1f5f9 !important; /* أبيض رمادي ناعم للبطاقات والقائمة */
+    border-color: #cbd5e1 !important;
+}
+
+body.light-mode .text-slate-200,
+body.light-mode .text-slate-300,
+body.light-mode .text-white {
+    color: #0f172a !important; /* نصوص داكنة بوضوح */
+}
+
+body.light-mode .text-slate-400,
+body.light-mode .text-slate-500 {
+    color: #475569 !important; /* نصوص ثانوية غير مزعجة */
+}
+
+body.light-mode .border-white\/5 {
+    border-color: rgba(0, 0, 0, 0.05) !important;
+}
+

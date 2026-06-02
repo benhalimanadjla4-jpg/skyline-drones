@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Analytical Reports</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 shadow-2xl transition-all duration-300"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+            <div class="animate-fade-in flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                        <i data-lucide="bar-chart-3" class="text-blue-400"></i>
+                        <span data-i18n="reports_title">Analytical Reports</span>
+                    </h1>
+                    <p data-i18n="reports_desc" class="text-slate-500 mt-1">Generate and download detailed crop health analysis.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in" style="animation-delay: 0.1s">
+                <div class="bg-[#111827]/60 border border-slate-800 p-6 rounded-[2rem] hover:border-blue-500/50 transition-all group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-3 bg-blue-500/10 rounded-2xl">
+                            <i data-lucide="file-text" class="text-blue-400 w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Wheat Sector A Analysis</h3>
+                    <p class="text-sm text-slate-400 mb-6">Generated on April 09, 2026.</p>
+                    
+                    <button onclick="generatePDFReport('Wheat Sector A', 'Safe', '12.8% Organic Matter')" 
+                            class="w-full py-3 bg-white/5 hover:bg-blue-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span data-i18n="download_btn">Download Report</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/language.js"></script>
+<script src="../js/core/main.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // استدعاء المكونات بنفس طريقتك الأصلية
+        if (typeof loadComponent === 'function') {
+            await Promise.all([
+                loadComponent('sidebar-container', '../components/sidebar.html'),
+                loadComponent('topbar-container', '../components/topbar.html'),
+            ]);
+            lucide.createIcons();
+            applyLanguage(localStorage.getItem('skyline_lang') || 'en');
+        }
+    });
+
+    // دالة إنشاء التقرير (أسود فاحم وواضح جداً)
+    function generatePDFReport(fieldName, status, data) {
+        const lang = localStorage.getItem('skyline_lang') || 'en';
+        const isAr = lang === 'ar';
+        const report = document.createElement('div');
+        
+        // PDF Styling: Pure White Background & Pure Black Text
+        report.className = "p-12 bg-white text-black";
+        report.style.direction = isAr ? 'rtl' : 'ltr';
+        report.style.color = '#000000'; // تأكيد اللون الأسود التام
+        report.style.fontFamily = isAr ? "'Tajawal', sans-serif" : "'Inter', sans-serif";
+
+        report.innerHTML = `
+            <div style="border-bottom: 5px solid #000; padding-bottom: 10px; margin-bottom: 30px;">
+                <h1 style="font-weight: 900; font-size: 28px; margin: 0; color: #000;">
+                    SKYLINE LAND | CROP REPORT
+                </h1>
+                <p style="font-weight: 900; margin-top: 5px; font-size: 16px;">
+                    ${isAr ? 'تاريخ التقرير:' : 'Date:'} ${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}
+                </p>
+            </div>
+
+            <div style="border: 3px solid #000; padding: 20px; margin-bottom: 30px; background: #eee;">
+                <h3 style="margin: 0; font-weight: 900; color: #000; font-size: 20px;">${isAr ? 'تفاصيل الموقع' : 'Location Details'}</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; margin-top: 15px; gap: 20px;">
+                    <p style="font-weight: 900; margin: 0;">${isAr ? 'اسم الحقل:' : 'Field Name:'} <span style="font-weight: bold;">${fieldName}</span></p>
+                </div>
+            </div>
+
+            <h2 style="font-weight: 900; font-size: 22px; border-bottom: 3px solid #000; margin-bottom: 15px;">
+                ${isAr ? 'تحليل البيانات' : 'Path Analysis'}
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; border: 2px solid #000; color: #000;">
+                <thead>
+                    <tr style="background: #000; color: #fff; border-bottom: 3px solid #000;">
+                        <th style="padding: 12px; border: 1px solid #000; text-align: ${isAr ? 'right' : 'left'}; font-weight: 900;">${isAr ? 'المؤشر' : 'Metric'}</th>
+                        <th style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 900;">${isAr ? 'القيمة' : 'Value'}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #000; font-weight: 900;">${isAr ? 'حالة الصحة العامة' : 'Overall Health'}</td>
+                        <td style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 900;">${status}</td>
+                    </tr>
+                    <tr style="background: #e2e8f0;">
+                        <td style="padding: 12px; border: 1px solid #000; font-weight: 900;">${isAr ? 'تحليل التربة' : 'Soil Composition'}</td>
+                        <td style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 900;">${data}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 60px; text-align: center; border-top: 3px solid #000; padding-top: 15px;">
+                <p style="font-weight: 900; font-size: 14px;">GENERATED BY SKYLINE LAND - 2026</p>
+            </div>
+        `;
+
+        html2pdf().set({
+            margin: 0.5,
+            filename: `Log_${fieldName.replace(/\s+/g, '_')}.pdf`,
+            html2canvas: { scale: 3, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        }).from(report).save();
+    }
+</script>
+</body>
+</html>

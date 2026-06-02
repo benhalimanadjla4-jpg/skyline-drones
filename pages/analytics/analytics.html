@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Advanced Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Tajawal:wght@300;400;700" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes fade-in-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .custom-scrollbar::-webkit-scrollbar{width:6px}
+        .custom-scrollbar::-webkit-scrollbar-thumb{background:#1e293b;border-radius:10px}
+        .card-hover-effect{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+        .card-hover-effect:hover{transform:translateY(-4px);box-shadow:0 20px 40px -10px rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.3)}
+        #toast{position:fixed;bottom:28px;right:28px;z-index:9999;display:none;padding:12px 20px;border-radius:16px;font-size:14px;font-weight:700;}
+        #toast.show{display:block;animation:tIn .3s ease}
+        @keyframes tIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        #toast.success{background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.3)}
+        #toast.error{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] transition-all duration-300 antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col transition-all duration-300 z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+
+            <!-- Header -->
+            <div class="animate-fade-in">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-black tracking-tight text-white">
+                            <i data-lucide="bar-chart-3" class="inline mr-3 text-purple-400 w-8 h-8"></i>
+                            <span data-i18n="data_analytics">Advanced Analytics</span>
+                        </h1>
+                        <p data-i18n="analytics_desc" class="text-slate-500 mt-1 max-w-xl">Live mission requests data from Supabase</p>
+                    </div>
+                    <div class="flex gap-3 items-center">
+                        <select id="missionSelector" onchange="changeMission(this.value)"
+                            class="bg-[#111827]/80 border border-slate-700 text-sm text-slate-300 rounded-xl px-4 py-2 outline-none focus:border-purple-500 transition-all font-bold shadow-inner cursor-pointer">
+                            <option value="all">All Requests</option>
+                        </select>
+                        <button onclick="exportAnalyticsPDF()"
+                            class="px-4 py-2 bg-slate-800/50 rounded-xl text-slate-300 text-sm border border-slate-700 hover:bg-slate-700 transition-all flex items-center justify-center group">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2 group-hover:-translate-y-1 transition-transform"></i>
+                            <span data-i18n="export_report">Export PDF</span>
+                        </button>
+                        <button onclick="loadAll()" id="refresh-btn"
+                            class="p-2 bg-slate-800/50 rounded-xl text-slate-400 border border-slate-700 hover:text-purple-400 hover:border-purple-500/40 transition-all">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in" style="animation-delay:0.1s">
+                <!-- Chart 1: Progress by request -->
+                <div class="bg-[#111827]/60 rounded-[2rem] p-6 border border-slate-800 card-hover-effect">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="trending-up" class="text-emerald-400 w-5 h-5"></i>
+                            <span data-i18n="crop_health_index">Request Area (ha)</span>
+                        </h3>
+                        <span id="chart1-label" class="text-xs text-slate-500 font-mono">last 7 requests</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="cropHealthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Payment status doughnut -->
+                <div class="bg-[#111827]/60 rounded-[2rem] p-6 border border-slate-800 card-hover-effect">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="credit-card" class="text-cyan-400 w-5 h-5"></i>
+                            <span data-i18n="fleet_efficiency">Payment Status</span>
+                        </h3>
+                        <span id="chart2-label" class="text-xs text-slate-500 font-mono">payment breakdown</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="fleetPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" style="animation-delay:0.2s">
+
+                <!-- Avg field area -->
+                <div class="bg-gradient-to-br from-purple-500/10 to-transparent rounded-2xl p-6 border border-purple-500/20">
+                    <p class="text-purple-400 text-xs font-bold uppercase tracking-wider mb-2" data-i18n="ai_accuracy">Avg. Field Area</p>
+                    <p class="text-3xl font-black text-white" id="stat-accuracy">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin inline text-purple-400"></i>
+                    </p>
+                    <div class="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-purple-500 shadow-[0_0_10px_#A855F7] transition-all duration-700" id="stat-accuracy-bar" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- Total requests -->
+                <div class="bg-gradient-to-br from-blue-500/10 to-transparent rounded-2xl p-6 border border-blue-500/20">
+                    <p class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-2" data-i18n="area_covered">Total Requests</p>
+                    <p class="text-3xl font-black text-white">
+                        <span id="stat-area">—</span>
+                        <span class="text-sm font-normal text-slate-500 ml-1">requests</span>
+                    </p>
+                    <p class="text-xs text-emerald-400 mt-2" id="stat-area-trend">—</p>
+                </div>
+
+                <!-- Active / in-progress -->
+                <div class="bg-gradient-to-br from-amber-500/10 to-transparent rounded-2xl p-6 border border-amber-500/20">
+                    <p class="text-amber-400 text-xs font-bold uppercase tracking-wider mb-2" data-i18n="detected_diseases">In Progress</p>
+                    <p class="text-3xl font-black text-white" id="stat-diseases">—</p>
+                    <p class="text-xs text-slate-500 mt-2" data-i18n="active_alerts">Currently running</p>
+                </div>
+            </div>
+
+            <!-- Bottom Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in" style="animation-delay:0.3s">
+
+                <!-- Mission status breakdown -->
+                <div class="bg-[#111827]/60 rounded-[2rem] p-6 border border-slate-800 card-hover-effect">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="text-purple-400 w-4 h-4"></i>
+                        Status Breakdown
+                    </h3>
+                    <div class="h-48">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Crop type distribution -->
+                <div class="bg-[#111827]/60 rounded-[2rem] p-6 border border-slate-800 card-hover-effect">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="leaf" class="text-emerald-400 w-4 h-4"></i>
+                        Crop Types
+                    </h3>
+                    <div class="h-48">
+                        <canvas id="altitudeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent activity feed -->
+                <div class="bg-[#111827]/60 rounded-[2rem] p-6 border border-slate-800 card-hover-effect">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="clock" class="text-amber-400 w-4 h-4"></i>
+                        Recent Activity
+                    </h3>
+                    <div id="recent-activity" class="space-y-3 overflow-y-auto max-h-48 custom-scrollbar">
+                        <p class="text-xs text-slate-500 text-center py-4">
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-purple-400"></i>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="/js/language.js"></script>
+<script src="/js/core/main.js"></script>
+<script>
+/* ══════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ── Toast ── */
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type + ' show';
+    setTimeout(() => t.className = '', 3200);
+}
+
+/* ══════════════════════════════════════
+   STATE
+   الجدول الجديد: mission_requests
+   الحقول المستخدمة:
+     id, mission_title, mission_description,
+     field_area_ha, crop_type, mission_deadline,
+     mission_status, payment_status, payment_amount,
+     wilaya, email, created_at
+══════════════════════════════════════ */
+let allMissions = [];   // يحمل بيانات mission_requests
+let charts      = {};
+let selectedMissionId = 'all';
+
+/* ══════════════════════════════════════
+   LOAD ALL DATA
+══════════════════════════════════════ */
+async function loadAll() {
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) refreshBtn.querySelector('i')?.classList.add('animate-spin');
+
+    await loadMissions();
+
+    if (refreshBtn) refreshBtn.querySelector('i')?.classList.remove('animate-spin');
+    if (window.lucide) lucide.createIcons();
+}
+
+/* ── Mission Requests (الجدول الجديد) ── */
+async function loadMissions() {
+    try {
+        const { data, error } = await _sb
+            .from('mission_requests')           // ← الجدول الجديد
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allMissions = data || [];
+
+        populateMissionSelector();
+        updateStats(allMissions);
+        renderCharts(allMissions);
+        renderPaymentChart(allMissions);
+        renderRecentActivity(allMissions.slice(0, 8));
+
+    } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+    }
+}
+
+/* ══════════════════════════════════════
+   POPULATE MISSION SELECTOR
+   يستخدم mission_title بدلاً من name/mission_code
+══════════════════════════════════════ */
+function populateMissionSelector() {
+    const sel = document.getElementById('missionSelector');
+    while (sel.options.length > 1) sel.remove(1);
+
+    allMissions.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        // mission_title هو الاسم في الجدول الجديد
+        opt.textContent = `${m.mission_title || m.id.slice(0,8)} — ${m.wilaya || m.email || '—'}`;
+        sel.appendChild(opt);
+    });
+}
+
+/* ══════════════════════════════════════
+   CHANGE MISSION (filter)
+══════════════════════════════════════ */
+function changeMission(val) {
+    selectedMissionId = val;
+    const filtered = val === 'all' ? allMissions : allMissions.filter(m => m.id === val);
+    updateStats(filtered);
+    renderProgressChart(filtered);
+    renderStatusChart(filtered);
+    renderCropChart(filtered);
+    renderPaymentChart(filtered);
+    renderRecentActivity(filtered.slice(0, 8));
+}
+
+/* ══════════════════════════════════════
+   UPDATE STATS CARDS
+   mission_status: pending|reviewing|confirmed|in_progress|completed|cancelled
+   لا يوجد completion_pct → نستخدم field_area_ha
+══════════════════════════════════════ */
+function updateStats(missions) {
+    const total      = missions.length;
+    const inProgress = missions.filter(m => m.mission_status === 'in_progress').length;
+    const completed  = missions.filter(m => m.mission_status === 'completed').length;
+    const pending    = missions.filter(m => m.mission_status === 'pending').length;
+
+    // متوسط المساحة (هكتار)
+    const areasWithVal = missions.filter(m => m.field_area_ha);
+    const avgArea = areasWithVal.length
+        ? (areasWithVal.reduce((s, m) => s + parseFloat(m.field_area_ha || 0), 0) / areasWithVal.length).toFixed(1)
+        : 0;
+
+    // نسبة لشريط التقدم: نسبة المهام المكتملة
+    const completionPct = total ? Math.round((completed / total) * 100) : 0;
+
+    // Stat 1 – Avg field area
+    document.getElementById('stat-accuracy').innerHTML =
+        `<span style="animation:fade-in-up .3s ease-out;display:inline-block">${avgArea} <span class="text-base font-normal text-slate-400">ha</span></span>`;
+    document.getElementById('stat-accuracy-bar').style.width = Math.min(avgArea, 100) + '%';
+
+    // Stat 2 – Total requests
+    document.getElementById('stat-area').innerHTML =
+        `<span style="animation:fade-in-up .3s ease-out;display:inline-block">${total}</span>`;
+    const trendEl = document.getElementById('stat-area-trend');
+    trendEl.textContent = `${pending} pending · ${completed} completed`;
+    trendEl.className = 'text-xs mt-2 ' + (completed > 0 ? 'text-emerald-400' : 'text-slate-500');
+
+    // Stat 3 – In Progress
+    document.getElementById('stat-diseases').innerHTML =
+        `<span style="animation:fade-in-up .3s ease-out;display:inline-block">${inProgress}</span>`;
+}
+
+/* ══════════════════════════════════════
+   RENDER ALL CHARTS
+══════════════════════════════════════ */
+function renderCharts(missions) {
+    renderProgressChart(missions);
+    renderStatusChart(missions);
+    renderCropChart(missions);
+}
+
+/* ─────────────────────────────────────
+   Chart 1: Field area per request (bar)
+   يعرض آخر 7 طلبات بمساحتها (ha)
+───────────────────────────────────── */
+function renderProgressChart(missions) {
+    const ctx = document.getElementById('cropHealthChart');
+    if (!ctx) return;
+    if (charts.progress) charts.progress.destroy();
+
+    const last7 = missions.slice(0, 7).reverse();
+    // تسمية المحور: mission_title مقصوصة
+    const labels = last7.map(m => (m.mission_title || '—').slice(0, 10));
+    const values = last7.map(m => parseFloat(m.field_area_ha) || 0);
+
+    // لون حسب mission_status
+    const colorMap = {
+        completed:  'rgba(16,185,129,0.8)',
+        in_progress:'rgba(6,182,212,0.8)',
+        cancelled:  'rgba(239,68,68,0.6)',
+        confirmed:  'rgba(139,92,246,0.6)',
+        reviewing:  'rgba(245,158,11,0.6)',
+        pending:    'rgba(100,116,139,0.6)',
+    };
+    const colors = last7.map(m => colorMap[m.mission_status] || 'rgba(139,92,246,0.6)');
+
+    document.getElementById('chart1-label').textContent = `last ${last7.length} requests`;
+
+    charts.progress = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Field Area (ha)',
+                data: values,
+                backgroundColor: colors,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { min: 0, ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+
+/* ─────────────────────────────────────
+   Chart 2: Payment status (doughnut)
+   payment_status: unpaid|partial|paid|refunded
+───────────────────────────────────── */
+function renderPaymentChart(missions) {
+    const ctx = document.getElementById('fleetPerformanceChart');
+    if (!ctx) return;
+    if (charts.fleet) charts.fleet.destroy();
+
+    const counts = { unpaid:0, partial:0, paid:0, refunded:0 };
+    missions.forEach(m => {
+        const s = m.payment_status || 'unpaid';
+        if (counts[s] !== undefined) counts[s]++;
+    });
+
+    const colorMap = { unpaid:'#ef4444', partial:'#f59e0b', paid:'#10b981', refunded:'#06b6d4' };
+    const labels = Object.keys(counts);
+    const values = Object.values(counts);
+    const colors = labels.map(l => colorMap[l]);
+
+    document.getElementById('chart2-label').textContent = `${missions.length} requests total`;
+
+    charts.fleet = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderColor: '#0b1120',
+                borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#94a3b8', font: { size: 10 }, padding: 10 }
+                }
+            }
+        }
+    });
+}
+
+/* ─────────────────────────────────────
+   Chart 3: Mission status breakdown (doughnut)
+   mission_status: pending|reviewing|confirmed|in_progress|completed|cancelled
+───────────────────────────────────── */
+function renderStatusChart(missions) {
+    const ctx = document.getElementById('statusChart');
+    if (!ctx) return;
+    if (charts.status) charts.status.destroy();
+
+    const counts = { pending:0, reviewing:0, confirmed:0, in_progress:0, completed:0, cancelled:0 };
+    missions.forEach(m => { if (counts[m.mission_status] !== undefined) counts[m.mission_status]++; });
+
+    charts.status = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(counts),
+            datasets: [{
+                data: Object.values(counts),
+                backgroundColor: ['#64748b','#f59e0b','#8b5cf6','#06b6d4','#10b981','#ef4444'],
+                borderColor: '#111827',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#94a3b8', font: { size: 9 }, padding: 8 }
+                }
+            }
+        }
+    });
+}
+
+/* ─────────────────────────────────────
+   Chart 4: Crop type distribution (horizontal bar)
+   بدلاً من altitude → crop_type
+───────────────────────────────────── */
+function renderCropChart(missions) {
+    const ctx = document.getElementById('altitudeChart');
+    if (!ctx) return;
+    if (charts.altitude) charts.altitude.destroy();
+
+    // تجميع حسب نوع المحصول
+    const cropCounts = {};
+    missions.forEach(m => {
+        const c = m.crop_type || 'other';
+        cropCounts[c] = (cropCounts[c] || 0) + 1;
+    });
+
+    // أعلى 5 أنواع
+    const sorted = Object.entries(cropCounts).sort((a,b) => b[1]-a[1]).slice(0, 5);
+    const labels = sorted.map(([k]) => k);
+    const values = sorted.map(([,v]) => v);
+    const palette = ['rgba(139,92,246,0.7)','rgba(6,182,212,0.7)','rgba(16,185,129,0.7)','rgba(245,158,11,0.7)','rgba(239,68,68,0.7)'];
+
+    charts.altitude = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Requests',
+                data: values,
+                backgroundColor: palette,
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+/* ══════════════════════════════════════
+   RECENT ACTIVITY FEED
+   يستخدم mission_title + mission_status + crop_type
+══════════════════════════════════════ */
+function renderRecentActivity(missions) {
+    const el = document.getElementById('recent-activity');
+    if (!missions.length) {
+        el.innerHTML = `<p class="text-xs text-slate-500 text-center">No requests yet</p>`;
+        return;
+    }
+    const dotColor = {
+        in_progress: 'bg-emerald-400 animate-pulse',
+        completed:   'bg-slate-400',
+        confirmed:   'bg-cyan-400',
+        reviewing:   'bg-amber-400',
+        pending:     'bg-slate-500',
+        cancelled:   'bg-red-400'
+    };
+    el.innerHTML = missions.map(m => `
+        <div class="flex items-start gap-2">
+            <span class="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor[m.mission_status] || 'bg-slate-500'}"></span>
+            <div>
+                <p class="text-xs font-bold text-white">${m.mission_title || '—'}</p>
+                <p class="text-[10px] text-slate-500">
+                    ${m.crop_type || '—'} · ${m.field_area_ha ? m.field_area_ha + ' ha' : '—'} · ${m.mission_status}
+                </p>
+            </div>
+        </div>`).join('');
+}
+
+/* ══════════════════════════════════════
+   EXPORT PDF
+   يستخدم حقول mission_requests
+══════════════════════════════════════ */
+function exportAnalyticsPDF() {
+    const lang  = localStorage.getItem('skyline_lang') || 'en';
+    const isAr  = lang === 'ar';
+    const dateStr = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US');
+
+    const sel = document.getElementById('missionSelector');
+    const scopeText = sel.options[sel.selectedIndex].text;
+
+    const missions   = selectedMissionId === 'all' ? allMissions : allMissions.filter(m => m.id === selectedMissionId);
+    const total      = missions.length;
+    const inProgress = missions.filter(m => m.mission_status === 'in_progress').length;
+    const completed  = missions.filter(m => m.mission_status === 'completed').length;
+    const paid       = missions.filter(m => m.payment_status === 'paid').length;
+
+    const areasWithVal = missions.filter(m => m.field_area_ha);
+    const avgArea = areasWithVal.length
+        ? (areasWithVal.reduce((s, m) => s + parseFloat(m.field_area_ha || 0), 0) / areasWithVal.length).toFixed(1)
+        : 0;
+
+    const cropCounts = {};
+    missions.forEach(m => { const c = m.crop_type||'other'; cropCounts[c]=(cropCounts[c]||0)+1; });
+    const cropBreakdown = Object.entries(cropCounts).map(([k,v])=>`${k}(${v})`).join(', ') || '—';
+
+    const totalRevenue = missions
+        .filter(m => m.payment_amount)
+        .reduce((s, m) => s + parseFloat(m.payment_amount || 0), 0)
+        .toLocaleString();
+
+    const evalText = isAr
+        ? `استناداً إلى بيانات Supabase المباشرة، يحتوي النطاق المحدد على ${total} طلب مهمة، منها ${inProgress} قيد التنفيذ و${completed} مكتملة. متوسط المساحة ${avgArea} هكتار. الإيرادات الإجمالية: ${totalRevenue} دج. أنواع المحاصيل: ${cropBreakdown}.`
+        : `Based on live Supabase data, the selected scope contains ${total} mission requests — ${inProgress} in progress and ${completed} completed. Average field area: ${avgArea} ha. Total revenue: ${totalRevenue} DZD. Crop types: ${cropBreakdown}.`;
+
+    const container = document.createElement('div');
+    container.style.cssText = `padding:40px;font-family:${isAr?'Tajawal,':'Arial,'}sans-serif;color:#333;direction:${isAr?'rtl':'ltr'};text-align:${isAr?'right':'left'};background:#fff;`;
+    container.innerHTML = `
+        <div style="text-align:center;margin-bottom:40px;border-bottom:2px solid #8B5CF6;padding-bottom:20px;">
+            <h1 style="color:#0B1120;margin:0;font-size:28px;">${isAr?'تقرير طلبات المهام الزراعية':'Mission Requests Analytics Report'}</h1>
+            <p style="color:#666;margin-top:10px;">${isAr?'تاريخ التقرير:':'Date:'} ${dateStr}</p>
+            <p style="color:#8B5CF6;font-size:12px;margin-top:4px;">Live data · Supabase · mission_requests</p>
+        </div>
+        <h3 style="color:#111827;border-bottom:1px solid #eee;padding-bottom:10px;">${isAr?'النطاق:':'Scope:'} ${scopeText}</h3>
+        <div style="line-height:2;font-size:16px;margin-top:20px;">
+            <p><strong>${isAr?'إجمالي الطلبات:':'Total Requests:'}</strong> ${total}</p>
+            <p><strong>${isAr?'قيد التنفيذ:':'In Progress:'}</strong> ${inProgress}</p>
+            <p><strong>${isAr?'المكتملة:':'Completed:'}</strong> ${completed}</p>
+            <p><strong>${isAr?'متوسط المساحة:':'Avg. Area:'}</strong> ${avgArea} ha</p>
+            <p><strong>${isAr?'المدفوع:':'Paid:'}</strong> ${paid}</p>
+            <p><strong>${isAr?'الإيرادات الإجمالية:':'Total Revenue:'}</strong> ${totalRevenue} DZD</p>
+            <p><strong>${isAr?'أنواع المحاصيل:':'Crop Types:'}</strong> ${cropBreakdown}</p>
+        </div>
+        <div style="margin-top:40px;padding:25px;background:#F8FAFC;border-radius:10px;border-left:6px solid #8B5CF6;">
+            <h4 style="margin-top:0;margin-bottom:12px;color:#0B1120;font-size:18px;">${isAr?'التحليل:':'Analysis:'}</h4>
+            <p style="margin:0;line-height:1.8;color:#444;">${evalText}</p>
+        </div>
+        <div style="margin-top:40px;">
+            <h4 style="color:#0B1120;font-size:15px;border-bottom:1px solid #eee;padding-bottom:8px;">${isAr?'آخر 10 طلبات:':'Last 10 Requests:'}</h4>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;">
+                <thead><tr style="background:#f1f5f9;">
+                    <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0;">Title</th>
+                    <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0;">Crop</th>
+                    <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0;">Area (ha)</th>
+                    <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0;">Status</th>
+                    <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0;">Payment</th>
+                </tr></thead>
+                <tbody>${missions.slice(0,10).map(m=>`
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:6px 8px;font-weight:500;">${m.mission_title||'—'}</td>
+                        <td style="padding:6px 8px;">${m.crop_type||'—'}</td>
+                        <td style="padding:6px 8px;">${m.field_area_ha||'—'}</td>
+                        <td style="padding:6px 8px;color:${
+                            m.mission_status==='in_progress'?'#06b6d4':
+                            m.mission_status==='completed'?'#10b981':
+                            m.mission_status==='cancelled'?'#ef4444':'#f59e0b'
+                        }">${m.mission_status||'—'}</td>
+                        <td style="padding:6px 8px;color:${
+                            m.payment_status==='paid'?'#10b981':
+                            m.payment_status==='unpaid'?'#ef4444':'#f59e0b'
+                        }">${m.payment_status||'—'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:40px;text-align:center;font-size:11px;color:#999;">
+            ${isAr?'تم الإنتاج آلياً عبر محرك سكايلاين السحابي.':'Auto-generated by Skyline Cloud Analytics Engine.'}
+        </div>`;
+
+    html2pdf().set({
+        margin: 0.5,
+        filename: isAr ? 'تقرير_طلبات_المهام_سكايلاين.pdf' : 'Skyline_Mission_Requests_Report.pdf',
+        image: { type:'jpeg', quality:0.98 },
+        html2canvas: { scale:2 },
+        jsPDF: { unit:'in', format:'a4', orientation:'portrait' }
+    }).from(container).save();
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([
+        loadComponent?.('sidebar-container', '/components/sidebar.html'),
+        loadComponent?.('topbar-container',  '/components/topbar.html'),
+    ]).catch(() => {});
+
+    if (typeof highlightActiveLink === 'function') highlightActiveLink();
+
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (typeof updatePageText === 'function') updatePageText(lang);
+
+    lucide.createIcons();
+    await loadAll();
+
+    /* ── Real-time: mission_requests ── */
+    _sb.channel('analytics-mission-requests')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'mission_requests'       // ← الجدول الجديد
+        }, () => loadMissions())
+        .subscribe();
+});
+</script>
+</body>
+</html>

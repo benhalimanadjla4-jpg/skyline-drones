@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Help Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 transition-all duration-300"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 max-w-5xl mx-auto w-full space-y-12 animate-fade-in">
+            <div class="text-center space-y-4">
+                <h1 class="text-4xl font-black text-white" data-i18n="help_title">How can we help you?</h1>
+                <p class="text-slate-500 max-w-2xl mx-auto" data-i18n="help_desc">Find answers to common questions about the Skyline LAND platform and drone operations.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-[#111827]/60 border border-slate-800 p-6 rounded-[2rem] hover:border-blue-500/50 transition-all">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                        <i data-lucide="help-circle" class="text-blue-400 w-5 h-5"></i>
+                        <span data-i18n="faq_1_q">How to start a new mission?</span>
+                    </h3>
+                    <p class="text-sm text-slate-400 leading-relaxed" data-i18n="faq_1_a">Navigate to the Missions page, connect your drone via the dashboard, and select 'New Mission' to define your flight path.</p>
+                </div>
+
+                <div class="bg-[#111827]/60 border border-slate-800 p-6 rounded-[2rem] hover:border-blue-500/50 transition-all">
+                    <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                        <i data-lucide="help-circle" class="text-blue-400 w-5 h-5"></i>
+                        <span data-i18n="faq_2_q">How to export analysis reports?</span>
+                    </h3>
+                    <p class="text-sm text-slate-400 leading-relaxed" data-i18n="faq_2_a">Go to the Reports section, select the desired field analysis, and click the download icon to generate a PDF report.</p>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-[2.5rem] p-10 text-center space-y-6">
+                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/40">
+                    <i data-lucide="mail" class="text-white w-8 h-8"></i>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-2xl font-black text-white" data-i18n="contact_title">Still need support?</h2>
+                    <p class="text-slate-400" data-i18n="contact_desc">Our technical team is ready to assist you with any drone integration issues.</p>
+                </div>
+                <a href="mailto:support@skyline-land.dz" class="inline-block px-10 py-4 bg-white text-[#0B1120] font-black rounded-2xl hover:bg-blue-400 hover:text-white transition-all">
+                    Contact Technical Support
+                </a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/language.js"></script>
+<script src="../js/core/main.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof loadComponent === 'function') {
+            await Promise.all([
+                loadComponent('sidebar-container', '../components/sidebar.html'),
+                loadComponent('topbar-container', '../components/topbar.html'),
+            ]);
+            lucide.createIcons();
+            applyLanguage(localStorage.getItem('skyline_lang') || 'en');
+        }
+    });
+</script>
+</body>
+</html>

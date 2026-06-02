@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlTag">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SKYLINE | Future of Aerial Intelligence</title>
+
+    <link rel="stylesheet" href="css/sky.css">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 3D Global Effects & Dynamic Section styling */
+        .service-card,
+        .drone-spec-card {
+            transform-style: preserve-3d;
+            background: #0f172a !important;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .drone-spec-card img {
+            transform: translateZ(30px);
+        }
+
+        /* --- Strategic Solutions Upgrade (3D Holographic Elements) --- */
+        .service-grid {
+            perspective: 1200px;
+            transform-style: preserve-3d;
+        }
+
+        .service-card {
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+
+        .service-card:hover {
+            transform: translateZ(40px) scale(1.03);
+            box-shadow: 0 20px 40px rgba(0, 229, 255, 0.15), inset 0 0 20px rgba(0, 229, 255, 0.05);
+            border-color: rgba(0, 229, 255, 0.4);
+        }
+
+        .service-card h3 {
+            transform: translateZ(40px);
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+            transition: transform 0.3s;
+        }
+
+        .service-card p {
+            transform: translateZ(20px);
+            transition: transform 0.3s;
+        }
+
+        .service-card .icon {
+            transform: translateZ(60px);
+            display: inline-block;
+            font-size: 50px;
+            animation: float-icon 4s ease-in-out infinite;
+            filter: drop-shadow(0 15px 15px rgba(0, 229, 255, 0.4));
+        }
+
+        @keyframes float-icon {
+
+            0%,
+            100% {
+                transform: translateY(0) translateZ(60px);
+            }
+
+            50% {
+                transform: translateY(-12px) translateZ(60px);
+            }
+        }
+
+
+        /* Universal 3D Parallax Extrusions for All Interfaces */
+        .heroContent,
+        .register-left,
+        .register-right,
+        .tech-left {
+            transform-style: preserve-3d;
+        }
+
+        /* Hero Section Extrusions */
+        .heroContent .glitch-box {
+            transform: translateZ(60px);
+        }
+
+        .heroContent .hero-subtext {
+            transform: translateZ(30px);
+        }
+
+        .heroContent .cta-wrapper {
+            transform: translateZ(50px);
+        }
+
+        /* Tech Text Extrusions */
+        .tech-left h2 {
+            transform: translateZ(40px);
+            text-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .tech-left p {
+            transform: translateZ(20px);
+        }
+
+        .tech-left .tech-buttons {
+            transform: translateZ(50px);
+        }
+
+        /* Registration Extrusions */
+        .register-left h4 {
+            transform: translateZ(20px);
+        }
+
+        .register-left h1 {
+            transform: translateZ(50px);
+            text-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .register-left p {
+            transform: translateZ(30px);
+        }
+
+        .register-left .register-actions {
+            transform: translateZ(60px);
+        }
+
+        .register-right h2 {
+            transform: translateZ(40px);
+        }
+
+        .register-right form {
+            transform-style: preserve-3d;
+            transform: translateZ(30px);
+        }
+
+        .register-right form>* {
+            transform: translateZ(10px);
+        }
+
+
+        /* Dynamic Operations Showcase Styles */
+        .showcase {
+            padding: 80px 20px;
+            background: #020617;
+            color: white;
+        }
+
+        .showcase-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 30px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.1);
+        }
+
+        .showcase-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 30%;
+        }
+
+        .showcase-tab {
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .showcase-tab:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.5);
+            color: white;
+        }
+
+        .showcase-tab.active {
+            background: #1e293b;
+            border-color: #38bdf8;
+            color: white;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes spin-loader {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse-opacity {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .showcase-display {
+            width: 70%;
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+            min-height: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform-style: preserve-3d;
+        }
+
+        .display-item {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            transform: translateZ(40px);
+        }
+
+        .display-item.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .display-item video,
+        .display-item img.base-img,
+        .display-item img.overlay-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            position: absolute;
+            inset: 0;
+        }
+
+        @media (max-width: 768px) {
+            .showcase-container {
+                flex-direction: column;
+            }
+
+            .showcase-tabs {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .showcase-display {
+                width: 100%;
+                height: 300px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <canvas id="particles"></canvas>
+    <div class="hud hud-left"></div>
+    <div class="hud hud-right"></div>
+    <nav class="topbar">
+
+        <div class="nav-container">
+
+            <div class="logo-box">
+                <img src="assets/drone1.jpg" alt="Logo" class="brand-logo">
+                <span class="brand-name">SKYLINE</span>
+            </div>
+
+            <ul class="nav-links">
+
+                <li><a href="#home" class="nav-item" data-en="Home" data-ar="الرئيسية">Home</a></li>
+                <li><a href="#services" class="nav-item" data-en="Services" data-ar="الخدمات">Services</a></li>
+                <li><a href="#fleet" class="nav-item" data-en="Fleet" data-ar="الأسطول">Fleet</a></li>
+                <li><a href="#tech" class="nav-item" data-en="Tech" data-ar="التكنولوجيا">Tech</a></li>
+                <li><a href="#contact" class="nav-item" data-en="Join Us" data-ar="انضم إلينا">Join Us</a></li>
+
+            </ul>
+
+            <div class="nav-actions">
+                <button class="langBtn" onclick="toggleLanguage()">AR</button>
+                <button class="login-btn-neon" onclick="handleLogin()" data-en="Login" data-ar="دخول">
+                    Login
+                </button>
+
+            </div>
+    </nav>
+
+
+
+    <section class="hero" id="home">
+
+        <video autoplay muted loop playsinline class="heroVideo">
+            <source src="assets/drone.mp4" type="video/mp4">
+        </video>
+
+        <div class="heroContent">
+
+            <div class="glitch-box">
+
+                <h1 class="main-title hover-title" data-en="Elevate Your Vision With SKYLINE AI"
+                    data-ar="ارتقِ برؤيتك مع ذكاء سكاي لاين">
+
+                    Elevate Your Vision With SKYLINE AI
+
+                </h1>
+
+            </div>
+
+            <p class="hero-subtext hover-subtext"
+                data-en="Where cutting-edge hardware meets supreme intelligence. Redefining the limits of what drones can achieve."
+                data-ar="حيث تلتقي الأجهزة المتطورة بالذكاء الفائق. نعيد تعريف ما يمكن للدرون تحقيقه.">
+
+                Superior Aerial Intelligence Platform.
+
+            </p>
+
+            <div class="cta-wrapper">
+
+                <button class="btn-main-neon explore-btn" id="exploreBtn">
+
+                    <span data-en="Explore The Future" data-ar="استكشف المستقبل">
+
+                        Explore The Future
+
+                    </span>
+
+                    <div class="btn-glow"></div>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <section class="services" id="services">
+
+        <h2 class="section-title" data-en="Strategic Solutions" data-ar="حلول استراتيجية">Strategic Solutions</h2>
+
+        <div class="service-grid">
+
+            <div class="service-card">
+                <div class="icon">🌱</div>
+                <h3 data-en="Smart Agriculture" data-ar="الزراعة الذكية">Smart Agriculture</h3>
+                <p data-en="Precision crop monitoring & soil analysis using AI spectral imaging."
+                    data-ar="مراقبة دقيقة للمحاصيل وتحليل التربة باستخدام التصوير الطيفي.">Precision monitoring.</p>
+                <a href="services/agri.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">🔐</div>
+                <h3 data-en="Integrated Security" data-ar="الأمن المتكامل">Integrated Security</h3>
+                <p data-en="24/7 autonomous surveillance with real-time threat detection."
+                    data-ar="مراقبة ذاتية على مدار الساعة مع كشف فوري للتهديدات.">Autonomous surveillance.</p>
+                <a href="services/security.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">🏢</div>
+                <h3 data-en="constraction & Management" data-ar="البناء والتحكم">constraction & Management</h3>
+                <p data-en="Fleet management systems for logistics and large scale operations."
+                    data-ar="مواقع البناء: المراقبة اللحظية للمعدات والنمذجة ثلاثية الأبعاد لرفع كفاءة العمليات الكبرى.">constraction management.</p>
+                <a href="services/const.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">📢</div>
+                <h3 data-en="Aerial Advertising" data-ar="الإشهار الجوي">Aerial Advertising</h3>
+                <p data-en="Dynamic aerial displays and synchronized drone marketing shows."
+                    data-ar="عروض جوية ديناميكية وحملات إعلانية متزامنة بالدرون.">Drone marketing.</p>
+                <a href="services/line.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">📦</div>
+                <h3 data-en="Smart Delivery" data-ar="التوصيل الذكي">Smart Delivery</h3>
+                <p data-en="Fast autonomous aerial delivery with smart route optimization."
+                    data-ar="توصيل جوي ذاتي سريع مع تحسين ذكي للمسارات.">Autonomous delivery.</p>
+                <a href="services/delv.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+            <div class="service-card">
+                <div class="icon">⚡</div>
+                <h3 data-en="Energy Inspection" data-ar="فحص الطاقة">Energy Inspection</h3>
+                <p data-en="Power lines, solar farms & wind turbines monitoring with AI thermal analysis."
+                    data-ar="مراقبة خطوط الكهرباء ومزارع الطاقة الشمسية وتوربينات الرياح بالتحليل الحراري بالذكاء الاصطناعي.">Energy monitoring.</p>
+                <a href="services/energy.html" class="discover-btn" data-en="Discover" data-ar="اكتشف">Discover</a>
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <section class="fleet" id="fleet">
+
+        <h2 class="section-title" data-en="Our Fleet" data-ar="أسطولنا">Our Fleet</h2>
+
+        <div class="fleet-slider" id="hologram-fleet">
+
+            <div class="drone-spec-card active" data-tilt data-tilt-max="10">
+
+                <img src="assets/drone11.jpg" alt="Drone">
+
+                <div class="spec-info">
+                    <h3>Vortex Scan X-1</h3>
+                    <p>Long-range mapping drone with 4K LiDAR.</p>
+
+                    <div class="specs">
+                        <div class="spec-bar-wrapper">
+                            <span>🔋 Power</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-90"></div>
+                            </div>
+                            <span>45m</span>
+                        </div>
+                        <div class="spec-bar-wrapper">
+                            <span>⚡ Range</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-80"></div>
+                            </div>
+                            <span>5km</span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price">150,000 DA</span>
+                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="drone-spec-card" data-tilt data-tilt-max="10">
+
+                <img src="assets/drone2.jpg" alt="Drone">
+
+                <div class="spec-info">
+                    <h3>Falcon Eye Pro</h3>
+                    <p>Autonomous surveillance drone with AI tracking.</p>
+
+                    <div class="specs">
+                        <div class="spec-bar-wrapper">
+                            <span>🔋 Power</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-95"></div>
+                            </div>
+                            <span>50m</span>
+                        </div>
+                        <div class="spec-bar-wrapper">
+                            <span>⚡ Range</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-90"></div>
+                            </div>
+                            <span>8km</span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price">180,000 DA</span>
+                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="drone-spec-card" data-tilt data-tilt-max="10">
+
+                <img src="assets/drone3.jpg" alt="Drone">
+
+                <div class="spec-info">
+                    <h3>Agro Sky A2</h3>
+                    <p>Precision agriculture drone with spectral sensors.</p>
+
+                    <div class="specs">
+                        <div class="spec-bar-wrapper">
+                            <span>🔋 Power</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-80"></div>
+                            </div>
+                            <span>40m</span>
+                        </div>
+                        <div class="spec-bar-wrapper">
+                            <span>⚡ Range</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-85"></div>
+                            </div>
+                            <span>6km</span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price">160,000 DA</span>
+                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="drone-spec-card" data-tilt data-tilt-max="10">
+
+                <img src="assets/skyline.jpg" alt="Drone">
+
+                <div class="spec-info">
+                    <h3>Sky Patrol X</h3>
+                    <p>Long endurance security drone with night vision.</p>
+
+                    <div class="specs">
+                        <div class="spec-bar-wrapper">
+                            <span>🔋 Power</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-100"></div>
+                            </div>
+                            <span>55m</span>
+                        </div>
+                        <div class="spec-bar-wrapper">
+                            <span>⚡ Range</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-95"></div>
+                            </div>
+                            <span>10km</span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price">210,000 DA</span>
+                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="drone-spec-card" data-tilt data-tilt-max="10">
+
+                <img src="assets/skyline1.jpg" alt="Drone">
+
+                <div class="spec-info">
+                    <h3>ShowDrone S1</h3>
+                    <p>Entertainment drone for aerial light shows.</p>
+
+                    <div class="specs">
+                        <div class="spec-bar-wrapper">
+                            <span>🔋 Power</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-70"></div>
+                            </div>
+                            <span>35m</span>
+                        </div>
+                        <div class="spec-bar-wrapper">
+                            <span>⚡ Range</span>
+                            <div class="spec-bar">
+                                <div class="spec-bar-fill w-70"></div>
+                            </div>
+                            <span>4km</span>
+                        </div>
+                    </div>
+
+                    <div class="price-row">
+                        <span class="price">120,000 DA</span>
+                        <span class="stars">⭐⭐⭐⭐⭐</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <section class="tech-custom" id="tech">
+
+        <div class="tech-container">
+
+            <!-- LEFT SIDE -->
+            <div class="tech-left">
+
+                <h2 data-en="Tailor-Made Intelligence" data-ar="ذكاء مصمم خصيصاً">
+                    Tailor-Made Intelligence
+                </h2>
+
+                <p data-en="Got a specific mission? We design custom AI systems, autonomous flight logic and advanced drone hardware tailored for your project."
+                    data-ar="هل لديك مهمة خاصة؟ نحن نصمم أنظمة ذكاء اصطناعي ومنطق طيران ذاتي وأجهزة درون متقدمة مصممة خصيصاً لمشروعك.">
+
+                    Custom AI and Hardware.
+
+                </p>
+
+                <div class="tech-buttons">
+
+                    <button class="btn-main-neon">
+                        Propose Your Project
+                    </button>
+
+                    <button class="btn-neon-outline">
+                        View Capabilities
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div class="tech-right" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-glare="true"
+                data-tilt-max-glare="0.2"
+                style="transform-style: preserve-3d; perspective: 1200px; display: flex; justify-content: center; align-items: center; min-height: 450px;">
+
+                <div class="ai-hologram-container"
+                    style="position: relative; width: 350px; height: 350px; transform-style: preserve-3d; transform: translateZ(60px);">
+
+                    <!-- Outer Glowing Energy Ring -->
+                    <div
+                        style="position: absolute; inset: 0; border: 2px dashed rgba(0, 229, 255, 0.4); border-radius: 50%; box-shadow: 0 0 50px rgba(0, 229, 255, 0.2) inset; animation: spin-slow 12s linear infinite;">
+                    </div>
+
+                    <!-- Medium Tech Ring -->
+                    <div
+                        style="position: absolute; inset: 12%; border: 4px solid rgba(0, 255, 163, 0.1); border-top-color: #00FFA3; border-bottom-color: #00E5FF; border-radius: 50%; animation: spin-medium 8s linear infinite reverse;">
+                    </div>
+
+                    <!-- Inner Core Data Ring -->
+                    <div
+                        style="position: absolute; inset: 22%; border: 1px dotted rgba(255,255,255,0.5); border-radius: 50%; animation: spin-fast 15s linear infinite;">
+                    </div>
+
+                    <!-- The Floating AI Core Base (Shadow map) -->
+                    <div
+                        style="position: absolute; inset: 30%; background: radial-gradient(circle at 30% 30%, #fff, #00E5FF 20%, #0B1120 70%); border-radius: 50%; box-shadow: 0 0 50px #00E5FF, inset 0 0 40px #000; animation: float-core 4s ease-in-out infinite, pulse-glow 3s infinite alternate; transform: translateZ(80px); display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="cpu"
+                            style="width: 55px; height: 55px; color: #020617; filter: drop-shadow(0 0 8px white);"></i>
+                    </div>
+
+                    <!-- Data Upload Beam -->
+                    <div
+                        style="position: absolute; bottom: -20%; left: 50%; width: 4px; height: 80%; background: linear-gradient(transparent, rgba(0, 255, 163, 0.8), transparent); filter: blur(2px); transform: translateX(-50%); animation: beam-up 2s infinite;">
+                    </div>
+                </div>
+            </div>
+
+    </section>
+
+    <style>
+        @keyframes spin-slow {
+            100% {
+                transform: rotate3d(1, 1, 0, 360deg);
+            }
+        }
+
+        @keyframes spin-medium {
+            100% {
+                transform: rotate3d(0, 1, 1, 360deg);
+            }
+        }
+
+        @keyframes spin-fast {
+            100% {
+                transform: rotate3d(1, 0, 1, 360deg);
+            }
+        }
+
+        @keyframes float-core {
+
+            0%,
+            100% {
+                transform: translateY(0px) translateZ(80px) scale(1);
+            }
+
+            50% {
+                transform: translateY(-20px) translateZ(80px) scale(1.1);
+                filter: drop-shadow(0 30px 20px rgba(0, 229, 255, 0.4));
+            }
+        }
+
+        @keyframes pulse-glow {
+            100% {
+                box-shadow: 0 0 100px #00E5FF, inset 0 0 60px #00FFA3;
+                border: 2px solid rgba(255, 255, 255, 0.8);
+            }
+        }
+
+        @keyframes beam-up {
+            0% {
+                transform: translate(-50%, 60px);
+                opacity: 0;
+            }
+
+            30% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -120px);
+                opacity: 0;
+            }
+        }
+
+        /* =========================================
+   FLEET OVERHAUL (EPIC 3D HOLOGRAM DECK) 
+   ========================================= */
+        #fleet {
+            position: relative;
+            background: radial-gradient(circle at center, #0B1120 0%, #020617 100%) !important;
+            overflow: hidden;
+            padding-bottom: 150px;
+        }
+
+        /* Fix Our Fleet Title visibility and layout */
+        #fleet .section-title {
+            position: relative;
+            z-index: 50;
+            padding-top: 60px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.8);
+            transform: translateZ(30px);
+        }
+
+        #fleet::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 100%, rgba(0, 229, 255, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Holographic Grid Floor */
+        #fleet::after {
+            content: '';
+            position: absolute;
+            bottom: 0px;
+            left: -50%;
+            width: 200%;
+            height: 250px;
+            background-image:
+                linear-gradient(rgba(0, 229, 255, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.3) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(600px) rotateX(75deg);
+            animation: grid-move 10s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes grid-move {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 50px 50px;
+            }
+        }
+
+        #hologram-fleet {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            perspective: 2000px;
+            padding-top: 50px;
+        }
+
+        #hologram-fleet .drone-spec-card {
+            position: absolute !important;
+            opacity: 0;
+            transform: scale(0.6) translateY(-50px) translateZ(-400px) rotateY(45deg);
+            transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: rgba(15, 23, 42, 0.7) !important;
+            border: 1px solid rgba(0, 229, 255, 0.3) !important;
+            box-shadow: 0 0 40px rgba(0, 229, 255, 0.1) !important;
+            border-radius: 20px !important;
+            padding: 30px !important;
+            width: 380px !important;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            pointer-events: none;
+            transform-style: preserve-3d;
+        }
+
+        #hologram-fleet .drone-spec-card.active {
+            opacity: 1 !important;
+            transform: scale(1) translateY(0px) translateZ(100px) rotateY(0deg) !important;
+            z-index: 20;
+            pointer-events: auto;
+            box-shadow: 0 30px 60px rgba(0, 255, 163, 0.15), inset 0 0 20px rgba(0, 255, 163, 0.2) !important;
+            border-color: rgba(0, 255, 163, 0.7) !important;
+        }
+
+        /* Magic: Erase JPG backgrounds & Float Drones */
+        #hologram-fleet .drone-spec-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: contain;
+            mix-blend-mode: color-dodge;
+            /* Extract drone beautifully */
+            filter: drop-shadow(0 20px 20px rgba(0, 255, 163, 0.5)) contrast(1.3);
+            animation: float-drone 4s ease-in-out infinite;
+            margin-bottom: 25px;
+            transform: translateZ(50px);
+        }
+
+        @keyframes float-drone {
+
+            0%,
+            100% {
+                transform: translateY(0px) scale(1) translateZ(50px);
+            }
+
+            50% {
+                transform: translateY(-15px) scale(1.05) translateZ(50px);
+                filter: drop-shadow(0 30px 30px rgba(0, 229, 255, 0.7)) contrast(1.4);
+            }
+        }
+
+        /* Spec Info Enhancements */
+        #hologram-fleet .spec-info {
+            transform: translateZ(30px);
+        }
+
+        #hologram-fleet .spec-info h3 {
+            color: #fff;
+            font-size: 26px;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.8);
+            margin-bottom: 5px;
+        }
+
+        #hologram-fleet .spec-info p {
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        /* Animated Spec Bars */
+        #hologram-fleet .specs {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .spec-bar-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .spec-bar {
+            flex-grow: 1;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 3px;
+            margin: 0 15px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .spec-bar-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #00E5FF, #00FFA3);
+            width: 0%;
+            transition: width 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 0 10px #00FFA3;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-70 {
+            width: 70%;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-80 {
+            width: 80%;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-85 {
+            width: 85%;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-90 {
+            width: 90%;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-95 {
+            width: 95%;
+        }
+
+        #hologram-fleet .drone-spec-card.active .spec-bar-fill.w-100 {
+            width: 100%;
+        }
+
+        #hologram-fleet .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+
+        #hologram-fleet .price {
+            color: #00FFA3;
+            font-size: 22px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(0, 255, 163, 0.6);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Re-init lucide since we added a new icon dynamically inside tech right */
+    </style>
+
+    <section class="registration" id="contact">
+
+        <div class="register-wrapper">
+
+            <!-- LEFT SIDE -->
+            <div class="register-left">
+
+                <h4>JOIN SKYLINE</h4>
+
+                <h1>
+                    Unleash the <span>Sky Power</span><br>
+                    Control the Future of <br>
+                    Drone Intelligence
+                </h1>
+
+                <p>
+                    Join the SKYLINE platform and access advanced drone services,
+                    AI aerial analytics, fleet control and autonomous missions.
+                </p>
+
+                <div class="register-actions">
+                    <button class="btn-outline">Explore Drones</button>
+                    <button class="btn-primary">Launch Platform</button>
+                </div>
+
+
+            </div>
+
+
+            <!-- RIGHT SIDE -->
+            <div class="register-right">
+
+  <h2 data-en="Create Drone Account." data-ar="إنشاء حساب درون.">
+    Create Drone Account<span>.</span>
+  </h2>
+
+  <form id="regForm">
+
+    <!-- 1. Full Name -->
+    <div class="field-group">
+      <i data-lucide="user" class="field-icon"></i>
+      <input type="text" id="regName"
+        placeholder="Full Name"
+        data-ph-en="Full Name"
+        data-ph-ar="الاسم الكامل"
+        required>
+    </div>
+
+    <!-- 2. Email -->
+    <div class="field-group">
+      <i data-lucide="mail" class="field-icon"></i>
+      <input type="email" id="regEmail"
+        placeholder="Email Address"
+        data-ph-en="Email Address"
+        data-ph-ar="البريد الإلكتروني"
+        required>
+    </div>
+
+    <!-- 3. Service + User Type -->
+    <div class="name-row">
+
+      <div class="field-group select-wrap">
+        <i data-lucide="layers" class="field-icon"></i>
+        <select id="serviceSelect" required onchange="handleServiceChange(this.value)">
+          <option value="" disabled selected data-en="Select Service" data-ar="اختر الخدمة">Select Service</option>
+          <option value="administrator" data-en="Administrator"    data-ar="مسؤول">Administrator</option>
+          <option value="agriculture"   data-en="Agriculture"      data-ar="الزراعة">Agriculture</option>
+          <option value="security"      data-en="Security"         data-ar="الأمن">Security Surveillance</option>
+          <option value="management"    data-en="Fleet Management"  data-ar="إدارة الأسطول">Fleet Management</option>
+          <option value="advertising"   data-en="Advertising"      data-ar="الإشهار">Aerial Advertising</option>
+          <option value="entertainment" data-en="Drone Shows"      data-ar="عروض الدرون">Drone Shows</option>
+        </select>
+        <i data-lucide="chevron-down" class="select-arrow"></i>
+      </div>
+
+      <div class="field-group select-wrap" id="userTypeWrap" style="opacity:.4;pointer-events:none;">
+        <i data-lucide="badge-check" class="field-icon"></i>
+        <select id="userTypeSelect">
+          <option value="" disabled selected data-en="User Type" data-ar="نوع المستخدم">User Type</option>
+        </select>
+        <i data-lucide="chevron-down" class="select-arrow"></i>
+      </div>
+
+    </div>
+
+    <!-- 4. Wilaya -->
+    <div class="field-group select-wrap">
+      <i data-lucide="map-pin" class="field-icon"></i>
+      <select id="wilayaSelect" required>
+        <option value="" disabled selected data-en="Select Wilaya" data-ar="اختر الولاية">Select Wilaya</option>
+        <option value="01">01 - Adrar</option>
+        <option value="02">02 - Chlef</option>
+        <option value="03">03 - Laghouat</option>
+        <option value="04">04 - Oum El Bouaghi</option>
+        <option value="05">05 - Batna</option>
+        <option value="06">06 - Béjaïa</option>
+        <option value="07">07 - Biskra</option>
+        <option value="08">08 - Béchar</option>
+        <option value="09">09 - Blida</option>
+        <option value="10">10 - Bouira</option>
+        <option value="11">11 - Tamanrasset</option>
+        <option value="12">12 - Tébessa</option>
+        <option value="13">13 - Tlemcen</option>
+        <option value="14">14 - Tiaret</option>
+        <option value="15">15 - Tizi Ouzou</option>
+        <option value="16">16 - Alger</option>
+        <option value="17">17 - Djelfa</option>
+        <option value="18">18 - Jijel</option>
+        <option value="19">19 - Sétif</option>
+        <option value="20">20 - Saïda</option>
+        <option value="21">21 - Skikda</option>
+        <option value="22">22 - Sidi Bel Abbès</option>
+        <option value="23">23 - Annaba</option>
+        <option value="24">24 - Guelma</option>
+        <option value="25">25 - Constantine</option>
+        <option value="26">26 - Médéa</option>
+        <option value="27">27 - Mostaganem</option>
+        <option value="28">28 - M'Sila</option>
+        <option value="29">29 - Mascara</option>
+        <option value="30">30 - Ouargla</option>
+        <option value="31">31 - Oran</option>
+        <option value="32">32 - El Bayadh</option>
+        <option value="33">33 - Illizi</option>
+        <option value="34">34 - Bordj Bou Arréridj</option>
+        <option value="35">35 - Boumerdès</option>
+        <option value="36">36 - El Tarf</option>
+        <option value="37">37 - Tindouf</option>
+        <option value="38">38 - Tissemsilt</option>
+        <option value="39">39 - El Oued</option>
+        <option value="40">40 - Khenchela</option>
+        <option value="41">41 - Souk Ahras</option>
+        <option value="42">42 - Tipaza</option>
+        <option value="43">43 - Mila</option>
+        <option value="44">44 - Aïn Defla</option>
+        <option value="45">45 - Naâma</option>
+        <option value="46">46 - Aïn Témouchent</option>
+        <option value="47">47 - Ghardaïa</option>
+        <option value="48">48 - Relizane</option>
+      </select>
+      <i data-lucide="chevron-down" class="select-arrow"></i>
+    </div>
+
+    <!-- 5. Password -->
+    <div class="field-group password-wrap">
+      <i data-lucide="lock" class="field-icon"></i>
+      <input type="password" id="regPassword"
+        placeholder="Secure Password"
+        data-ph-en="Secure Password"
+        data-ph-ar="كلمة مرور آمنة"
+        required>
+      <button type="button" class="eye-btn" onclick="togglePass('regPassword',this)">
+        <i data-lucide="eye"></i>
+      </button>
+    </div>
+
+    <!-- 6. Confirm Password -->
+    <div class="field-group password-wrap">
+      <i data-lucide="shield-check" class="field-icon"></i>
+      <input type="password" id="regConfirm"
+        placeholder="Confirm Password"
+        data-ph-en="Confirm Password"
+        data-ph-ar="تأكيد كلمة المرور"
+        required oninput="checkMatch()">
+      <button type="button" class="eye-btn" onclick="togglePass('regConfirm',this)">
+        <i data-lucide="eye"></i>
+      </button>
+    </div>
+    <p id="matchMsg" class="match-msg"></p>
+
+    <!-- 7. Remember me -->
+    <div class="remember-box">
+      <label>
+        <input type="checkbox">
+        <span data-en="Remember me" data-ar="تذكرني">Remember me</span>
+      </label>
+      <a href="#" class="forgot"
+        data-en="Forgot password?" data-ar="نسيت كلمة المرور؟">Forgot password?</a>
+    </div>
+
+    <!-- 8. Submit -->
+    <button type="button" onclick="handleRegister()" id="regBtn" class="btn-register-big">
+      <span id="regBtnText" data-en="Create Account" data-ar="إنشاء حساب">Create Account</span>
+    </button>
+
+    <!-- 9. Login link -->
+    <div class="login-link">
+      <span data-en="Already a member?" data-ar="عضو بالفعل؟">Already a member?</span>
+      <button type="button" class="login-small-btn"
+        onclick="window.location.href='login.html'"
+        data-en="Log In" data-ar="تسجيل الدخول">Log In</button>
+    </div>
+07
+    <!-- 10. OR + Google -->
+    <div class="or-divider"><span>OR</span></div>
+
+    <button type="button" class="google-btn" id="googleApiBtn">
+      <img src="assets/google.jpg" style="width:20px;margin-right:10px;border-radius:50%;">
+      <span data-en="Continue with Google" data-ar="المتابعة بـ Google">Continue with Google</span>
+    </button>
+
+  </form>
+</div>
+
+<!-- ── Styles ── -->
+<style>
+  .field-group {
+    position:relative; display:flex; align-items:center; margin-bottom:14px;
+  }
+  .field-group .field-icon {
+    position:absolute; left:14px; width:16px; height:16px;
+    color:#64748b; pointer-events:none; flex-shrink:0;
+  }
+  .field-group input,
+  .field-group select {
+    width:100%; padding:13px 14px 13px 42px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px; color:#e2e8f0; font-size:13px;
+    outline:none; transition:border-color .2s, background .2s;
+    -webkit-appearance:none; appearance:none;
+  }
+  .field-group input::placeholder { color:#475569; }
+  .field-group input:focus,
+  .field-group select:focus {
+    border-color:rgba(6,182,212,0.5);
+    background:rgba(6,182,212,0.04);
+  }
+  .select-wrap .select-arrow {
+    position:absolute; right:14px; width:15px; height:15px;
+    color:#475569; pointer-events:none;
+  }
+  select option { background:#0f172a; color:#e2e8f0; }
+  .password-wrap input { padding-right:42px; }
+  .eye-btn {
+    position:absolute; right:12px; background:none; border:none;
+    cursor:pointer; color:#475569; padding:4px; display:flex; align-items:center;
+  }
+  .eye-btn:hover { color:#06b6d4; }
+  .eye-btn i { width:16px; height:16px; }
+  .match-msg { font-size:11px; margin:-8px 0 10px 4px; font-weight:600; min-height:16px; }
+  .match-msg.ok  { color:#22c55e; }
+  .match-msg.err { color:#f43f5e; }
+  #userTypeWrap { transition:opacity .25s; }
+  #userTypeWrap.active { opacity:1 !important; pointer-events:auto !important; }
+  .name-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .name-row .field-group { margin-bottom:14px; }
+</style>
+
+<!-- ── Script ── -->
+<!-- ── Supabase SDK ── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ================================================================
+   🔧 SUPABASE CONFIG — بدّل هذين السطرين فقط
+   Dashboard → Settings → API
+================================================================ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ─── User types (EN + AR) ─── */
+const SERVICE_TYPES = {
+  administrator: [
+    {val:'super_admin',      en:'Super Admin',      ar:'مسؤول أعلى'},
+    {val:'system_admin',     en:'System Admin',     ar:'مسؤول نظام'},
+    {val:'moderator',        en:'Moderator',        ar:'مشرف'},
+  ],
+  agriculture: [
+    {val:'farmer',           en:'Farmer',           ar:'مزارع'},
+    {val:'company',          en:'Company',          ar:'شركة'},
+    {val:'agronomist',       en:'Agronomist',       ar:'مهندس زراعي'},
+    {val:'cooperative',      en:'Cooperative',      ar:'تعاونية'},
+  ],
+  security: [
+    {val:'security_officer', en:'Security Officer', ar:'ضابط أمن'},
+    {val:'agency',           en:'Agency',           ar:'وكالة'},
+    {val:'government',       en:'Government Body',  ar:'جهة حكومية'},
+  ],
+  management: [
+    {val:'fleet_manager',    en:'Fleet Manager',    ar:'مدير أسطول'},
+    {val:'operator',         en:'Operator',         ar:'مشغّل'},
+    {val:'technician',       en:'Technician',       ar:'تقني'},
+  ],
+  advertising: [
+    {val:'brand',            en:'Brand',            ar:'علامة تجارية'},
+    {val:'agency',           en:'Agency',           ar:'وكالة'},
+    {val:'freelancer',       en:'Freelancer',       ar:'مستقل'},
+  ],
+  entertainment: [
+    {val:'event_organizer',  en:'Event Organizer',  ar:'منظم فعاليات'},
+    {val:'show_director',    en:'Show Director',    ar:'مخرج عرض'},
+    {val:'performer',        en:'Performer',        ar:'فنان'},
+  ],
+};
+
+/* service → role في Supabase */
+const SERVICE_TO_ROLE = {
+  administrator: 'admin',
+  agriculture:   'agriculture',
+  security:      'security',
+  management:    'line',
+  advertising:   'line',
+  entertainment: 'line',
+};
+
+function currentLang() {
+  return document.documentElement.lang === 'ar' ? 'ar' : 'en';
+}
+
+/* ─── Rebuild user type on service change ─── */
+function handleServiceChange(val) {
+  const wrap   = document.getElementById('userTypeWrap');
+  const select = document.getElementById('userTypeSelect');
+  const lang   = currentLang();
+  const types  = SERVICE_TYPES[val] || [];
+
+  select.innerHTML = `<option value="" disabled selected>${lang==='ar'?'نوع المستخدم':'User Type'}</option>`;
+  types.forEach(t => {
+    const o = document.createElement('option');
+    o.value       = t.val;
+    o.textContent = lang==='ar' ? t.ar : t.en;
+    o.dataset.en  = t.en;
+    o.dataset.ar  = t.ar;
+    select.appendChild(o);
+  });
+  wrap.classList.toggle('active', types.length > 0);
+}
+
+/* ─── Password toggle ─── */
+function togglePass(id, btn) {
+  const inp    = document.getElementById(id);
+  const isText = inp.type === 'text';
+  inp.type     = isText ? 'password' : 'text';
+  btn.querySelector('i').setAttribute('data-lucide', isText ? 'eye' : 'eye-off');
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ─── Password match ─── */
+function checkMatch() {
+  const p1  = document.getElementById('regPassword').value;
+  const p2  = document.getElementById('regConfirm').value;
+  const msg = document.getElementById('matchMsg');
+  const lang = currentLang();
+  if (!p2) { msg.textContent=''; return; }
+  if (p1 === p2) {
+    msg.textContent = lang==='ar' ? '✓ كلمتا المرور متطابقتان' : '✓ Passwords match';
+    msg.className   = 'match-msg ok';
+  } else {
+    msg.textContent = lang==='ar' ? '✗ كلمتا المرور غير متطابقتين' : '✗ Passwords do not match';
+    msg.className   = 'match-msg err';
+  }
+}
+
+/* ════════════════════════════════════════════
+   REGISTER — Supabase
+  
+════════════════════════════════════════════ */
+async function handleRegister() {
+  const lang    = currentLang();
+  const ar      = lang === 'ar';
+  const name    = document.getElementById('regName').value.trim();
+  const email   = document.getElementById('regEmail').value.trim();
+  const service = document.getElementById('serviceSelect').value;
+  const wilaya  = document.getElementById('wilayaSelect').value;
+  const pass    = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regConfirm').value;
+  const btn     = document.getElementById('regBtn');
+  const btnText = document.getElementById('regBtnText');
+
+  /* ── Validation (نفس القديم) ── */
+  if (!name || !email || !service || !wilaya || !pass || !confirm) {
+    alert(ar ? '⚠️ يرجى ملء جميع الحقول' : '⚠️ Please fill all fields');
+    return;
+  }
+  if (pass !== confirm) {
+    alert(ar ? '⚠️ كلمتا المرور غير متطابقتين' : '⚠️ Passwords do not match');
+    return;
+  }
+  if (pass.length < 6) {
+    alert(ar ? '⚠️ كلمة المرور 6 أحرف على الأقل' : '⚠️ Password must be at least 6 characters');
+    return;
+  }
+
+  /* ── Loading ── */
+  btn.disabled = true;
+  btnText.textContent = ar ? '⏳ جارٍ الإنشاء...' : '⏳ Creating...';
+
+  const role = SERVICE_TO_ROLE[service] || 'line';
+
+  try {
+    /* 1️⃣ تسجيل في auth.users */
+    const { data, error } = await _sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          full_name: name,
+          role:      role,
+          wilaya:    wilaya,
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    /* 2️⃣ حفظ في profiles
+       (trigger handle_new_user ينشئ السجل، نحن نكمّل البيانات) */
+    if (data.user) {
+      const { error: pErr } = await _sb
+  .from('profiles')
+  .upsert({
+    id:        data.user.id,
+    email:     email,
+    full_name: name,
+    role:      role,
+    wilaya:    wilaya,
+  }, { onConflict: 'id' });
+
+      if (pErr) console.warn('Profile update:', pErr.message);
+    }
+
+    /* 3️⃣ Success UI */
+    btnText.textContent  = ar ? '✅ تم!' : '✅ Done!';
+    btn.style.background = '#00FFA3';
+    btn.style.color      = '#000';
+
+    /* 4️⃣ Redirect حسب الـ service */
+    setTimeout(() => {
+      if (service === 'agriculture') {
+        window.location.href = 'agriculture/index.html';
+      } else {
+        window.location.href = 'index.html';
+      }
+    }, 1500);
+
+  } catch (err) {
+    btn.disabled = false;
+    btnText.textContent = ar ? 'إنشاء حساب' : 'Create Account';
+    alert('❌ ' + (err.message || (ar ? 'فشل التسجيل' : 'Registration failed')));
+  }
+}
+
+/* ─── Google (simulation — ستربطها لاحقاً) ─── */
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) lucide.createIcons();
+
+  document.getElementById('googleApiBtn').addEventListener('click', async function() {
+    const btn  = this;
+    const lang = currentLang();
+    btn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2px solid #000;border-top-color:transparent;border-radius:50%;animation:spin-loader 1s linear infinite;margin-right:10px;"></span>${lang==='ar'?'جارٍ التوثيق...':'Authenticating...'}`;
+    btn.style.pointerEvents = 'none';
+    btn.style.background    = '#fff';
+    btn.style.color         = '#000';
+
+    await new Promise(r => setTimeout(r, 2000));
+
+    btn.innerHTML        = '✅ ' + (lang==='ar' ? 'تم الربط!' : 'Successfully Linked!');
+    btn.style.background = '#00FFA3';
+    btn.style.color      = '#000';
+    btn.style.borderColor= '#00FFA3';
+
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  });
+});
+
+/* ─── Language update ─── */
+function updateFormLanguage(lang) {
+  document.querySelectorAll('[data-ph-en]').forEach(el => {
+    el.placeholder = lang==='ar' ? el.dataset.phAr : el.dataset.phEn;
+  });
+  document.querySelectorAll('select option[data-en]').forEach(opt => {
+    opt.textContent = lang==='ar' ? opt.dataset.ar : opt.dataset.en;
+  });
+  const sel = document.getElementById('serviceSelect').value;
+  if (sel) handleServiceChange(sel);
+  checkMatch();
+}
+
+const _origToggle = window.toggleLanguage;
+window.toggleLanguage = function() {
+  if (_origToggle) _origToggle();
+  const lang = document.documentElement.lang === 'ar' ? 'ar' : 'en';
+  updateFormLanguage(lang);
+};
+</script>
+
+        </div>
+
+    </section>
+
+
+    <footer class="main-footer">
+
+        <div class="footer-overlay"></div>
+
+        <div class="footer-container">
+
+            <!-- BRAND -->
+            <div class="footer-col footer-brand">
+
+                <img src="assets/drone1.jpg" alt="Logo">
+
+                <h3>SKYLINE</h3>
+
+                <p>Empowering the sky with AI.</p>
+
+            </div>
+
+
+            <!-- SERVICES -->
+            <div class="footer-col">
+
+                <h4>Drone Services</h4>
+
+                <ul>
+
+                    <li>Smart Agriculture</li>
+                    <li>Security Surveillance</li>
+                    <li>Fleet Management</li>
+                    <li>Aerial Advertising</li>
+                    <li>Drone Shows</li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- COMPANY -->
+            <div class="footer-col">
+
+                <h4>Company</h4>
+
+                <ul>
+
+                    <li>About SKYLINE</li>
+                    <li>Our Fleet</li>
+                    <li>Technology</li>
+                    <li>Join Our Team</li>
+
+                </ul>
+
+            </div>
+
+
+            <!-- CONTACT -->
+            <div class="footer-col">
+
+                <h4>Contact</h4>
+
+                <p>📍 Algeria</p>
+
+                <p>📧 contact@skyline.com</p>
+
+                <p>📞 +213 555 000 000</p>
+
+                <div class="social-links">
+
+                    <a href="#">IG</a>
+                    <a href="#">FB</a>
+                    <a href="#">TT</a>
+                    <a href="#">WA</a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="footer-bottom">
+
+            © 2026 SKYLINE platform
+
+        </div>
+
+    </footer>
+
+    <script src="js/sky.js"></script>
+
+    <script>
+        // 1. Initialize 3D Effects for Cards, Showcase, AND Hologram Base (High Tilt, with Glare)
+        document.addEventListener('DOMContentLoaded', () => {
+            VanillaTilt.init(document.querySelectorAll(".service-card, .drone-spec-card, .showcase-display, .tech-right"), {
+                max: 15,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.2
+            });
+
+            // 1b. Initialize Subtle 3D Effects for Text & Form Interfaces (Low Tilt, no Glare)
+            VanillaTilt.init(document.querySelectorAll(".heroContent, .register-left, .register-right, .tech-left"), {
+                max: 5,
+                speed: 600,
+                glare: false
+            });
+
+            // Inject Lucide for CPU core
+            if (window.lucide) lucide.createIcons();
+        });
+
+
+        // 2. Dynamic Showcase Logic
+        function switchShowcase(viewId) {
+            // Reset tabs
+            document.querySelectorAll('.showcase-tab').forEach(tab => tab.classList.remove('active'));
+            // Reset displays
+            document.querySelectorAll('.display-item').forEach(disp => disp.classList.remove('active'));
+
+            // Activate target
+            event.currentTarget.classList.add('active');
+            document.getElementById('display-' + viewId).classList.add('active');
+        }
+
+        // 3. Google API Auth Logic
+        document.getElementById('googleApiBtn').addEventListener('click', async function () {
+            const btn = this;
+
+            // Convert button to loading state securely
+            btn.innerHTML = `<span style="display:inline-block; width:18px; height:18px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin-loader 1s linear infinite; margin-right:10px;"></span> Authenticating G-API...`;
+            btn.style.pointerEvents = "none";
+            btn.style.background = "#fff";
+            btn.style.color = "#000";
+
+            try {
+                // Here we simulate the Google Account Chooser Popup delay
+                await new Promise(r => setTimeout(r, 2000));
+
+                // Success state
+                btn.innerHTML = `✅ Successfully Linked!`;
+                btn.style.background = "#00FFA3";
+                btn.style.color = "#000";
+                btn.style.borderColor = "#00FFA3";
+                btn.style.boxShadow = "0 0 15px rgba(0, 255, 163, 0.5)";
+
+                // Redirect standard authenticated users to dashboard
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1200);
+
+            } catch (err) {
+                console.error("Auth Failed", err);
+            }
+        });
+
+        // 4. Our Fleet — Auto rotate hologram cards every 10 seconds
+        (function () {
+            const fleetCards = document.querySelectorAll('#hologram-fleet .drone-spec-card');
+            if (fleetCards.length > 0) {
+                let currentFleet = 0;
+                setInterval(() => {
+                    fleetCards[currentFleet].classList.remove('active');
+                    currentFleet = (currentFleet + 1) % fleetCards.length;
+                    fleetCards[currentFleet].classList.add('active');
+                }, 10000);
+            }
+        })();
+    </script>
+
+</body>
+
+</html>

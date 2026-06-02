@@ -1,0 +1,38 @@
+<div id="main-dashboard-view" class="space-y-8 animate-fade-in">
+    
+    <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-30">
+        </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+        <div id="missions-chart" class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 aspect-video lg:aspect-[4/3] card-hover-effect overflow-hidden p-6">
+            <canvas id="missionsCanvas"></canvas>
+        </div>
+        
+        <div id="fleet-map" class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 aspect-video lg:aspect-[4/3] card-hover-effect overflow-hidden relative">
+            <div id="map" class="h-full w-full"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 relative z-10">
+        <div id="drones-table" class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 overflow-hidden card-hover-effect">
+            </div>
+    </div>
+
+    <div class="lg:col-span-3"> 
+        <div id="ai-live-center" class="bg-[#111827]/60 backdrop-blur-xl p-5 rounded-[2.5rem] border border-emerald-500/20 card-hover-effect relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em]">AI Live Insights</h3>
+                <div class="flex gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span></div>
+            </div>
+            <div class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <span class="text-slate-400 text-xs font-bold">Field Health Score</span>
+                    <span id="health-value" class="text-2xl font-black text-white">92.4%</span>
+                </div>
+                <div class="w-full bg-slate-800/50 h-2 rounded-full border border-white/5">
+                    <div id="health-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full rounded-full transition-all duration-1000" style="width: 92.4%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Mission Requests</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@300;400;700" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        select option { background-color: #111827 !important; color: #fff !important; }
+
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(-16px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal   { animation: modal-in 0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .modal-backdrop  { backdrop-filter: blur(14px); background: rgba(7,11,20,0.88); }
+
+        #toast { position:fixed; bottom:28px; right:28px; z-index:9999; display:none; }
+        #toast.show { display:block; animation: tIn .3s ease; }
+        @keyframes tIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        .pill-pending     { background:rgba(251,191,36,.1);  color:#fbbf24; border-color:rgba(251,191,36,.25); }
+        .pill-reviewing   { background:rgba(99,102,241,.1);  color:#818cf8; border-color:rgba(99,102,241,.25); }
+        .pill-confirmed   { background:rgba(6,182,212,.1);   color:#22d3ee; border-color:rgba(6,182,212,.25); }
+        .pill-in_progress { background:rgba(16,185,129,.1);  color:#34d399; border-color:rgba(16,185,129,.25); }
+        .pill-completed   { background:rgba(100,116,139,.12);color:#94a3b8; border-color:rgba(100,116,139,.3); }
+        .pill-cancelled   { background:rgba(239,68,68,.1);   color:#f87171; border-color:rgba(239,68,68,.25); }
+        .pill-unpaid      { background:rgba(239,68,68,.1);   color:#f87171; border-color:rgba(239,68,68,.25); }
+        .pill-partial     { background:rgba(251,191,36,.1);  color:#fbbf24; border-color:rgba(251,191,36,.25); }
+        .pill-paid        { background:rgba(16,185,129,.1);  color:#34d399; border-color:rgba(16,185,129,.25); }
+        .pill-refunded    { background:rgba(99,102,241,.1);  color:#818cf8; border-color:rgba(99,102,241,.25); }
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                        <i data-lucide="clipboard-list" class="text-rose-400 w-8 h-8"></i>
+                        Mission Requests
+                    </h1>
+                    <p class="text-slate-500 mt-1 text-sm">All mission requests submitted by agriculture users</p>
+                </div>
+                <button onclick="loadRequests()" class="flex items-center gap-2 px-5 py-3 bg-slate-800/60 border border-slate-700 rounded-xl text-slate-300 font-bold hover:bg-slate-700 transition-all text-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div id="sc-total"      class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
+                    <p class="text-2xl font-black text-white">—</p>
+                </div>
+                <div id="sc-pending"    class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Pending</p>
+                    <p class="text-2xl font-black text-amber-400">—</p>
+                </div>
+                <div id="sc-confirmed"  class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-1">Confirmed</p>
+                    <p class="text-2xl font-black text-cyan-400">—</p>
+                </div>
+                <div id="sc-inprogress" class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">In Progress</p>
+                    <p class="text-2xl font-black text-emerald-400">—</p>
+                </div>
+                <div id="sc-completed"  class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+                    <p class="text-2xl font-black text-slate-300">—</p>
+                </div>
+                <div id="sc-paid"       class="bg-[#111827]/70 rounded-2xl p-4 border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Paid</p>
+                    <p class="text-2xl font-black text-emerald-400">—</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 items-center">
+                <div class="relative w-72">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                    <input id="searchInput" type="text" placeholder="Search email, wilaya, title..."
+                           class="w-full pl-10 pr-4 py-2.5 bg-[#111827] border border-slate-800 rounded-xl text-sm text-slate-300 outline-none focus:border-rose-500/50">
+                </div>
+                <select id="missionStatusFilter" class="px-4 py-2.5 bg-[#111827] border border-slate-800 rounded-xl text-sm text-slate-300 outline-none cursor-pointer focus:border-rose-500/50">
+                    <option value="">All Mission Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="reviewing">Reviewing</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <select id="paymentStatusFilter" class="px-4 py-2.5 bg-[#111827] border border-slate-800 rounded-xl text-sm text-slate-300 outline-none cursor-pointer focus:border-rose-500/50">
+                    <option value="">All Payment Status</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="partial">Partial</option>
+                    <option value="paid">Paid</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+            </div>
+
+            <div class="bg-[#111827]/50 rounded-[2rem] border border-slate-800/50 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-[11px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/50 border-b border-slate-800">
+                            <tr>
+                                <th class="px-5 py-4">#</th>
+                                <th class="px-5 py-4">Email</th>
+                                <th class="px-5 py-4">Wilaya</th>
+                                <th class="px-5 py-4">GPS / Field Area</th>
+                                <th class="px-5 py-4">Deadline</th>
+                                <th class="px-5 py-4 max-w-[180px]">Description</th>
+                                <th class="px-5 py-4 text-center">Payment</th>
+                                <th class="px-5 py-4 text-center">Mission Status</th>
+                                <th class="px-5 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requests-tbody" class="divide-y divide-slate-800/40">
+                            <tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">
+                                <i data-lucide="loader-2" class="w-5 h-5 animate-spin inline text-rose-400 mr-2"></i>Loading...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-5 border-t border-slate-800/50 flex items-center justify-between flex-wrap gap-2">
+                    <p id="page-info" class="text-xs text-slate-500">—</p>
+                    <div class="flex gap-2">
+                        <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Previous</button>
+                        <span id="page-num" class="px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold">1</span>
+                        <button id="btn-next" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Next</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div id="detail-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
+    <div class="bg-[#111827] border border-white/10 w-full max-w-2xl rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.6)] animate-modal relative overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div class="absolute top-0 left-0 w-full h-28 bg-gradient-to-b from-rose-500/10 to-transparent pointer-events-none"></div>
+
+        <div class="relative p-8">
+            <div class="flex items-start justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-rose-500/15 rounded-2xl border border-rose-500/25 shadow-[0_0_20px_rgba(244,63,94,0.15)]">
+                        <i data-lucide="file-text" class="text-rose-400 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 id="modal-title" class="text-xl font-black text-white tracking-tight">Mission Request</h2>
+                        <p id="modal-id" class="text-slate-500 text-xs font-mono mt-0.5">—</p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-rose-400 transition-all mt-1">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Email</p>
+                    <p id="m-email" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Phone</p>
+                    <p id="m-phone" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Wilaya</p>
+                    <p id="m-wilaya" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Crop Type</p>
+                    <p id="m-crop" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">GPS / Location</p>
+                    <p id="m-gps" class="text-white font-semibold text-sm break-all">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Field Area (ha)</p>
+                    <p id="m-area" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Deadline</p>
+                    <p id="m-deadline" class="text-white font-semibold text-sm">—</p>
+                </div>
+                <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Payment Amount (DA)</p>
+                    <p id="m-amount" class="text-white font-semibold text-sm">—</p>
+                </div>
+            </div>
+
+            <div class="bg-[#0B1120]/60 rounded-2xl p-4 border border-slate-800/60 mb-6">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Mission Description</p>
+                <p id="m-desc" class="text-slate-300 text-sm leading-relaxed">—</p>
+            </div>
+
+            <!-- Admin Controls — unchanged -->
+            <div class="bg-rose-500/5 border border-rose-500/15 rounded-2xl p-5 space-y-4">
+                <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest">Admin Controls</p>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Status</label>
+                        <select id="edit-mission-status" class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-rose-500 cursor-pointer">
+                            <option value="pending">Pending</option>
+                            <option value="reviewing">Reviewing</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Payment Status</label>
+                        <select id="edit-payment-status" class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-rose-500 cursor-pointer">
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Payment Amount (DA)</label>
+                    <input id="edit-payment-amount" type="number" min="0" placeholder="e.g. 15000"
+                           class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-rose-500">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Admin Notes (visible to user)</label>
+                    <textarea id="edit-admin-notes" rows="3" placeholder="Write a note to the user..."
+                              class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-rose-500 resize-none"></textarea>
+                </div>
+
+                <!-- Save + Delete — unchanged -->
+                <div class="flex gap-3 pt-1">
+                    <button onclick="saveUpdate()" id="save-update-btn"
+                            class="flex-1 py-3 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:from-rose-600 hover:to-rose-700 transition-all active:scale-95 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
+                        Save Changes
+                    </button>
+                    <button onclick="deleteRequest()"
+                            class="px-5 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-500/20 transition-all">
+                        Delete
+                    </button>
+                </div>
+
+                <!-- ══════════════════════════════════════════════
+                     LAUNCH DRONE — added below existing buttons
+                ══════════════════════════════════════════════ -->
+                <div id="launch-section" class="mt-2 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5 space-y-3" style="display:none">
+                    <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="rocket" class="w-4 h-4"></i>
+                        Launch Drone Mission
+                    </p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-[#0B1120]/60 rounded-xl p-3 border border-slate-800">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">GPS Location</p>
+                            <p id="launch-gps" class="text-white font-mono text-sm">—</p>
+                        </div>
+                        <div class="bg-[#0B1120]/60 rounded-xl p-3 border border-slate-800">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Field Area</p>
+                            <p id="launch-area" class="text-white font-mono text-sm">—</p>
+                        </div>
+                    </div>
+
+                    <!-- ══════════════════════════════════════════════
+                         FLIGHT SETTINGS — NEW: altitude / speed / photo_every_m
+                    ══════════════════════════════════════════════ -->
+                    <div class="bg-[#0B1120]/40 rounded-xl p-4 border border-emerald-500/15 space-y-3">
+                        <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                            Flight Settings
+                        </p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Altitude (m)</label>
+                                <input id="flight-altitude" type="number" min="1" max="80" value="20"
+                                       class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Speed (m/s)</label>
+                                <input id="flight-speed" type="number" min="1" max="15" value="3"
+                                       class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Photo Every (m)</label>
+                                <input id="flight-photo-every" type="number" min="1" max="50" value="8"
+                                       class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assign Drone</label>
+                        <select id="launch-drone-select"
+                                class="w-full bg-[#0B1120] border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-emerald-500 cursor-pointer">
+                            <option value="">Loading drones...</option>
+                        </select>
+                    </div>
+                    <button id="launch-btn" onclick="launchMission()"
+                            class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:from-emerald-600 hover:to-teal-600 transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
+                        <i data-lucide="rocket" class="w-4 h-4"></i>
+                        Confirm &amp; Launch Drone
+                    </button>
+                    <div id="launch-status" class="hidden text-xs text-center font-bold py-2 rounded-xl"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border"></div>
+
+<script src="/js/language.js"></script>
+<script src="/js/core/main.js"></script>
+
+<script>
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const PAGE_SIZE = 20;
+let currentPage = 0;
+let allData     = [];
+let currentId   = null;
+
+function msPill(s) {
+    const label = (s || 'pending').replace('_',' ').toUpperCase();
+    return `<span class="px-2.5 py-1 rounded-full text-[10px] font-black border pill-${s||'pending'}">${label}</span>`;
+}
+function pyPill(s) {
+    const label = (s || 'unpaid').toUpperCase();
+    return `<span class="px-2.5 py-1 rounded-full text-[10px] font-black border pill-${s||'unpaid'}">${label}</span>`;
+}
+
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type === 'success'
+        ? 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 show'
+        : 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-red-500/10 text-red-400 border-red-500/30 show';
+    setTimeout(() => t.className = t.className.replace(' show',''), 3500);
+}
+
+/* ══ LOAD REQUESTS ══ */
+async function loadRequests() {
+    document.getElementById('requests-tbody').innerHTML =
+        `<tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">
+            <i data-lucide="loader-2" class="w-5 h-5 animate-spin inline text-rose-400 mr-2"></i>Loading...
+        </td></tr>`;
+    lucide.createIcons();
+
+    try {
+        const { data, error } = await _sb
+            .from('mission_requests')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allData = data || [];
+
+        document.getElementById('sc-total').querySelector('p:last-child').textContent      = allData.length;
+        document.getElementById('sc-pending').querySelector('p:last-child').textContent    = allData.filter(r => r.mission_status === 'pending').length;
+        document.getElementById('sc-confirmed').querySelector('p:last-child').textContent  = allData.filter(r => r.mission_status === 'confirmed').length;
+        document.getElementById('sc-inprogress').querySelector('p:last-child').textContent = allData.filter(r => r.mission_status === 'in_progress').length;
+        document.getElementById('sc-completed').querySelector('p:last-child').textContent  = allData.filter(r => r.mission_status === 'completed').length;
+        document.getElementById('sc-paid').querySelector('p:last-child').textContent       = allData.filter(r => r.payment_status === 'paid').length;
+
+        renderTable();
+    } catch (err) {
+        document.getElementById('requests-tbody').innerHTML =
+            `<tr><td colspan="9" class="px-5 py-8 text-center text-red-400">❌ ${err.message}</td></tr>`;
+    }
+}
+
+function renderTable() {
+    const search  = document.getElementById('searchInput').value.toLowerCase();
+    const mFilter = document.getElementById('missionStatusFilter').value;
+    const pFilter = document.getElementById('paymentStatusFilter').value;
+
+    const filtered = allData.filter(r => {
+        const matchSearch = !search ||
+            (r.email         || '').toLowerCase().includes(search) ||
+            (r.wilaya        || '').toLowerCase().includes(search) ||
+            (r.mission_title || '').toLowerCase().includes(search) ||
+            (r.gps_location  || '').toLowerCase().includes(search);
+        return matchSearch &&
+            (!mFilter || r.mission_status === mFilter) &&
+            (!pFilter || r.payment_status === pFilter);
+    });
+
+    const total    = filtered.length;
+    const start    = currentPage * PAGE_SIZE;
+    const pageData = filtered.slice(start, start + PAGE_SIZE);
+    const tbody    = document.getElementById('requests-tbody');
+
+    if (!pageData.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">No requests found.</td></tr>`;
+    } else {
+        tbody.innerHTML = pageData.map((r, i) => {
+            const num      = start + i + 1;
+            const deadline = r.mission_deadline ? new Date(r.mission_deadline).toLocaleDateString() : '—';
+            const desc     = r.mission_description
+                ? (r.mission_description.length > 55 ? r.mission_description.slice(0,55)+'…' : r.mission_description) : '—';
+            const gps      = r.gps_location
+                ? (r.gps_location.length > 22 ? r.gps_location.slice(0,22)+'…' : r.gps_location)
+                : (r.field_area_ha ? r.field_area_ha + ' ha' : '—');
+
+            return `<tr class="hover:bg-white/[0.025] transition-colors cursor-pointer" onclick="openModal('${r.id}')">
+                <td class="px-5 py-4 text-slate-500 text-xs font-mono">${num}</td>
+                <td class="px-5 py-4">
+                    <p class="text-white font-semibold text-sm">${r.email || '—'}</p>
+                    <p class="text-slate-500 text-[10px] mt-0.5">${r.mission_title || '—'}</p>
+                </td>
+                <td class="px-5 py-4 text-slate-400 text-xs">${r.wilaya || '—'}</td>
+                <td class="px-5 py-4 text-slate-400 text-xs font-mono">${gps}</td>
+                <td class="px-5 py-4 text-slate-400 text-xs">${deadline}</td>
+                <td class="px-5 py-4 text-slate-400 text-xs max-w-[180px]">${desc}</td>
+                <td class="px-5 py-4 text-center">${pyPill(r.payment_status)}</td>
+                <td class="px-5 py-4 text-center">${msPill(r.mission_status)}</td>
+                <td class="px-5 py-4 text-right">
+                    <button onclick="event.stopPropagation(); openModal('${r.id}')"
+                        class="p-2 rounded-xl text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    const from = total === 0 ? 0 : start + 1;
+    const to   = Math.min(start + PAGE_SIZE, total);
+    document.getElementById('page-info').textContent = `Showing ${from}–${to} of ${total}`;
+    document.getElementById('page-num').textContent  = currentPage + 1;
+    document.getElementById('btn-prev').disabled = currentPage === 0;
+    document.getElementById('btn-next').disabled = to >= total;
+    lucide.createIcons();
+}
+
+function changePage(dir) {
+    currentPage = Math.max(0, currentPage + dir);
+    renderTable();
+}
+
+/* ══ OPEN MODAL ══ */
+function openModal(id) {
+    const r = allData.find(x => x.id === id);
+    if (!r) return;
+    currentId = id;
+
+    document.getElementById('modal-title').textContent = r.mission_title || 'Mission Request';
+    document.getElementById('modal-id').textContent    = r.id?.slice(0,18) + '…';
+    document.getElementById('m-email').textContent     = r.email    || '—';
+    document.getElementById('m-phone').textContent     = r.phone    || '—';
+    document.getElementById('m-wilaya').textContent    = r.wilaya   || '—';
+    document.getElementById('m-crop').textContent      = r.crop_type || '—';
+    document.getElementById('m-gps').textContent       = r.gps_location || '—';
+    document.getElementById('m-area').textContent      = r.field_area_ha ? r.field_area_ha + ' ha' : '—';
+    document.getElementById('m-deadline').textContent  = r.mission_deadline ? new Date(r.mission_deadline).toLocaleDateString('en-GB') : '—';
+    document.getElementById('m-amount').textContent    = r.payment_amount ? r.payment_amount + ' DA' : '—';
+    document.getElementById('m-desc').textContent      = r.mission_description || '—';
+
+    document.getElementById('edit-mission-status').value = r.mission_status || 'pending';
+    document.getElementById('edit-payment-status').value = r.payment_status || 'unpaid';
+    document.getElementById('edit-payment-amount').value = r.payment_amount || '';
+    document.getElementById('edit-admin-notes').value    = r.admin_notes    || '';
+
+    // ← NEW: show/hide launch panel
+    updateLaunchPanel(r);
+
+    const modal = document.getElementById('detail-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    lucide.createIcons();
+}
+
+function closeModal() {
+    document.getElementById('detail-modal').classList.add('hidden');
+    document.getElementById('detail-modal').classList.remove('flex');
+    currentId = null;
+}
+
+/* ══ SAVE UPDATE ══ */
+async function saveUpdate() {
+    if (!currentId) return;
+    const btn = document.getElementById('save-update-btn');
+    btn.disabled    = true;
+    btn.textContent = 'Saving...';
+
+    const updates = {
+        mission_status: document.getElementById('edit-mission-status').value,
+        payment_status: document.getElementById('edit-payment-status').value,
+        payment_amount: parseFloat(document.getElementById('edit-payment-amount').value) || null,
+        admin_notes:    document.getElementById('edit-admin-notes').value.trim() || null,
+    };
+
+    try {
+        const { error } = await _sb.from('mission_requests').update(updates).eq('id', currentId);
+        if (error) throw error;
+
+        const idx = allData.findIndex(x => x.id === currentId);
+        if (idx !== -1) allData[idx] = { ...allData[idx], ...updates };
+
+        // refresh launch panel in case status changed
+        updateLaunchPanel(allData[idx] || {});
+
+        showToast('✅ Mission updated successfully!');
+        closeModal();
+        renderTable();
+    } catch (err) {
+        showToast('❌ ' + err.message, 'error');
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Save Changes';
+    }
+}
+
+/* ══ DELETE REQUEST ══ */
+async function deleteRequest() {
+    if (!currentId) return;
+    if (!confirm('Delete this mission request permanently?')) return;
+
+    const { error } = await _sb.from('mission_requests').delete().eq('id', currentId);
+    if (error) { showToast('❌ ' + error.message, 'error'); return; }
+
+    showToast('🗑️ Request deleted.');
+    closeModal();
+    allData = allData.filter(x => x.id !== currentId);
+    renderTable();
+}
+
+/* ══════════════════════════════════════════════
+   LAUNCH DRONE — NEW FUNCTIONS
+══════════════════════════════════════════════ */
+async function loadAvailableDrones() {
+    const sel = document.getElementById('launch-drone-select');
+    if (!sel) return;
+    try {
+        const { data, error } = await _sb
+            .from('drones')
+            .select('id, drone_code, model, status, battery_level')
+            .in('status', ['available', 'active'])
+            .order('battery_level', { ascending: false });
+
+        if (error || !data || !data.length) {
+            sel.innerHTML = '<option value="">No available drones</option>';
+            return;
+        }
+        sel.innerHTML = data.map(d =>
+            `<option value="${d.id}" data-code="${d.drone_code}">
+                ${d.drone_code} — ${d.model} (${d.battery_level}% battery)
+            </option>`
+        ).join('');
+    } catch {
+        sel.innerHTML = '<option value="">Error loading drones</option>';
+    }
+}
+
+function updateLaunchPanel(mission) {
+    const section = document.getElementById('launch-section');
+    if (!section) return;
+    const show = ['confirmed', 'in_progress'].includes(mission.mission_status);
+    section.style.display = show ? 'block' : 'none';
+    if (show) {
+        document.getElementById('launch-gps').textContent  = mission.gps_location || '—';
+        document.getElementById('launch-area').textContent =
+            mission.field_area_ha ? `${mission.field_area_ha} ha` : '—';
+
+        // ← NEW: استرجاع إعدادات الطيران المحفوظة سابقاً (إن وُجدت) لملء الحقول
+        let cfg = mission.flight_config;
+        if (typeof cfg === 'string') {
+            try { cfg = JSON.parse(cfg); } catch { cfg = null; }
+        }
+        const flight = (cfg && cfg.flight) ? cfg.flight : (cfg || {});
+        if (flight.altitude_m   != null) document.getElementById('flight-altitude').value    = flight.altitude_m;
+        if (flight.speed_ms     != null) document.getElementById('flight-speed').value       = flight.speed_ms;
+        if (flight.photo_every_m!= null) document.getElementById('flight-photo-every').value = flight.photo_every_m;
+
+        loadAvailableDrones();
+        lucide.createIcons();
+    }
+}
+
+async function launchMission() {
+    if (!currentId) return;
+    const droneId   = document.getElementById('launch-drone-select').value;
+    const droneCode = document.getElementById('launch-drone-select').selectedOptions[0]?.dataset.code;
+    const btn       = document.getElementById('launch-btn');
+    const statusEl  = document.getElementById('launch-status');
+
+    if (!droneId) {
+        statusEl.textContent = '⚠️ Please select a drone first';
+        statusEl.className   = 'text-xs text-center font-bold py-2 rounded-xl bg-amber-500/10 text-amber-400';
+        statusEl.classList.remove('hidden');
+        return;
+    }
+
+    // ← NEW: قراءة إعدادات الطيران من الحقول وبناء JSON الكامل
+    const mission   = allData.find(x => x.id === currentId) || {};
+    const altitude  = parseFloat(document.getElementById('flight-altitude').value)    || 20;
+    const speed     = parseFloat(document.getElementById('flight-speed').value)       || 3;
+    const photoEvery= parseFloat(document.getElementById('flight-photo-every').value) || 8;
+
+    const flightConfig = {
+        field: {
+            gps:     mission.gps_location || null,
+            area_ha: mission.field_area_ha != null ? Number(mission.field_area_ha) : null
+        },
+        flight: {
+            altitude_m:    altitude,
+            speed_ms:      speed,
+            photo_every_m: photoEvery
+        }
+    };
+
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="mr-2">⟳</span> Launching...';
+    statusEl.classList.add('hidden');
+
+    try {
+        // ← NEW: نحفظ flight_config + نضع mission_status = confirmed (ليلتقطها droune.py)
+        const { error: mErr } = await _sb
+            .from('mission_requests')
+            .update({
+                mission_status: 'confirmed',
+                flight_config:  flightConfig,
+                admin_notes: (document.getElementById('edit-admin-notes').value || '') +
+                             `\n[Drone assigned: ${droneCode}]`,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentId);
+        if (mErr) throw mErr;
+
+        await _sb.from('drones').update({ status: 'active' }).eq('id', droneId);
+
+        const idx = allData.findIndex(x => x.id === currentId);
+        if (idx !== -1) {
+            allData[idx].mission_status = 'confirmed';
+            allData[idx].flight_config  = flightConfig;
+        }
+
+        statusEl.textContent = `✅ Mission launched! Drone ${droneCode} will start automatically.`;
+        statusEl.className   = 'text-xs text-center font-bold py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        statusEl.classList.remove('hidden');
+        showToast(`🚁 Drone ${droneCode} launched! (alt ${altitude}m · ${speed} m/s · photo/${photoEvery}m)`);
+        renderTable();
+    } catch (err) {
+        statusEl.textContent = '❌ ' + err.message;
+        statusEl.className   = 'text-xs text-center font-bold py-2 rounded-xl bg-red-500/10 text-red-400';
+        statusEl.classList.remove('hidden');
+    } finally {
+        btn.disabled  = false;
+        btn.innerHTML = '<i data-lucide="rocket" class="w-4 h-4"></i> Confirm &amp; Launch Drone';
+        lucide.createIcons();
+    }
+}
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await Promise.all([
+            loadComponent?.('sidebar-container', '/components/sidebar.html'),
+            loadComponent?.('topbar-container',  '/components/topbar.html'),
+        ]);
+        if (window.highlightActiveLink) highlightActiveLink();
+    } catch(e) {}
+
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (window.updatePageText) updatePageText(lang);
+
+    document.getElementById('searchInput').addEventListener('input',          () => { currentPage=0; renderTable(); });
+    document.getElementById('missionStatusFilter').addEventListener('change', () => { currentPage=0; renderTable(); });
+    document.getElementById('paymentStatusFilter').addEventListener('change', () => { currentPage=0; renderTable(); });
+
+    lucide.createIcons();
+    await loadRequests();
+});
+</script>
+
+</body>
+</html>

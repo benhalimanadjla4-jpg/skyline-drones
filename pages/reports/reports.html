@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Admin Reports</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar{width:6px}
+        .custom-scrollbar::-webkit-scrollbar-thumb{background:#1e293b;border-radius:10px}
+        select option{background:#111827!important;color:#fff!important}
+        [lang="ar"]{font-family:'Tajawal',sans-serif!important}
+
+        /* Glass card */
+        .gcard{background:rgba(17,24,39,0.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.06);border-radius:1.5rem;transition:border-color .25s,box-shadow .25s}
+        .gcard:hover{border-color:rgba(6,182,212,0.25);box-shadow:0 12px 30px -6px rgba(6,182,212,0.1)}
+
+        /* Stat card */
+        .stat-card{background:rgba(17,24,39,0.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.05);border-radius:1.5rem;padding:1.5rem;transition:all .25s}
+        .stat-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px -6px rgba(6,182,212,0.12)}
+
+        /* User card */
+        .user-report-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:1rem;padding:1rem 1.25rem;margin-bottom:.5rem;transition:all .2s;cursor:pointer}
+        .user-report-card:hover{background:rgba(255,255,255,0.045);border-color:rgba(6,182,212,0.25)}
+        .user-report-card.selected{background:rgba(6,182,212,0.06);border-color:rgba(6,182,212,0.4)}
+
+        /* Avatar initials */
+        .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;}
+
+        /* Role badge */
+        .rb-admin      {background:rgba(251,191,36,.1); color:#fbbf24;border:1px solid rgba(251,191,36,.25);}
+        .rb-agriculture{background:rgba(16,185,129,.1); color:#34d399;border:1px solid rgba(16,185,129,.25);}
+        .rb-security   {background:rgba(139,92,246,.1); color:#a78bfa;border:1px solid rgba(139,92,246,.25);}
+        .rb-line       {background:rgba(99,102,241,.1); color:#818cf8;border:1px solid rgba(99,102,241,.25);}
+
+        /* Mission status pill */
+        .ms-pending    {background:rgba(251,191,36,.1); color:#fbbf24;border:1px solid rgba(251,191,36,.2);}
+        .ms-reviewing  {background:rgba(129,140,248,.1);color:#818cf8;border:1px solid rgba(129,140,248,.2);}
+        .ms-confirmed  {background:rgba(34,211,238,.1); color:#22d3ee;border:1px solid rgba(34,211,238,.2);}
+        .ms-in_progress{background:rgba(16,185,129,.1); color:#34d399;border:1px solid rgba(16,185,129,.2);}
+        .ms-completed  {background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.25);}
+        .ms-cancelled  {background:rgba(239,68,68,.1);  color:#f87171;border:1px solid rgba(239,68,68,.2);}
+
+        /* Pay pill */
+        .pp-unpaid {background:rgba(239,68,68,.1);  color:#f87171;border:1px solid rgba(239,68,68,.2);}
+        .pp-partial{background:rgba(251,191,36,.1); color:#fbbf24;border:1px solid rgba(251,191,36,.2);}
+        .pp-paid   {background:rgba(16,185,129,.1); color:#34d399;border:1px solid rgba(16,185,129,.2);}
+
+        /* Diag badge */
+        .db-fungal   {background:rgba(249,115,22,.1); color:#fb923c;border:1px solid rgba(249,115,22,.2);}
+        .db-bacterial{background:rgba(239,68,68,.1);  color:#f87171;border:1px solid rgba(239,68,68,.2);}
+        .db-viral    {background:rgba(139,92,246,.1); color:#a78bfa;border:1px solid rgba(139,92,246,.2);}
+        .db-healthy  {background:rgba(16,185,129,.1); color:#34d399;border:1px solid rgba(16,185,129,.2);}
+        .db-pest     {background:rgba(234,179,8,.1);  color:#facc15;border:1px solid rgba(234,179,8,.2);}
+
+        /* Toast */
+        #toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:none;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:700;}
+        #toast.show{display:block;animation:tIn .3s ease}
+        #toast.success{background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+        #toast.error  {background:rgba(239,68,68,.1);  color:#f87171;border:1px solid rgba(239,68,68,.3)}
+        @keyframes tIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+        /* tab underline */
+        .tab-btn{padding:8px 18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:10px;cursor:pointer;transition:all .2s;color:#64748b;background:transparent;border:none;}
+        .tab-btn.active{background:rgba(6,182,212,.12);color:#22d3ee;}
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+
+            <!-- ── Page header ── -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                        <div class="p-2 bg-cyan-500/10 rounded-xl">
+                            <i data-lucide="bar-chart-3" class="text-cyan-400 w-7 h-7"></i>
+                        </div>
+                        Service Administration
+                    </h1>
+                    <p class="text-slate-500 mt-1 text-sm">Complete reports — users, missions, diagnostics & orders</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="exportFullPDF()"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-cyan-900/30">
+                        <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF
+                    </button>
+                    <button onclick="loadAll()"
+                        class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm rounded-xl transition-all border border-slate-700">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Global stats row ── -->
+            <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4" id="global-stats">
+                <!-- filled by JS -->
+                <div class="stat-card col-span-2 md:col-span-1">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Users</p>
+                    <p id="gs-users" class="text-3xl font-black text-white">—</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Agriculture</p>
+                    <p id="gs-agri" class="text-3xl font-black text-emerald-400">—</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Admins</p>
+                    <p id="gs-admins" class="text-3xl font-black text-amber-400">—</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-1">Mission Req.</p>
+                    <p id="gs-missions" class="text-3xl font-black text-cyan-400">—</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-1">Diagnostics</p>
+                    <p id="gs-diags" class="text-3xl font-black text-purple-400">—</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Pending</p>
+                    <p id="gs-pending" class="text-3xl font-black text-rose-400">—</p>
+                </div>
+            </div>
+
+            <!-- ── Main grid ── -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+                <!-- LEFT: Users list (scrollable) -->
+                <div class="gcard p-0 overflow-hidden flex flex-col" style="max-height:720px;">
+                    <div class="px-6 py-5 border-b border-slate-800/60">
+                        <h3 class="font-black text-white text-base">All Users</h3>
+                        <p class="text-slate-500 text-xs mt-0.5">Click a user to see their full report</p>
+                        <!-- Search users -->
+                        <div class="relative mt-3">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <input id="user-search" type="text" placeholder="Search users..."
+                                   oninput="renderUsers()"
+                                   class="w-full pl-10 pr-4 py-2 bg-[#0B1120] border border-slate-800 rounded-xl text-sm text-slate-300 outline-none focus:border-cyan-500/50">
+                        </div>
+                        <!-- Role filter -->
+                        <div class="flex gap-1.5 mt-3 flex-wrap">
+                            <button class="tab-btn active" onclick="setRoleFilter('all',this)">All</button>
+                            <button class="tab-btn" onclick="setRoleFilter('agriculture',this)">Agri</button>
+                            <button class="tab-btn" onclick="setRoleFilter('security',this)">Security</button>
+                            <button class="tab-btn" onclick="setRoleFilter('line',this)">Line</button>
+                            <button class="tab-btn" onclick="setRoleFilter('admin',this)">Admin</button>
+                        </div>
+                    </div>
+                    <div id="users-list" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1">
+                        <p class="text-slate-500 text-xs text-center py-4">
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-cyan-400"></i>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- RIGHT: User detail panel -->
+                <div class="xl:col-span-2 space-y-6">
+
+                    <!-- When no user selected -->
+                    <div id="no-selection" class="gcard p-12 flex flex-col items-center justify-center text-center">
+                        <i data-lucide="user-search" class="w-14 h-14 text-slate-700 mb-4"></i>
+                        <p class="text-slate-500 font-semibold">Select a user from the left to view their complete report</p>
+                    </div>
+
+                    <!-- User full report (hidden until selected) -->
+                    <div id="user-report" class="hidden space-y-6">
+
+                        <!-- User header card -->
+                        <div class="gcard p-6">
+                            <div class="flex items-center gap-4 mb-5">
+                                <div id="ur-avatar" class="avatar w-14 h-14 text-lg bg-cyan-500"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h3 id="ur-name" class="text-xl font-black text-white">—</h3>
+                                        <span id="ur-role-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black border rb-agriculture">—</span>
+                                    </div>
+                                    <p id="ur-email" class="text-slate-400 text-sm mt-0.5">—</p>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Joined</p>
+                                    <p id="ur-joined" class="text-sm text-white font-bold">—</p>
+                                    <p id="ur-wilaya" class="text-xs text-slate-500 mt-0.5">—</p>
+                                </div>
+                            </div>
+                            <!-- Mini stats for this user -->
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-[#0B1120]/60 rounded-xl p-3 border border-slate-800/60 text-center">
+                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Missions</p>
+                                    <p id="ur-mission-count" class="text-2xl font-black text-cyan-400">—</p>
+                                </div>
+                                <div class="bg-[#0B1120]/60 rounded-xl p-3 border border-slate-800/60 text-center">
+                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Diagnostics</p>
+                                    <p id="ur-diag-count" class="text-2xl font-black text-purple-400">—</p>
+                                </div>
+                                <div class="bg-[#0B1120]/60 rounded-xl p-3 border border-slate-800/60 text-center">
+                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Orders</p>
+                                    <p id="ur-order-count" class="text-2xl font-black text-amber-400">—</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="flex gap-1 bg-[#111827] p-1 rounded-xl border border-slate-800 w-fit">
+                            <button class="tab-btn active" onclick="switchTab('missions',this)">Mission Requests</button>
+                            <button class="tab-btn" onclick="switchTab('diagnostics',this)">Diagnostics</button>
+                            <button class="tab-btn" onclick="switchTab('orders',this)">Orders</button>
+                            <button class="tab-btn" onclick="switchTab('logs',this)">Login Logs</button>
+                        </div>
+
+                        <!-- Tab: Mission Requests -->
+                        <div id="tab-missions" class="gcard p-0 overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-800/60">
+                                <h4 class="font-bold text-white text-sm">Mission Requests</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-[10px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800">
+                                        <tr>
+                                            <th class="px-4 py-3">Title</th>
+                                            <th class="px-4 py-3">Wilaya / GPS</th>
+                                            <th class="px-4 py-3">Deadline</th>
+                                            <th class="px-4 py-3 text-center">Payment</th>
+                                            <th class="px-4 py-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ur-missions-tbody" class="divide-y divide-slate-800/40">
+                                        <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No missions yet</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Diagnostics -->
+                        <div id="tab-diagnostics" class="hidden gcard p-0 overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-800/60">
+                                <h4 class="font-bold text-white text-sm">AI Diagnostics</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-[10px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800">
+                                        <tr>
+                                            <th class="px-4 py-3">Disease</th>
+                                            <th class="px-4 py-3">Type</th>
+                                            <th class="px-4 py-3 text-center">Confidence</th>
+                                            <th class="px-4 py-3">Advice (EN)</th>
+                                            <th class="px-4 py-3">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ur-diags-tbody" class="divide-y divide-slate-800/40">
+                                        <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No diagnostics yet</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Orders -->
+                        <div id="tab-orders" class="hidden gcard p-0 overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-800/60">
+                                <h4 class="font-bold text-white text-sm">Orders</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-[10px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800">
+                                        <tr>
+                                            <th class="px-4 py-3">Service</th>
+                                            <th class="px-4 py-3">Customer</th>
+                                            <th class="px-4 py-3 text-center">Duration</th>
+                                            <th class="px-4 py-3 text-center">Total</th>
+                                            <th class="px-4 py-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ur-orders-tbody" class="divide-y divide-slate-800/40">
+                                        <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No orders yet</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Login Logs -->
+                        <div id="tab-logs" class="hidden gcard p-0 overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-800/60">
+                                <h4 class="font-bold text-white text-sm">Login History</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-[10px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800">
+                                        <tr>
+                                            <th class="px-4 py-3">IP Address</th>
+                                            <th class="px-4 py-3">Device</th>
+                                            <th class="px-4 py-3">Date / Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ur-logs-tbody" class="divide-y divide-slate-800/40">
+                                        <tr><td colspan="3" class="px-4 py-6 text-center text-slate-500 text-xs">No logs yet</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div><!-- /user-report -->
+
+                </div>
+            </div>
+
+            <!-- ── Bottom charts ── -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="gcard p-6">
+                    <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5">Users by Role</h4>
+                    <div style="height:200px"><canvas id="chart-roles"></canvas></div>
+                </div>
+                <div class="gcard p-6">
+                    <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5">Mission Request Status</h4>
+                    <div style="height:200px"><canvas id="chart-missions"></canvas></div>
+                </div>
+                <div class="gcard p-6">
+                    <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5">Diagnostics by Infection Type</h4>
+                    <div style="height:200px"><canvas id="chart-diags"></canvas></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="/js/core/main.js"></script>
+<script src="/js/language.js"></script>
+<script>
+/* ══════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ══════════════════════════════════════
+   GLOBAL STATE
+══════════════════════════════════════ */
+let allUsers    = [];
+let allMissions = [];   // mission_requests
+let allDiags    = [];
+let allOrders   = [];
+let allLogs     = [];
+let roleFilter  = 'all';
+let selectedUID = null;
+const CHARTS    = {};
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type + ' show';
+    setTimeout(() => t.className = '', 3200);
+}
+
+/* ══════════════════════════════════════
+   LOAD ALL
+══════════════════════════════════════ */
+async function loadAll() {
+    try {
+        const [users, missions, diags, orders, logs] = await Promise.all([
+            _sb.from('profiles').select('*').order('created_at', { ascending: false }),
+            _sb.from('mission_requests').select('*').order('created_at', { ascending: false }),
+            _sb.from('diagnostics').select('*').order('analyzed_at', { ascending: false }),
+            _sb.from('orders').select('*').order('ordered_at', { ascending: false }),
+            _sb.from('login_logs').select('*').order('created_at', { ascending: false }),
+        ]);
+
+        allUsers    = users.data    || [];
+        allMissions = missions.data || [];
+        allDiags    = diags.data    || [];
+        allOrders   = orders.data   || [];
+        allLogs     = logs.data     || [];
+
+        updateGlobalStats();
+        renderUsers();
+        renderCharts();
+
+    } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+        console.error(err);
+    }
+}
+
+/* ══════════════════════════════════════
+   GLOBAL STATS
+══════════════════════════════════════ */
+function updateGlobalStats() {
+    document.getElementById('gs-users').textContent   = allUsers.length;
+    document.getElementById('gs-agri').textContent    = allUsers.filter(u => u.role === 'agriculture').length;
+    document.getElementById('gs-admins').textContent  = allUsers.filter(u => u.role === 'admin').length;
+    document.getElementById('gs-missions').textContent= allMissions.length;
+    document.getElementById('gs-diags').textContent   = allDiags.length;
+    document.getElementById('gs-pending').textContent = allMissions.filter(m => m.mission_status === 'pending').length;
+}
+
+/* ══════════════════════════════════════
+   RENDER USERS LIST
+══════════════════════════════════════ */
+const ROLE_COLORS = {
+    admin:       ['bg-amber-500',  'rb-admin'],
+    agriculture: ['bg-emerald-500','rb-agriculture'],
+    security:    ['bg-purple-500', 'rb-security'],
+    line:        ['bg-blue-500',   'rb-line'],
+};
+
+function avatarHTML(name, role) {
+    const [bg] = ROLE_COLORS[role] || ['bg-slate-500',''];
+    const initials = (name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="avatar ${bg} text-white">${initials}</div>`;
+}
+
+function renderUsers() {
+    const q    = (document.getElementById('user-search')?.value || '').toLowerCase();
+    const list = document.getElementById('users-list');
+
+    let filtered = allUsers.filter(u => {
+        const matchRole = roleFilter === 'all' || u.role === roleFilter;
+        const matchQ    = !q ||
+            (u.full_name || '').toLowerCase().includes(q) ||
+            (u.email     || '').toLowerCase().includes(q) ||
+            (u.wilaya    || '').toLowerCase().includes(q);
+        return matchRole && matchQ;
+    });
+
+    if (!filtered.length) {
+        list.innerHTML = `<p class="text-slate-500 text-xs text-center py-8">No users found</p>`;
+        return;
+    }
+
+    list.innerHTML = filtered.map(u => {
+        const [, rbCls] = ROLE_COLORS[u.role] || ['', ''];
+        const mCount = allMissions.filter(m => m.profile_id === u.id).length;
+        const dCount = allDiags.filter(d => d.profile_id === u.id).length;
+        const isSelected = u.id === selectedUID ? 'selected' : '';
+        return `
+        <div class="user-report-card ${isSelected}" onclick="selectUser('${u.id}')">
+            <div class="flex items-center gap-3">
+                ${avatarHTML(u.full_name, u.role)}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <p class="text-sm font-bold text-white truncate">${u.full_name || '—'}</p>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-black border ${rbCls} flex-shrink-0">${u.role || '—'}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 truncate">${u.email || '—'}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-[10px] text-cyan-400 font-bold">${mCount} missions</p>
+                    <p class="text-[10px] text-purple-400">${dCount} diags</p>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+function setRoleFilter(role, btn) {
+    roleFilter = role;
+    document.querySelectorAll('#users-list ~ * .tab-btn, .tab-btn').forEach(b => {
+        if (b.closest('#user-report') === null && b.closest('.gcard') !== null) b.classList.remove('active');
+    });
+    document.querySelectorAll('[onclick*="setRoleFilter"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderUsers();
+}
+
+/* ══════════════════════════════════════
+   SELECT USER → show full report
+══════════════════════════════════════ */
+function selectUser(uid) {
+    selectedUID = uid;
+    renderUsers(); // re-render to highlight
+
+    const u = allUsers.find(x => x.id === uid);
+    if (!u) return;
+
+    const [bg, rbCls] = ROLE_COLORS[u.role] || ['bg-slate-500',''];
+    const initials = (u.full_name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+    /* Header */
+    document.getElementById('ur-avatar').className    = `avatar w-14 h-14 text-lg ${bg} text-white`;
+    document.getElementById('ur-avatar').textContent  = initials;
+    document.getElementById('ur-name').textContent    = u.full_name || '—';
+    document.getElementById('ur-email').textContent   = u.email || '—';
+    document.getElementById('ur-wilaya').textContent  = u.wilaya || 'No wilaya';
+    document.getElementById('ur-joined').textContent  = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB') : '—';
+
+    const rb = document.getElementById('ur-role-badge');
+    rb.textContent  = u.role || '—';
+    rb.className    = `px-2.5 py-0.5 rounded-full text-[10px] font-black border ${rbCls}`;
+
+    /* User-specific data */
+    const uMissions = allMissions.filter(m => m.profile_id === uid);
+    const uDiags    = allDiags.filter(d => d.profile_id === uid);
+    const uOrders   = allOrders.filter(o => o.profile_id === uid);
+    const uLogs     = allLogs.filter(l => l.profile_id === uid);
+
+    document.getElementById('ur-mission-count').textContent = uMissions.length;
+    document.getElementById('ur-diag-count').textContent    = uDiags.length;
+    document.getElementById('ur-order-count').textContent   = uOrders.length;
+
+    /* Fill tabs */
+    fillMissionsTab(uMissions);
+    fillDiagsTab(uDiags);
+    fillOrdersTab(uOrders);
+    fillLogsTab(uLogs);
+
+    /* Show report panel */
+    document.getElementById('no-selection').classList.add('hidden');
+    document.getElementById('user-report').classList.remove('hidden');
+
+    /* Reset to first tab */
+    switchTab('missions', document.querySelector('[onclick*="switchTab(\'missions\'"]'));
+
+    lucide.createIcons();
+}
+
+/* ── Mission requests tab ── */
+function fillMissionsTab(data) {
+    const tbody = document.getElementById('ur-missions-tbody');
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No mission requests yet</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.map(m => {
+        const dl = m.mission_deadline ? new Date(m.mission_deadline).toLocaleDateString('en-GB') : '—';
+        return `<tr class="hover:bg-white/[0.02] transition-colors">
+            <td class="px-4 py-3">
+                <p class="text-white text-xs font-semibold">${m.mission_title || '—'}</p>
+                <p class="text-slate-500 text-[10px] truncate max-w-[180px]">${m.mission_description || ''}</p>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">
+                <p>${m.wilaya || '—'}</p>
+                <p class="text-slate-600 text-[10px] truncate max-w-[120px]">${m.gps_location || '—'}</p>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">${dl}</td>
+            <td class="px-4 py-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black border pp-${m.payment_status||'unpaid'}">${(m.payment_status||'unpaid').toUpperCase()}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black border ms-${m.mission_status||'pending'}">${(m.mission_status||'pending').replace('_',' ').toUpperCase()}</span>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+/* ── Diagnostics tab ── */
+function fillDiagsTab(data) {
+    const tbody = document.getElementById('ur-diags-tbody');
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No diagnostics yet</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.map(d => {
+        const dt = d.analyzed_at ? new Date(d.analyzed_at).toLocaleDateString('en-GB') : '—';
+        const conf = d.cnn_confidence_pct != null ? Math.round(d.cnn_confidence_pct) + '%' : '—';
+        const infType = (d.infection_type || 'unknown').toLowerCase();
+        return `<tr class="hover:bg-white/[0.02] transition-colors">
+            <td class="px-4 py-3">
+                <p class="text-white text-xs font-semibold">${d.disease_class || '—'}</p>
+                <p class="text-slate-500 text-[10px]">${d.disease_name_ar || ''}</p>
+            </td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black border db-${infType}">${infType.toUpperCase()}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+                <span class="text-sm font-black ${d.cnn_confidence_pct >= 90 ? 'text-emerald-400' : d.cnn_confidence_pct >= 70 ? 'text-amber-400' : 'text-rose-400'}">${conf}</span>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs max-w-[180px]">
+                <p class="line-clamp-2">${d.ai_advice || '—'}</p>
+            </td>
+            <td class="px-4 py-3 text-slate-500 text-xs">${dt}</td>
+        </tr>`;
+    }).join('');
+}
+
+/* ── Orders tab ── */
+function fillOrdersTab(data) {
+    const tbody = document.getElementById('ur-orders-tbody');
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 text-xs">No orders yet</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.map(o => `
+        <tr class="hover:bg-white/[0.02] transition-colors">
+            <td class="px-4 py-3 text-white text-xs font-semibold">${o.service_id || '—'}</td>
+            <td class="px-4 py-3 text-slate-400 text-xs">${o.customer_name || '—'}</td>
+            <td class="px-4 py-3 text-center text-slate-400 text-xs">${o.duration_months ? o.duration_months + ' mo.' : '—'}</td>
+            <td class="px-4 py-3 text-center text-cyan-400 font-black text-sm">${o.total_price ? o.total_price.toLocaleString() + ' DA' : '—'}</td>
+            <td class="px-4 py-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black border ${o.status === 'confirmed' ? 'ms-confirmed' : o.status === 'cancelled' ? 'ms-cancelled' : 'ms-pending'}">${(o.status||'—').toUpperCase()}</span>
+            </td>
+        </tr>`).join('');
+}
+
+/* ── Login logs tab ── */
+function fillLogsTab(data) {
+    const tbody = document.getElementById('ur-logs-tbody');
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-6 text-center text-slate-500 text-xs">No login logs</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.slice(0,20).map(l => {
+        const dt = l.created_at ? new Date(l.created_at).toLocaleString('en-GB') : '—';
+        return `<tr class="hover:bg-white/[0.02] transition-colors">
+            <td class="px-4 py-3 font-mono text-cyan-400 text-xs">${l.ip_address || '—'}</td>
+            <td class="px-4 py-3 text-slate-400 text-xs">${l.device || '—'}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">${dt}</td>
+        </tr>`;
+    }).join('');
+}
+
+/* ══════════════════════════════════════
+   TAB SWITCH
+══════════════════════════════════════ */
+function switchTab(name, btn) {
+    ['missions','diagnostics','orders','logs'].forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+    });
+    document.getElementById('tab-' + name).classList.remove('hidden');
+
+    document.querySelectorAll('#user-report .tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+/* ══════════════════════════════════════
+   CHARTS (bottom row)
+══════════════════════════════════════ */
+function renderCharts() {
+    /* Chart 1: Users by role */
+    const roleCounts = {};
+    allUsers.forEach(u => { roleCounts[u.role||'unknown'] = (roleCounts[u.role||'unknown']||0)+1; });
+    buildChart('chart-roles', 'doughnut', Object.keys(roleCounts), Object.values(roleCounts),
+        ['#fbbf24','#34d399','#a78bfa','#818cf8','#64748b']);
+
+    /* Chart 2: Mission request status */
+    const msCounts = {};
+    allMissions.forEach(m => { const s = m.mission_status||'pending'; msCounts[s]=(msCounts[s]||0)+1; });
+    buildChart('chart-missions', 'doughnut', Object.keys(msCounts), Object.values(msCounts),
+        ['#fbbf24','#818cf8','#22d3ee','#34d399','#94a3b8','#f87171']);
+
+    /* Chart 3: Diagnostics by infection type */
+    const infCounts = {};
+    allDiags.forEach(d => { const t = d.infection_type||'unknown'; infCounts[t]=(infCounts[t]||0)+1; });
+    buildChart('chart-diags', 'doughnut', Object.keys(infCounts), Object.values(infCounts),
+        ['#fb923c','#f87171','#a78bfa','#34d399','#facc15','#64748b']);
+}
+
+function buildChart(id, type, labels, data, colors) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    if (CHARTS[id]) CHARTS[id].destroy();
+    CHARTS[id] = new Chart(ctx, {
+        type,
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderColor: 'rgba(11,17,32,0.8)',
+                borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color:'#94a3b8', font:{ size:9, weight:'bold' }, padding:10 }
+                }
+            }
+        }
+    });
+}
+
+/* ══════════════════════════════════════
+   EXPORT FULL PDF
+══════════════════════════════════════ */
+function exportFullPDF() {
+    const date  = new Date().toLocaleString('en-GB');
+    const container = document.createElement('div');
+    container.style.cssText = 'padding:40px;font-family:Inter,sans-serif;color:#0f172a;direction:ltr;background:#fff;';
+
+    const msStats = {
+        pending:    allMissions.filter(m=>m.mission_status==='pending').length,
+        confirmed:  allMissions.filter(m=>m.mission_status==='confirmed').length,
+        in_progress:allMissions.filter(m=>m.mission_status==='in_progress').length,
+        completed:  allMissions.filter(m=>m.mission_status==='completed').length,
+        cancelled:  allMissions.filter(m=>m.mission_status==='cancelled').length,
+    };
+
+    container.innerHTML = `
+        <div style="text-align:center;border-bottom:3px solid #06B6D4;padding-bottom:16px;margin-bottom:28px;">
+            <h1 style="margin:0;font-size:26px;font-weight:900;color:#0f172a;">SKYLINE | ADMIN SERVICE REPORT</h1>
+            <p style="color:#64748b;font-size:12px;margin-top:6px;">Generated: ${date}</p>
+        </div>
+
+        <h2 style="font-size:16px;font-weight:900;margin-bottom:12px;color:#06B6D4;">PLATFORM OVERVIEW</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:28px;">
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700;width:40%">Total Users</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allUsers.length}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700">Agriculture Users</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allUsers.filter(u=>u.role==='agriculture').length}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700">Admins</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allUsers.filter(u=>u.role==='admin').length}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700">Total Mission Requests</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allMissions.length}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700">Total Diagnostics</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allDiags.length}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700">Total Orders</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${allOrders.length}</td></tr>
+        </table>
+
+        <h2 style="font-size:16px;font-weight:900;margin-bottom:12px;color:#06B6D4;">MISSION REQUEST BREAKDOWN</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:28px;">
+            ${Object.entries(msStats).map(([k,v])=>`
+            <tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-weight:700;text-transform:capitalize">${k.replace('_',' ')}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0">${v}</td></tr>`).join('')}
+        </table>
+
+        <h2 style="font-size:16px;font-weight:900;margin-bottom:12px;color:#06B6D4;">ALL USERS (${allUsers.length})</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:28px;">
+            <thead><tr style="background:#f1f5f9;">
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Name</th>
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Email</th>
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Role</th>
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Wilaya</th>
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Missions</th>
+                <th style="padding:8px;text-align:left;border-bottom:1px solid #e2e8f0">Diagnostics</th>
+            </tr></thead>
+            <tbody>${allUsers.map(u=>`
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:7px">${u.full_name||'—'}</td>
+                    <td style="padding:7px">${u.email||'—'}</td>
+                    <td style="padding:7px">${u.role||'—'}</td>
+                    <td style="padding:7px">${u.wilaya||'—'}</td>
+                    <td style="padding:7px">${allMissions.filter(m=>m.profile_id===u.id).length}</td>
+                    <td style="padding:7px">${allDiags.filter(d=>d.profile_id===u.id).length}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+
+        <p style="margin-top:40px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:14px;">
+            Auto-generated by Skyline Admin Analytics — ${new Date().getFullYear()}
+        </p>`;
+
+    html2pdf().set({
+        margin: 0.5,
+        filename: `Skyline_Admin_Report_${Date.now()}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }).from(container).save();
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([
+        loadComponent?.('sidebar-container', '/components/sidebar.html'),
+        loadComponent?.('topbar-container',  '/components/topbar.html'),
+    ]).catch(() => {});
+
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (typeof applyLanguage  === 'function') applyLanguage(lang);
+    if (typeof updatePageText === 'function') updatePageText(lang);
+
+    lucide.createIcons();
+    await loadAll();
+
+    /* Real-time on profiles + mission_requests + diagnostics */
+    ['profiles','mission_requests','diagnostics','orders'].forEach(table => {
+        _sb.channel('report-' + table)
+            .on('postgres_changes', { event:'*', schema:'public', table }, () => loadAll())
+            .subscribe();
+    });
+});
+</script>
+</body>
+</html>

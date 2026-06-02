@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Diagnosis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Tajawal:wght@300;400;700" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .drop-zone {
+            border: 2px dashed rgba(6,182,212,0.25); border-radius: 1.5rem;
+            transition: all .3s; position: relative; cursor: pointer;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #06b6d4; background: rgba(6,182,212,0.05);
+            box-shadow: 0 0 30px rgba(6,182,212,0.08) inset;
+        }
+        .drop-zone input[type="file"] {
+            position: absolute; inset: 0; opacity: 0;
+            cursor: pointer; width: 100%; height: 100%;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        .conf-fill {
+            height: 100%; border-radius: 9999px;
+            background: linear-gradient(90deg,#0891b2,#06b6d4);
+            transition: width 1.2s ease;
+            box-shadow: 0 0 10px rgba(6,182,212,0.5);
+        }
+        @keyframes slideUp {
+            from{opacity:0;transform:translateY(16px)}
+            to{opacity:1;transform:translateY(0)}
+        }
+        .animate-slide-up { animation: slideUp .4s ease forwards; }
+        .spinner {
+            display:inline-block; width:18px; height:18px;
+            border:2px solid rgba(255,255,255,0.25);
+            border-top-color:#fff; border-radius:50%;
+            animation:spin .7s linear infinite;
+        }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .gradcam-panel {
+            border-radius:1rem; overflow:hidden;
+            border:1px solid rgba(255,255,255,0.06); background:#0f172a;
+        }
+        .gradcam-panel img { width:100%; height:160px; object-fit:cover; display:block; }
+        .gradcam-label {
+            font-size:10px; font-weight:700; letter-spacing:.08em;
+            padding:7px 12px; color:#94a3b8; text-transform:uppercase;
+        }
+        .badge-healthy { background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.2); }
+        .badge-disease { background:rgba(239,68,68,0.12);  color:#f87171; border:1px solid rgba(239,68,68,0.2); }
+        .top3-bar {
+            height:5px; border-radius:9999px;
+            background:linear-gradient(90deg,#0891b2,#06b6d4);
+            transition:width 1s ease;
+        }
+        .ar-text { direction:rtl; font-family:'Tajawal',sans-serif; }
+        .tw-cursor {
+            display:inline-block; width:2px; height:1em;
+            background:#06b6d4; vertical-align:text-bottom;
+            animation:blink .8s infinite; margin-left:2px;
+        }
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] transition-all duration-300 antialiased overflow-hidden">
+<div class="flex h-screen overflow-hidden">
+
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col transition-all duration-300 z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-6">
+
+            <!-- Title -->
+            <div class="animate-fade-in flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-black text-white">
+                        <i data-lucide="scan-line" class="inline mr-2 text-cyan-400 w-8 h-8"></i>
+                        <span data-i18n="diagnosis">Plant Disease Diagnosis</span>
+                    </h1>
+                    <p class="text-slate-500 mt-1">Skyline LAND CNN · EfficientNetB4 · 47 classes · 98.43% accuracy</p>
+                </div>
+                <button id="clearBtn" onclick="clearFile()"
+                    class="hidden px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition-all flex items-center gap-2 border border-slate-700">
+                    <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+                    <span data-i18n="new_analysis">New Analysis</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                <!-- LEFT -->
+                <div class="xl:col-span-2 space-y-6">
+
+                    <!-- Upload card -->
+                    <div id="uploadCard" class="bg-[#111827]/60 rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl">
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">CNN Image Diagnosis</p>
+
+                        <div class="drop-zone p-16 text-center" id="dropZone">
+                            <input type="file" id="fileInput" accept="image/*">
+                            <div class="w-16 h-16 bg-cyan-500/10 border border-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-5 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                                <i data-lucide="upload-cloud" class="w-7 h-7 text-cyan-400"></i>
+                            </div>
+                            <p class="text-lg font-bold text-white mb-2" data-i18n="drop_title">Drop your plant image here</p>
+                            <p class="text-sm text-slate-500">or <span class="text-cyan-400 font-semibold cursor-pointer" data-i18n="browse">browse</span> to upload</p>
+                            <div class="flex gap-2 justify-center mt-5 flex-wrap">
+                                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-500 tracking-widest">JPG</span>
+                                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-500 tracking-widest">PNG</span>
+                                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-500 tracking-widest">WEBP</span>
+                                <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-500 tracking-widest">BMP</span>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div id="previewStrip" class="hidden mt-5 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+                            <img id="previewThumb" src="" alt="preview" class="w-16 h-16 object-cover rounded-xl border border-slate-700">
+                            <div class="flex-1 min-w-0">
+                                <p id="previewName" class="text-sm font-bold text-white truncate">—</p>
+                                <p id="previewSize" class="text-xs text-slate-500 mt-1">—</p>
+                            </div>
+                        </div>
+
+                        <!-- Analyze btn -->
+                        <button id="submitBtn" onclick="runDiagnosis()" disabled
+                            class="mt-5 w-full py-4 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_36px_rgba(6,182,212,0.5)] hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none">
+                            <i data-lucide="cpu" class="w-5 h-5"></i>
+                            <span data-i18n="analyze_btn">Analyze with CNN</span>
+                        </button>
+                    </div>
+
+                    <!-- Result card -->
+                    <div id="resultCard" class="hidden bg-[#111827]/60 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl animate-slide-up">
+
+                        <!-- Header -->
+                        <div class="flex items-center gap-4 px-8 py-5 border-b border-slate-800 bg-gradient-to-r from-cyan-500/10 to-transparent">
+                            <i data-lucide="activity" class="text-cyan-400 w-5 h-5"></i>
+                            <h3 class="font-black text-white text-sm uppercase tracking-widest" data-i18n="diagnosis_result">Diagnosis Result</h3>
+                            <span id="healthBadge" class="ml-auto px-3 py-1 rounded-full text-[10px] font-black tracking-widest"></span>
+                        </div>
+
+                        <!-- Disease block -->
+                        <div class="px-8 py-6 border-b border-slate-800 bg-slate-900/30">
+                            <div class="flex items-start justify-between gap-6 flex-wrap">
+                                <div class="flex-1">
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Detected Disease</p>
+                                    <h2 id="diseaseName" class="text-2xl font-black text-white">—</h2>
+                                    <p id="diseaseNameAr" class="text-base text-cyan-300 mt-1 ar-text"></p>
+                                    <p id="infectionType" class="text-xs text-slate-500 mt-2"></p>
+                                </div>
+                                <!-- Confidence circle -->
+                                <div class="text-center shrink-0">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                                            <circle cx="40" cy="40" r="32" fill="none" stroke="#1e293b" stroke-width="8"/>
+                                            <circle id="confCircle" cx="40" cy="40" r="32" fill="none"
+                                                stroke="#06b6d4" stroke-width="8"
+                                                stroke-dasharray="201" stroke-dashoffset="201"
+                                                stroke-linecap="round"
+                                                style="transition:stroke-dashoffset 1.2s ease"/>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span id="confNum" class="text-lg font-black text-white">0%</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-widest">Confidence</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                    <div id="confBar" class="conf-fill" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grad-CAM -->
+                        <div id="gradcamSection" class="hidden px-8 py-6 border-b border-slate-800">
+                            <p class="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <i data-lucide="scan-eye" class="w-4 h-4"></i>
+                                Grad-CAM — Infection Location Map
+                            </p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="gradcam-panel">
+                                    <img id="gcOriginal" src="" alt="Original">
+                                    <p class="gradcam-label">Original</p>
+                                </div>
+                                <div class="gradcam-panel">
+                                    <img id="gcHeatmap" src="" alt="Heatmap">
+                                    <p class="gradcam-label text-red-400">Heatmap</p>
+                                </div>
+                                <div class="gradcam-panel">
+                                    <img id="gcOverlay" src="" alt="Overlay">
+                                    <p class="gradcam-label text-orange-400">Overlay (Red = Infected)</p>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-3">Red/warm regions show where the model detected infection on the leaf.</p>
+                        </div>
+
+                        <!-- Healthy message -->
+                        <div id="healthySection" class="hidden px-8 py-6 border-b border-slate-800">
+                            <div class="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+                                <i data-lucide="leaf" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+                                <p class="text-sm text-emerald-300">Plant appears healthy — no disease detected. No Grad-CAM needed.</p>
+                            </div>
+                        </div>
+
+                        <!-- Top-3 -->
+                        <div class="px-8 py-5 border-b border-slate-800">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Top 3 Predictions</p>
+                            <div id="top3Container" class="space-y-3"></div>
+                        </div>
+
+                        <!-- Advice + Treatment -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800">
+                            <div class="px-8 py-6">
+                                <p class="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <i data-lucide="lightbulb" class="w-3 h-3"></i> Expert Advice
+                                </p>
+                                <p id="adviceEn" class="text-sm text-slate-300 leading-relaxed">—</p>
+                                <p id="adviceAr" class="text-sm text-cyan-200 leading-relaxed mt-3 ar-text hidden">—</p>
+                            </div>
+                            <div class="px-8 py-6">
+                                <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <i data-lucide="flask-conical" class="w-3 h-3"></i> Recommended Treatment
+                                </p>
+                                <p id="treatmentEn" class="text-sm text-slate-300 leading-relaxed">—</p>
+                                <p id="treatmentAr" class="text-sm text-emerald-200 leading-relaxed mt-3 ar-text hidden">—</p>
+                            </div>
+                        </div>
+
+                        <!-- Meta footer -->
+                        <div class="px-8 py-4 bg-slate-900/40 flex flex-wrap gap-6 text-xs border-t border-slate-800">
+                            <div><span class="text-slate-500" data-i18n="file_name">File</span> <span id="metaName" class="text-white font-bold ml-1">—</span></div>
+                            <div><span class="text-slate-500" data-i18n="file_size">Size</span> <span id="metaSize" class="text-white font-bold ml-1">—</span></div>
+                            <div><span class="text-slate-500" data-i18n="analyzed_at">Analyzed at</span> <span id="metaTime" class="text-white font-bold ml-1">—</span></div>
+                            <div id="savedBadge" class="hidden ml-auto">
+                                <span class="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold">✓ Saved to Supabase</span>
+                            </div>
+                        </div>
+                    </div><!-- /resultCard -->
+                </div>
+
+                <!-- RIGHT -->
+                <div class="space-y-6">
+
+                    <!-- Model info -->
+                    <div class="bg-gradient-to-br from-slate-900 to-[#111827] rounded-[2rem] p-6 border border-slate-800">
+                        <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-[10px] font-bold rounded-full border border-cyan-500/20 uppercase tracking-widest" data-i18n="how_it_works">Model Info</span>
+                        <div class="mt-5 space-y-3">
+                            <div class="flex items-start gap-4 pt-2">
+                                <div class="w-9 h-9 bg-cyan-500/10 rounded-xl flex items-center justify-center shrink-0 border border-cyan-500/20">
+                                    <i data-lucide="upload" class="w-4 h-4 text-cyan-400"></i>
+                                </div>
+                                <div><p class="text-sm font-bold text-white" data-i18n="step_upload">Upload Image</p><p class="text-xs text-slate-500 mt-0.5" data-i18n="step_upload_desc">Drag & drop or browse a plant photo.</p></div>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-9 h-9 bg-cyan-500/10 rounded-xl flex items-center justify-center shrink-0 border border-cyan-500/20">
+                                    <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+                                </div>
+                                <div><p class="text-sm font-bold text-white" data-i18n="step_analyze">CNN Analysis</p><p class="text-xs text-slate-500 mt-0.5">EfficientNetB4 classifies 47 disease classes.</p></div>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-9 h-9 bg-cyan-500/10 rounded-xl flex items-center justify-center shrink-0 border border-cyan-500/20">
+                                    <i data-lucide="clipboard-list" class="w-4 h-4 text-cyan-400"></i>
+                                </div>
+                                <div><p class="text-sm font-bold text-white" data-i18n="step_result">Get Results</p><p class="text-xs text-slate-500 mt-0.5" data-i18n="step_result_desc">Disease name, Grad-CAM, advice — saved to Supabase.</p></div>
+                            </div>
+                        </div>
+                        <div class="mt-5 pt-5 border-t border-slate-800 space-y-2">
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Architecture</span><span class="text-white font-bold">EfficientNetB4</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Accuracy</span><span class="text-cyan-400 font-bold">98.43%</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">AUC Macro</span><span class="text-cyan-400 font-bold">0.9998</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">F1 Macro</span><span class="text-cyan-400 font-bold">0.9449</span></div>
+                            <div class="flex justify-between text-xs"><span class="text-slate-500">Classes</span><span class="text-white font-bold">47</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="bg-[#111827]/40 rounded-[2rem] p-6 border border-slate-800/50">
+                        <h4 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2" data-i18n="tips_title">
+                            <i data-lucide="lightbulb" class="w-4 h-4 text-yellow-400"></i> Tips for best results
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-slate-900/50 rounded-xl border border-white/5 flex items-center gap-3">
+                                <div class="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center text-yellow-400 shrink-0"><i data-lucide="sun" class="w-4 h-4"></i></div>
+                                <p class="text-xs text-slate-400" data-i18n="tip_1">Use well-lit, high-resolution images</p>
+                            </div>
+                            <div class="p-3 bg-slate-900/50 rounded-xl border border-white/5 flex items-center gap-3">
+                                <div class="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center text-cyan-400 shrink-0"><i data-lucide="focus" class="w-4 h-4"></i></div>
+                                <p class="text-xs text-slate-400" data-i18n="tip_2">Keep the leaf centered and in focus</p>
+                            </div>
+                            <div class="p-3 bg-slate-900/50 rounded-xl border border-white/5 flex items-center gap-3">
+                                <div class="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-400 shrink-0"><i data-lucide="image" class="w-4 h-4"></i></div>
+                                <p class="text-xs text-slate-400" data-i18n="tip_3">Avoid blurry or heavily compressed photos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent from Supabase -->
+                    <div class="bg-[#111827]/40 rounded-[2rem] p-6 border border-slate-800/50">
+                        <h4 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4 text-cyan-400"></i> Recent Diagnoses
+                        </h4>
+                        <div id="recentList" class="space-y-2">
+                            <p class="text-xs text-slate-500">Loading...</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/language.js"></script>
+<script src="/js/core/main.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ✅ التغيير الوحيد: تعديل API_URL والمفتاح
+// ══════════════════════════════════════════════════════════════
+const API_URL      = "http://localhost:8000";  // ← تم التغيير من 8000 إلى 5000
+const SUPABASE_URL = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';  // ← تم التغيير إلى anon key
+const TABLE_NAME   = 'diagnostics';
+
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentFile = null;
+let currentUser = null;
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([
+        loadComponent('sidebar-container', '/components/sidebar.html'),
+        loadComponent('topbar-container',  '/components/topbar.html'),
+    ]);
+    highlightActiveLink();
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (window.updatePageText) updatePageText(lang);
+    lucide.createIcons();
+
+    await refreshCurrentUser();
+
+    _sb.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN') {
+            currentUser = session?.user ?? null;
+            loadRecentDiagnoses();
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            document.getElementById('recentList').innerHTML =
+                '<p class="text-xs text-slate-500">🔒 Please login to see your history</p>';
+        } else if (event === 'TOKEN_REFRESHED') {
+            currentUser = session?.user ?? null;
+        }
+    });
+
+    loadRecentDiagnoses();
+});
+
+// ── جلب المستخدم الحالي ───────────────────────────────────────
+async function refreshCurrentUser() {
+    try {
+        const { data: { session } } = await _sb.auth.getSession();
+        if (session?.user) { currentUser = session.user; return true; }
+
+        const { data: { user } } = await _sb.auth.getUser();
+        if (user) { currentUser = user; return true; }
+
+        currentUser = null;
+        return false;
+    } catch (err) {
+        console.error('Auth error:', err);
+        currentUser = null;
+        return false;
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RECENT DIAGNOSES — يرى المستخدم بياناته فقط عبر RLS
+// ══════════════════════════════════════════════════════════════
+async function loadRecentDiagnoses() {
+    const container = document.getElementById('recentList');
+
+    if (!currentUser) {
+        container.innerHTML = '<p class="text-xs text-slate-500">🔒 Please login to see your history</p>';
+        return;
+    }
+
+    try {
+        const { data, error } = await _sb
+            .from(TABLE_NAME)
+            .select('id, class_key, disease_name_en, is_healthy, confidence, analyzed_at')
+            .eq('profile_id', currentUser.id)
+            .order('analyzed_at', { ascending: false })
+            .limit(5);
+
+        if (error) {
+            console.error('History error:', error.message);
+            container.innerHTML = '<p class="text-xs text-slate-500">Error loading history</p>';
+            return;
+        }
+
+        if (!data?.length) {
+            container.innerHTML = '<p class="text-xs text-slate-500">No diagnoses yet. Upload an image to start!</p>';
+            return;
+        }
+
+        container.innerHTML = data.map(row => {
+            const isH  = row.is_healthy;
+            const dot  = isH ? 'bg-emerald-400' : 'bg-red-400';
+            const clr  = isH ? 'text-emerald-400' : 'text-red-400';
+            const name = row.disease_name_en || row.class_key?.replace(/_/g, ' ') || '—';
+            const conf = row.confidence ? Math.round(row.confidence) + '%' : '';
+            const time = row.analyzed_at ? new Date(row.analyzed_at).toLocaleDateString() : '';
+            return `
+            <div class="flex items-center gap-2 p-2 bg-slate-900/40 rounded-xl border border-white/5">
+                <div class="w-2 h-2 rounded-full ${dot} shrink-0"></div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold ${clr} truncate">${esc(name)}</p>
+                    <p class="text-[10px] text-slate-500">${time}${conf ? ' · ' + conf : ''}</p>
+                </div>
+            </div>`;
+        }).join('');
+
+    } catch (e) {
+        console.error('Recent error:', e);
+        container.innerHTML = '<p class="text-xs text-slate-500">Error loading history</p>';
+    }
+}
+
+// ── helper ────────────────────────────────────────────────────
+function esc(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+function formatSize(b) {
+    if (b < 1024)    return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(2) + ' MB';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════════════════════════════
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f?.type.startsWith('image/')) setFile(f);
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+function setFile(file) {
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        document.getElementById('previewThumb').src = ev.target.result;
+        document.getElementById('previewName').textContent = file.name;
+        document.getElementById('previewSize').textContent = formatSize(file.size);
+        document.getElementById('previewStrip').classList.remove('hidden');
+        document.getElementById('previewStrip').classList.add('flex');
+        document.getElementById('submitBtn').disabled = false;
+        lucide.createIcons();
+    };
+    reader.readAsDataURL(file);
+    document.getElementById('resultCard').classList.add('hidden');
+}
+
+function clearFile() {
+    currentFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('previewStrip').classList.add('hidden');
+    document.getElementById('previewStrip').classList.remove('flex');
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('resultCard').classList.add('hidden');
+    document.getElementById('clearBtn').classList.add('hidden');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RUN DIAGNOSIS
+// ══════════════════════════════════════════════════════════════
+async function runDiagnosis() {
+    if (!currentFile) return;
+
+    // تحقق من تسجيل الدخول
+    if (!currentUser) {
+        await refreshCurrentUser();
+        if (!currentUser) {
+            alert(localStorage.getItem('skyline_lang') === 'ar'
+                ? '❌ يرجى تسجيل الدخول أولاً'
+                : '❌ Please login first');
+            window.location.href = '/login.html';
+            return;
+        }
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span><span>Running CNN...</span>';
+
+    document.getElementById('metaName').textContent = currentFile.name;
+    document.getElementById('metaSize').textContent = formatSize(currentFile.size);
+    document.getElementById('metaTime').textContent = new Date().toLocaleTimeString();
+    document.getElementById('savedBadge').classList.add('hidden');
+
+    const resultCard = document.getElementById('resultCard');
+    resultCard.classList.remove('hidden');
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // reset
+    document.getElementById('gradcamSection').classList.add('hidden');
+    document.getElementById('healthySection').classList.add('hidden');
+    document.getElementById('top3Container').innerHTML = '';
+    document.getElementById('adviceAr').classList.add('hidden');
+    document.getElementById('treatmentAr').classList.add('hidden');
+
+    try {
+        const formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('user_id', currentUser.id); // ← يُرسَل للـ Python ليحفظه كـ profile_id
+
+        const res = await fetch(`${API_URL}/predict`, { method: 'POST', body: formData });
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+
+        const data = await res.json();
+        showResults(data);
+        setTimeout(loadRecentDiagnoses, 1500);
+
+    } catch (err) {
+        console.error('API Error:', err);
+        document.getElementById('diseaseName').textContent = '⚠ API Error';
+        document.getElementById('adviceEn').textContent =
+            'Cannot connect to CNN server.\nMake sure: uvicorn main:app --port 5000 is running.\n\n' + err.message;
+        document.getElementById('treatmentEn').textContent = 'Check your connection and try again.';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="cpu" class="w-5 h-5"></i><span>Analyze with CNN</span>';
+    lucide.createIcons();
+    document.getElementById('clearBtn').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SHOW RESULTS  ✅ متوافق مع الـ API الجديد
+// ══════════════════════════════════════════════════════════════
+function showResults(data) {
+    const isHealthy = data.is_healthy;
+
+    // Badge
+    const badge = document.getElementById('healthBadge');
+    badge.textContent = isHealthy ? '✓ HEALTHY' : '⚠ DISEASE DETECTED';
+    badge.className = `ml-auto px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
+        isHealthy ? 'badge-healthy' : 'badge-disease'}`;
+
+    // اسم المرض
+    document.getElementById('diseaseName').textContent  = data.disease_name_en || data.class_key || '—';
+    document.getElementById('diseaseNameAr').textContent = data.disease_name_ar || '';
+    if (data.infection_type) {
+        document.getElementById('infectionType').innerHTML =
+            `<i data-lucide="tag" class="w-3 h-3 inline mr-1"></i>${esc(data.infection_type)}`;
+    }
+
+    // Confidence
+    const conf = data.confidence || 0;
+    document.getElementById('confNum').textContent = Math.round(conf) + '%';
+    setTimeout(() => {
+        document.getElementById('confCircle').style.strokeDashoffset = 201 - (conf / 100) * 201;
+        document.getElementById('confBar').style.width = conf + '%';
+    }, 100);
+
+    // ✅ Grad-CAM — يستخدم Base64 من الـ API مباشرة
+    if (!isHealthy && data.original_b64 && data.heatmap_b64 && data.overlay_b64) {
+        document.getElementById('gradcamSection').classList.remove('hidden');
+        document.getElementById('gcOriginal').src = 'data:image/png;base64,' + data.original_b64;
+        document.getElementById('gcHeatmap').src  = 'data:image/png;base64,' + data.heatmap_b64;
+        document.getElementById('gcOverlay').src  = 'data:image/png;base64,' + data.overlay_b64;
+    } else if (isHealthy) {
+        document.getElementById('healthySection').classList.remove('hidden');
+    }
+
+    // Top-3
+    const top3Container = document.getElementById('top3Container');
+    top3Container.innerHTML = '';
+    (data.top3 || []).forEach((item, i) => {
+        const first = i === 0;
+        const div   = document.createElement('div');
+        div.className = 'flex items-center gap-3';
+        div.innerHTML = `
+            <span class="text-[10px] font-black ${first ? 'text-cyan-400' : 'text-slate-600'} w-4 shrink-0">#${i + 1}</span>
+            <div class="flex-1">
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="${first ? 'text-white font-bold' : 'text-slate-400'} truncate max-w-[180px]">
+                        ${esc(item.name_en || item.class)}
+                    </span>
+                    <span class="${first ? 'text-cyan-400 font-bold' : 'text-slate-500'} ml-2 shrink-0">${item.conf}%</span>
+                </div>
+                <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div class="top3-bar" style="width:0%" data-w="${item.conf}%"></div>
+                </div>
+            </div>`;
+        top3Container.appendChild(div);
+    });
+    setTimeout(() => {
+        document.querySelectorAll('.top3-bar').forEach(b => b.style.width = b.dataset.w || '0%');
+    }, 150);
+
+    // Advice & Treatment
+    document.getElementById('adviceEn').textContent =
+        data.advice_en || (isHealthy ? 'Plant is healthy — no action needed.' : 'No advice available.');
+    document.getElementById('treatmentEn').textContent =
+        data.treatment_en || (isHealthy ? 'No treatment required.' : 'Consult an agricultural expert.');
+
+    if (data.advice_ar) {
+        document.getElementById('adviceAr').textContent = data.advice_ar;
+        document.getElementById('adviceAr').classList.remove('hidden');
+    }
+    if (data.treatment_ar) {
+        document.getElementById('treatmentAr').textContent = data.treatment_ar;
+        document.getElementById('treatmentAr').classList.remove('hidden');
+    }
+
+    // Saved badge
+    if (data.saved_to_db) {
+        document.getElementById('savedBadge').classList.remove('hidden');
+    }
+
+    lucide.createIcons();
+}
+</script>
+</body>
+</html>

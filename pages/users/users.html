@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Users Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Tajawal:wght@300;400;700" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal { animation: modal-in 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .modal-backdrop { backdrop-filter: blur(12px); background-color: rgba(7,11,20,0.85); }
+        select option { background-color: #111827 !important; color: #fff !important; padding: 15px !important; }
+        .btn-glow-cyan:hover { box-shadow: 0 0 20px rgba(6,182,212,0.4); transform: translateY(-2px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+        /* Toast */
+        #toast { position:fixed; bottom:28px; right:28px; z-index:9999; display:none; }
+        #toast.show { display:block; animation: tIn .3s ease; }
+        @keyframes tIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] transition-all duration-300 antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col transition-all duration-300 z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+
+            <!-- Title -->
+            <div class="animate-fade-in">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-black tracking-tight text-white">
+                            <i data-lucide="users" class="inline mr-3 text-cyan-400 w-8 h-8"></i>
+                            Users Management
+                        </h1>
+                        <p class="text-slate-500 mt-1 max-w-xl">Manage all platform users, roles and permissions.</p>
+                    </div>
+                    <button onclick="toggleUserModal(true)" class="flex items-center gap-2 px-5 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 font-bold hover:bg-cyan-500/20 transition-all">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        Add New User
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="animate-fade-in" style="animation-delay:0.1s">
+                <div class="flex flex-wrap md:flex-nowrap gap-4 w-full">
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                                <i data-lucide="users" class="text-cyan-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Users</h3>
+                        <p id="stat-total" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                <i data-lucide="leaf" class="text-emerald-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Agriculture</h3>
+                        <p id="stat-agri" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                                <i data-lucide="shield-check" class="text-amber-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Admins</h3>
+                        <p id="stat-admin" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-red-500/10 rounded-xl border border-red-500/20">
+                                <i data-lucide="user-x" class="text-red-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Suspended</h3>
+                        <p id="stat-suspended" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 overflow-hidden animate-fade-in" style="animation-delay:0.2s">
+                <div class="p-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/50">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">System Users</h2>
+                        <p class="text-[11px] text-slate-500 mt-1">All registered profiles from the database</p>
+                    </div>
+                    <div class="flex gap-3 items-center flex-wrap">
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <input id="searchInput" type="text" placeholder="Search name or email..."
+                                   class="w-full pl-10 pr-4 py-2.5 bg-[#0B1120] border border-slate-800 rounded-xl text-sm text-slate-300 outline-none focus:border-cyan-500/50">
+                        </div>
+                        <select id="roleFilter" class="px-4 py-2.5 bg-slate-800/50 rounded-lg text-slate-400 text-sm border border-slate-700 outline-none focus:border-cyan-500/50 cursor-pointer">
+                            <option value="">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="agriculture">Agriculture</option>
+                            <option value="security">Security</option>
+                            <option value="line">Line</option>
+                        </select>
+                        <button onclick="toggleUserModal(true)" class="px-4 py-2.5 bg-cyan-500 text-[#0B1120] rounded-xl text-sm font-bold hover:bg-cyan-400 transition-all">
+                            Add User
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-[11px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800/80">
+                            <tr>
+                                <th class="px-6 py-4">User</th>
+                                <th class="px-6 py-4">Email</th>
+                                <th class="px-6 py-4">Role</th>
+                                <th class="px-6 py-4">Wilaya</th>
+                                <th class="px-6 py-4">Phone</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                                <th class="px-6 py-4 text-center">Joined</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-800/40">
+                            <tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">
+                                <i data-lucide="loader-2" class="w-5 h-5 animate-spin inline text-cyan-400"></i>
+                                <span class="ml-2">Loading users...</span>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-5 border-t border-slate-800/50 flex items-center justify-between flex-wrap gap-2">
+                    <p id="pagination-info" class="text-xs text-slate-500">Loading...</p>
+                    <div class="flex gap-2">
+                        <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Previous</button>
+                        <span id="page-indicator" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-bold">1</span>
+                        <button id="btn-next" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Add User Modal -->
+<div id="user-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
+    <div class="bg-[#111827] border border-white/10 w-full max-w-lg rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] animate-modal relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-500/10 to-transparent pointer-events-none"></div>
+        <div class="relative p-8">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-cyan-500/20 rounded-2xl border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                        <i data-lucide="user-plus" class="text-cyan-400 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white tracking-tight">Add New User</h2>
+                        <p class="text-slate-500 text-[10px] uppercase tracking-[2px] font-bold">Drone Command System</p>
+                    </div>
+                </div>
+                <button onclick="toggleUserModal(false)" class="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-rose-400 transition-all">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Error box -->
+            <div id="modal-error" class="hidden mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+
+            <form id="userForm" class="space-y-5" onsubmit="return false;">
+                <div class="space-y-4">
+                    <input id="f-name" type="text" required placeholder="Full Name"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600">
+                    <input id="f-email" type="email" required placeholder="Email Address"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600">
+                    <input id="f-phone" type="text" placeholder="Phone (optional)"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Role -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Role</label>
+                        <div class="relative">
+                            <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
+                            <select id="f-role" class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl pl-12 pr-10 py-4 text-sm text-slate-300 focus:border-cyan-500 outline-none appearance-none cursor-pointer">
+                                <option value="agriculture">Agriculture</option>
+                                <option value="security">Security</option>
+                                <option value="line">Line</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <!-- Wilaya -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Wilaya</label>
+                        <input id="f-wilaya" type="text" placeholder="e.g. Tlemcen"
+                               class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white focus:border-cyan-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Password -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Password</label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
+                            <input type="password" id="userPassword" placeholder="••••••••"
+                                   class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl pl-12 pr-12 py-4 text-sm text-white focus:border-cyan-500 outline-none transition-all">
+                            <button type="button" onclick="togglePasswordVisibility('userPassword','eyeIcon1')" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-cyan-400 transition-colors">
+                                <i data-lucide="eye" id="eyeIcon1" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Confirm -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Password</label>
+                        <div class="relative">
+                            <i data-lucide="shield-check" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
+                            <input type="password" id="confirmPassword" placeholder="••••••••"
+                                   class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl pl-12 pr-12 py-4 text-sm text-white focus:border-cyan-500 outline-none transition-all">
+                            <button type="button" onclick="togglePasswordVisibility('confirmPassword','eyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-cyan-400 transition-colors">
+                                <i data-lucide="eye" id="eyeIcon2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 flex items-center gap-4">
+                    <button type="button" onclick="toggleUserModal(false)"
+                            class="flex-1 px-4 py-4 rounded-2xl text-slate-500 font-bold text-xs uppercase tracking-widest hover:bg-white/5 hover:text-slate-300 transition-all border border-transparent hover:border-slate-800">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveBtn" onclick="saveUser()"
+                            class="flex-[1.5] px-4 py-4 bg-gradient-to-r from-cyan-500 via-cyan-600 to-blue-600 text-[#0B1120] rounded-2xl font-black text-xs uppercase tracking-[2px] btn-glow-cyan transition-all active:scale-95 shadow-[0_10px_20px_rgba(6,182,212,0.3)]">
+                        Save User Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border"></div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/language.js"></script>
+<script src="/js/core/main.js"></script>
+
+<script>
+/* ── Supabase ── */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ── Pagination ── */
+const PAGE_SIZE = 20;
+let currentPage = 0;
+let allUsers    = [];
+
+/* ── Role badge ── */
+const ROLE_STYLES = {
+    admin:       'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    agriculture: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    security:    'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    line:        'bg-blue-500/10 text-blue-400 border-blue-500/20',
+};
+function roleBadge(role) {
+    const cls = ROLE_STYLES[role] || 'bg-slate-500/10 text-slate-400 border-slate-700';
+    return `<span class="px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase ${cls}">${role || '—'}</span>`;
+}
+
+/* ── Status badge ── */
+function statusBadge(status) {
+    const active = !status || status === 'active';
+    return active
+        ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>ACTIVE
+           </span>`
+        : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black border bg-red-500/10 text-red-400 border-red-500/20">
+               <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>SUSPENDED
+           </span>`;
+}
+
+/* ── Avatar initials ── */
+function avatar(name) {
+    const initials = (name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const colors   = ['bg-cyan-500','bg-emerald-500','bg-amber-500','bg-purple-500','bg-blue-500','bg-rose-500'];
+    const color    = colors[initials.charCodeAt(0) % colors.length];
+    return `<div class="w-9 h-9 rounded-full ${color} flex items-center justify-center text-[11px] font-black text-[#0B1120] flex-shrink-0">${initials}</div>`;
+}
+
+/* ── Toast ── */
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type === 'success'
+        ? 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 show'
+        : 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-red-500/10 text-red-400 border-red-500/30 show';
+    setTimeout(() => t.className = t.className.replace(' show',''), 3200);
+}
+
+/* ══════════════════════════
+   LOAD USERS from Supabase
+══════════════════════════ */
+async function loadUsers() {
+    try {
+        const { data, error, count } = await _sb
+            .from('profiles')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allUsers = data || [];
+
+        /* Stats */
+        document.getElementById('stat-total').textContent     = allUsers.length;
+        document.getElementById('stat-agri').textContent      = allUsers.filter(u => u.role === 'agriculture').length;
+        document.getElementById('stat-admin').textContent     = allUsers.filter(u => u.role === 'admin').length;
+        document.getElementById('stat-suspended').textContent = allUsers.filter(u => u.status === 'suspended').length;
+
+        renderTable();
+
+    } catch (err) {
+        document.getElementById('users-table-body').innerHTML =
+            `<tr><td colspan="8" class="px-6 py-8 text-center text-red-400">
+                <i data-lucide="alert-circle" class="w-5 h-5 inline mr-2"></i>${err.message}
+            </td></tr>`;
+        lucide.createIcons();
+    }
+}
+
+/* ── Render filtered + paged ── */
+function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const role   = document.getElementById('roleFilter').value;
+
+    const filtered = allUsers.filter(u => {
+        const matchSearch = !search ||
+            (u.full_name || '').toLowerCase().includes(search) ||
+            (u.email     || '').toLowerCase().includes(search);
+        const matchRole = !role || u.role === role;
+        return matchSearch && matchRole;
+    });
+
+    const total    = filtered.length;
+    const start    = currentPage * PAGE_SIZE;
+    const pageData = filtered.slice(start, start + PAGE_SIZE);
+    const tbody    = document.getElementById('users-table-body');
+
+    if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-10 text-center text-slate-500">No users found.</td></tr>`;
+    } else {
+        tbody.innerHTML = pageData.map(u => {
+            const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+            return `<tr class="hover:bg-white/[0.02] transition-colors">
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        ${avatar(u.full_name)}
+                        <div>
+                            <p class="font-semibold text-white text-sm">${u.full_name || '—'}</p>
+                            <p class="text-[10px] text-slate-500 font-mono">${u.id?.slice(0,8)}...</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-slate-400 text-xs">${u.email || '—'}</td>
+                <td class="px-6 py-4">${roleBadge(u.role)}</td>
+                <td class="px-6 py-4 text-slate-400 text-xs">${u.wilaya || '—'}</td>
+                <td class="px-6 py-4 text-slate-400 text-xs">${u.phone || '—'}</td>
+                <td class="px-6 py-4 text-center">${statusBadge(u.status)}</td>
+                <td class="px-6 py-4 text-center text-slate-500 text-xs">${joined}</td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        <button onclick="toggleSuspend('${u.id}','${u.status}')"
+                            title="${u.status === 'suspended' ? 'Activate' : 'Suspend'}"
+                            class="p-2 rounded-xl text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all">
+                            <i data-lucide="${u.status === 'suspended' ? 'user-check' : 'user-x'}" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteUser('${u.id}','${u.full_name || u.email}')"
+                            class="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    const from = total === 0 ? 0 : start + 1;
+    const to   = Math.min(start + PAGE_SIZE, total);
+    document.getElementById('pagination-info').textContent   = `Showing ${from}–${to} of ${total} users`;
+    document.getElementById('page-indicator').textContent    = currentPage + 1;
+    document.getElementById('btn-prev').disabled = currentPage === 0;
+    document.getElementById('btn-next').disabled = to >= total;
+
+    lucide.createIcons();
+}
+
+function changePage(dir) {
+    currentPage = Math.max(0, currentPage + dir);
+    renderTable();
+}
+
+/* ══════════════════════════
+   SAVE NEW USER — Supabase Auth + profiles
+══════════════════════════ */
+async function saveUser() {
+    const name     = document.getElementById('f-name').value.trim();
+    const email    = document.getElementById('f-email').value.trim();
+    const phone    = document.getElementById('f-phone').value.trim();
+    const role     = document.getElementById('f-role').value;
+    const wilaya   = document.getElementById('f-wilaya').value.trim();
+    const pass     = document.getElementById('userPassword').value;
+    const confirm  = document.getElementById('confirmPassword').value;
+    const errBox   = document.getElementById('modal-error');
+    const saveBtn  = document.getElementById('saveBtn');
+
+    errBox.classList.add('hidden');
+
+    /* Validation */
+    if (!name || !email || !pass) {
+        errBox.textContent = '⚠️ Name, Email and Password are required.';
+        errBox.classList.remove('hidden'); return;
+    }
+    if (pass !== confirm) {
+        errBox.textContent = '⚠️ Passwords do not match.';
+        errBox.classList.remove('hidden'); return;
+    }
+    if (pass.length < 6) {
+        errBox.textContent = '⚠️ Password must be at least 6 characters.';
+        errBox.classList.remove('hidden'); return;
+    }
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+        /* 1️⃣ إنشاء الحساب في Supabase Auth */
+        const { data, error } = await _sb.auth.signUp({
+            email,
+            password: pass,
+            options: {
+                data: { full_name: name, role, wilaya }
+            }
+        });
+        if (error) throw error;
+
+        /* 2️⃣ تحديث profiles بالبيانات الكاملة */
+        if (data.user) {
+            const { error: pErr } = await _sb.from('profiles').upsert({
+                id:        data.user.id,
+                email,
+                full_name: name,
+                role,
+                wilaya:    wilaya || null,
+                phone:     phone  || null,
+                status:    'active',
+            }, { onConflict: 'id' });
+            if (pErr) console.warn('Profile upsert:', pErr.message);
+        }
+
+        /* Success */
+        toggleUserModal(false);
+        document.getElementById('userForm').reset();
+        showToast(`✅ User "${name}" added successfully!`);
+        await loadUsers();
+
+    } catch (err) {
+        errBox.textContent = '❌ ' + (err.message || 'Failed to save user');
+        errBox.classList.remove('hidden');
+    } finally {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save User Account';
+    }
+}
+
+/* ── Suspend / Activate ── */
+async function toggleSuspend(id, currentStatus) {
+    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+    const { error } = await _sb.from('profiles').update({ status: newStatus }).eq('id', id);
+    if (error) { showToast('❌ ' + error.message, 'error'); return; }
+    showToast(newStatus === 'suspended' ? '🔒 User suspended.' : '✅ User activated.');
+    await loadUsers();
+}
+
+/* ── Delete user from profiles ── */
+async function deleteUser(id, name) {
+    if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+    const { error } = await _sb.from('profiles').delete().eq('id', id);
+    if (error) { showToast('❌ ' + error.message, 'error'); return; }
+    showToast(`🗑️ User "${name}" deleted.`);
+    await loadUsers();
+}
+
+/* ── Modal ── */
+function toggleUserModal(show) {
+    const modal = document.getElementById('user-modal');
+    if (show) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('modal-error').classList.add('hidden');
+        document.getElementById('userForm').reset();
+        lucide.createIcons();
+    } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon  = document.getElementById(iconId);
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    icon.setAttribute('data-lucide', input.type === 'password' ? 'eye' : 'eye-off');
+    lucide.createIcons();
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await Promise.all([
+            loadComponent?.('sidebar-container', '/components/sidebar.html'),
+            loadComponent?.('topbar-container',  '/components/topbar.html'),
+        ]);
+        if (window.highlightActiveLink) highlightActiveLink();
+    } catch(e) {}
+
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (window.updatePageText) updatePageText(lang);
+
+    document.getElementById('searchInput').addEventListener('input',  () => { currentPage=0; renderTable(); });
+    document.getElementById('roleFilter').addEventListener('change',  () => { currentPage=0; renderTable(); });
+
+    lucide.createIcons();
+    await loadUsers();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0B1120; font-family: 'Inter', sans-serif; color: #f1f5f9; }
+        [lang="ar"] { font-family: 'Tajawal', sans-serif; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active{
+            -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex items-center justify-center overflow-hidden antialiased">
+    
+    <div class="absolute top-6 left-6 right-6 flex items-center justify-between z-50">
+        <a href="/sky.html" class="flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors font-bold group">
+            <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:translate-x-1"></i>
+            <span id="back-text">Back to Home</span>
+        </a>
+        <button id="lang-switch" class="px-5 py-2 hover:bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/70 rounded-xl transition-all font-bold tracking-wider text-sm shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+            العربية
+        </button>
+    </div>
+
+    <div class="w-full max-w-6xl h-[85vh] m-auto flex rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] bg-[#0F172A] border border-white/5 relative z-10 mx-6 animate-[fadeIn_1s_ease-out]">
+        
+        <!-- LEFT: LOGIN FORM -->
+        <div class="w-full lg:w-1/2 flex flex-col justify-center p-12 lg:p-20 relative bg-gradient-to-br from-[#0B1120] to-[#0F172A]">
+            
+            <div class="max-w-sm w-full mx-auto space-y-8">
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="p-3 bg-cyan-500/10 rounded-2xl border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                        <i data-lucide="navigation" class="w-8 h-8 text-cyan-400"></i>
+                    </div>
+                    <h1 class="text-3xl font-black tracking-wider text-white">SKYLINE</h1>
+                </div>
+
+                <div>
+                    <h2 id="login-title" class="text-3xl font-bold text-white mb-2">Welcome Back</h2>
+                    <p id="login-desc" class="text-slate-500 text-sm">Sign in to your administration panel to continue.</p>
+                </div>
+
+                <!-- Error message box -->
+                <div id="errorBox" class="hidden px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium"></div>
+
+                <form id="adminForm" class="space-y-6 pt-4">
+                    <div class="space-y-2">
+                        <label id="lbl-email" class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 block">Email Address</label>
+                        <div class="relative group">
+                            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors z-10"></i>
+                            <input type="email" id="emailInput" class="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl py-4 ltr:pl-12 rtl:pr-12 ltr:pr-6 rtl:pl-6 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-600 relative" placeholder="pilot@skyline.land" required>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label id="lbl-pass" class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 block">Password</label>
+                        <div class="relative group">
+                            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors z-10"></i>
+                            <input type="password" id="passwordInput" class="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl py-4 ltr:pl-12 rtl:pr-12 ltr:pr-12 rtl:pl-12 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-600 relative" placeholder="••••••••" required>
+                            <button type="button" onclick="togglePassword()" id="btn-eye" class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-cyan-400 transition-colors rounded-xl z-20">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <label class="flex items-center gap-3 cursor-pointer group hover:text-white">
+                            <div class="relative flex items-center justify-center w-5 h-5 bg-[#1e293b] border border-slate-700/80 rounded transition-all group-hover:border-cyan-500">
+                                <input type="checkbox" id="rememberMe" class="opacity-0 absolute inset-0 cursor-pointer peer">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                            </div>
+                            <span id="lbl-remember" class="text-sm font-medium text-slate-400 transition-colors group-hover:text-slate-200">Remember me</span>
+                        </label>
+                        <a href="#" id="lbl-forgot" class="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:scale-[1.02] active:scale-95 transition-all text-white font-black rounded-2xl uppercase tracking-widest text-sm mt-4 flex justify-center items-center gap-3 relative overflow-hidden group">
+                        <span id="btn-text">Authenticate</span>
+                        <i data-lucide="arrow-right" id="btn-icon" class="w-5 h-5 group-hover:translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:-translate-x-1"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT: BRANDING HERO IMAGE -->
+        <div class="hidden lg:flex w-1/2 relative bg-[#020617] items-center justify-center overflow-hidden border-l border-white/5">
+            <img src="https://images.unsplash.com/photo-1579820010410-c10411aaaa88?q=80&w=2697&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-[0.35] mix-blend-screen" alt="Drone Background">
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0B1120] via-transparent to-transparent opacity-90"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0B1120] via-transparent to-transparent max-w-[50%]"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-[#0F172A]/50 to-transparent"></div>
+
+            <div class="relative z-10 p-16 max-w-lg mt-auto mb-16 self-end w-full">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black tracking-widest mb-6">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    SYSTEM ONLINE
+                </div>
+                
+                <h2 id="hero-title" class="text-4xl font-black text-white leading-[1.2] mb-6 drop-shadow-2xl">Command <br><span class="text-cyan-400">The Skies.</span></h2>
+                <p id="hero-desc" class="text-sm text-slate-300 leading-relaxed border-l-2 border-cyan-500/50 pl-4 ltr:border-l-2 ltr:pl-4 rtl:border-l-0 rtl:border-r-2 rtl:pl-0 rtl:pr-4">Skyline is the world's most advanced drone fleet management and AI agriculture analytics platform. Secure, fast, and precise.</p>
+                
+                <div class="mt-10 flex items-center gap-4 bg-[#0B1120]/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 w-fit">
+                    <div class="flex -space-x-3 rtl:space-x-reverse">
+                        <div class="w-8 h-8 rounded-full border-2 border-[#1e293b] bg-slate-800 flex items-center justify-center overflow-hidden"><img src="/assets/images/default-avatar.jpg" class="w-full h-full object-cover" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'"></div>
+                        <div class="w-8 h-8 rounded-full border-2 border-[#1e293b] bg-cyan-500 flex items-center justify-center text-[9px] font-black text-[#0B1120]">+5k</div>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-xs" id="hero-stat1">Trusted Pilots Globally</p>
+                        <p class="text-slate-400 text-[10px]" id="hero-stat2">Join the future of aviation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+    <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+
+    <script>
+        // ── Supabase ──
+        const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+        const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // Init Icons
+        if(window.lucide) lucide.createIcons();
+
+        // Show/Hide Password
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            const btn = document.getElementById('btn-eye');
+            const icon = btn.querySelector('i');
+            if(input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+                btn.classList.add('text-cyan-400');
+                btn.classList.remove('text-slate-500');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+                btn.classList.remove('text-cyan-400');
+                btn.classList.add('text-slate-500');
+            }
+            if(window.lucide) lucide.createIcons({ root: btn });
+        }
+
+        // ── Form Submit → Supabase Login ──
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn     = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            const errorBox = document.getElementById('errorBox');
+            const currentLang = localStorage.getItem('skyline_lang') || 'en';
+            const ar = currentLang === 'ar';
+
+            const email    = document.getElementById('emailInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+
+            // Hide previous errors
+            errorBox.classList.add('hidden');
+            errorBox.textContent = '';
+
+            // Loading state
+            btnText.innerHTML = ar ? 'يتم التحقق...' : 'Authenticating...';
+            btnIcon.setAttribute('data-lucide', 'loader-2');
+            btnIcon.classList.add('animate-spin');
+            if(window.lucide) lucide.createIcons({ root: btn });
+            btn.disabled = true;
+            btn.classList.add('cursor-wait', 'opacity-90');
+
+            try {
+                // 1️⃣ تسجيل الدخول بـ Supabase Auth
+                const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+
+                // 2️⃣ جلب الـ role من profiles
+                const { data: profile, error: pErr } = await _sb
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (pErr || !profile) throw new Error(ar ? 'الملف الشخصي غير موجود' : 'Profile not found');
+
+                // 3️⃣ التحقق أن الـ role = admin
+                if (profile.role !== 'admin') {
+                    throw new Error(ar ? '⛔ هذه الصفحة للمسؤولين فقط' : '⛔ Admin access only');
+                }
+
+                // 4️⃣ Success UI
+                btn.classList.replace('from-cyan-500', 'from-emerald-500');
+                btn.classList.replace('to-blue-600', 'to-emerald-600');
+                btnText.innerHTML = ar ? 'تم الدخول!' : 'Access Granted!';
+                btnIcon.setAttribute('data-lucide', 'check');
+                btnIcon.classList.remove('animate-spin');
+                if(window.lucide) lucide.createIcons({ root: btn });
+
+                // 5️⃣ Redirect للـ dashboard
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 600);
+
+            } catch (err) {
+                // Reset button
+                btn.disabled = false;
+                btn.classList.remove('cursor-wait', 'opacity-90');
+                btnText.innerHTML = ar ? 'تسجيل الدخول' : 'Authenticate';
+                btnIcon.setAttribute('data-lucide', ar ? 'arrow-left' : 'arrow-right');
+                btnIcon.classList.remove('animate-spin');
+                if(window.lucide) lucide.createIcons({ root: btn });
+
+                // Show error
+                errorBox.textContent = err.message || (ar ? 'فشل تسجيل الدخول' : 'Login failed');
+                errorBox.classList.remove('hidden');
+            }
+        });
+
+        // ── Language Switch ──
+        const langSwitch = document.getElementById('lang-switch');
+        let currentLang = localStorage.getItem('skyline_lang') || 'en';
+        applyLang(currentLang);
+
+        langSwitch.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            localStorage.setItem('skyline_lang', currentLang);
+            applyLang(currentLang);
+        });
+
+        function applyLang(lang) {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+            const btnIcon = document.getElementById('btn-icon');
+
+            if(lang === 'ar') {
+                langSwitch.innerText = 'English';
+                document.getElementById('back-text').innerText = 'العودة للرئيسية';
+                document.getElementById('login-title').innerText = 'مرحباً بك مجدداً';
+                document.getElementById('login-desc').innerText = 'سجل دخولك إلى لوحة التحكم الإدارية للمتابعة في منصة سكايلاين.';
+                document.getElementById('lbl-email').innerText = 'البريد الإلكتروني';
+                document.getElementById('emailInput').placeholder = 'pilot@skyline.land';
+                document.getElementById('lbl-pass').innerText = 'كلمة المرور';
+                document.getElementById('passwordInput').placeholder = '••••••••';
+                document.getElementById('lbl-remember').innerText = 'تذكر بياناتي';
+                document.getElementById('lbl-forgot').innerText = 'نسيت كلمة المرور؟';
+                document.getElementById('btn-text').innerText = 'تسجيل الدخول';
+                if(btnIcon) btnIcon.setAttribute('data-lucide', 'arrow-left');
+                document.getElementById('hero-title').innerHTML = 'سيطر على <br><span class="text-cyan-400">سماء المستقبل.</span>';
+                document.getElementById('hero-desc').innerText = 'سكايلاين هي المنصة الأقوى عالمياً لإدارة أطقم الدرونات وتحليلات الذكاء الاصطناعي الزراعية. آمنة، سريعة، ودقيقة جداً.';
+                document.getElementById('hero-stat1').innerText = '+5,000 طيار معتمد';
+                document.getElementById('hero-stat2').innerText = 'انضم لمستقبل الطيران الموجه';
+            } else {
+                langSwitch.innerText = 'العربية';
+                document.getElementById('back-text').innerText = 'Back to Home';
+                document.getElementById('login-title').innerText = 'Welcome Back';
+                document.getElementById('login-desc').innerText = 'Sign in to your administration panel to continue.';
+                document.getElementById('lbl-email').innerText = 'Email Address';
+                document.getElementById('emailInput').placeholder = 'pilot@skyline.land';
+                document.getElementById('lbl-pass').innerText = 'Password';
+                document.getElementById('passwordInput').placeholder = '••••••••';
+                document.getElementById('lbl-remember').innerText = 'Remember me';
+                document.getElementById('lbl-forgot').innerText = 'Forgot Password?';
+                document.getElementById('btn-text').innerText = 'Authenticate';
+                if(btnIcon) btnIcon.setAttribute('data-lucide', 'arrow-right');
+                document.getElementById('hero-title').innerHTML = 'Command <br><span class="text-cyan-400">The Skies.</span>';
+                document.getElementById('hero-desc').innerText = "Skyline is the world's most advanced drone fleet management and AI agriculture analytics platform. Secure, fast, and precise.";
+                document.getElementById('hero-stat1').innerText = 'Trusted Pilots Globally';
+                document.getElementById('hero-stat2').innerText = 'Join the future of aviation';
+            }
+            if(window.lucide) lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

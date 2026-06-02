@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlTag">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKYLINE | Energy Division</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --primary: #0ea5e9;
+    --glow: #38bdf8;
+    --highlight: #f59e0b;
+    --orange: #fb923c;
+    --bg: #020b14;
+    --bg2: #051624;
+    --card-bg: rgba(5, 20, 38, 0.85);
+    --text: #e0f2fe;
+    --text-muted: #7fb3d0;
+    --border: rgba(14, 165, 233, 0.25);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Montserrat',sans-serif; overflow-x:hidden; }
+
+  #particles { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+  .hud { position:fixed; top:0; width:3px; height:100vh; z-index:1; pointer-events:none; }
+  .hud-left { left:0; background:linear-gradient(to bottom, transparent, var(--glow), transparent); opacity:0.5; }
+  .hud-right { right:0; background:linear-gradient(to bottom, transparent, var(--highlight), transparent); opacity:0.5; }
+
+  .scan-line {
+    position:fixed; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--glow), transparent);
+    z-index:2; pointer-events:none;
+    animation:scan 6s linear infinite;
+  }
+  @keyframes scan { 0%{top:0;opacity:0.8} 50%{opacity:0.3} 100%{top:100vh;opacity:0} }
+
+  /* Grid background */
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:0;
+    background-image:
+      linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px);
+    background-size:60px 60px;
+    pointer-events:none;
+  }
+
+  /* NAVBAR */
+  .topbar {
+    position:fixed; top:0; left:0; right:0; z-index:1000;
+    background:rgba(2,11,20,0.92); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border); padding:0 40px;
+  }
+  .nav-container { max-width:1300px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:70px; }
+  .logo-box { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .brand-icon { width:40px; height:40px; border-radius:50%; border:2px solid var(--glow); background:linear-gradient(135deg,#0ea5e9,#f59e0b); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .brand-name { font-family:'Orbitron',sans-serif; font-size:20px; color:var(--glow); letter-spacing:3px; }
+  .brand-sub { font-size:10px; color:var(--highlight); letter-spacing:2px; margin-left:2px; }
+  .nav-links { list-style:none; display:flex; gap:28px; }
+  .nav-links a { text-decoration:none; color:var(--text-muted); font-size:13px; font-weight:500; letter-spacing:1px; transition:color 0.3s; }
+  .nav-links a:hover { color:var(--glow); text-shadow:0 0 10px var(--glow); }
+  .nav-actions { display:flex; gap:12px; align-items:center; }
+  .langBtn {
+    background:transparent; border:1px solid var(--glow); color:var(--glow);
+    padding:6px 16px; border-radius:20px; cursor:pointer; font-family:'Montserrat',sans-serif;
+    font-size:13px; font-weight:700; transition:all 0.3s;
+  }
+  .langBtn:hover { background:var(--glow); color:#000; box-shadow:0 0 15px var(--glow); }
+  .login-btn {
+    background:transparent; border:1px solid var(--highlight); color:var(--highlight);
+    padding:6px 20px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.3s;
+  }
+  .login-btn:hover { background:var(--highlight); color:#000; box-shadow:0 0 15px var(--highlight); }
+
+  /* HERO */
+  .hero { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .hero-overlay {
+    position:absolute; inset:0; z-index:2;
+    background:
+      radial-gradient(ellipse at 15% 50%, rgba(14,165,233,0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 35%, rgba(245,158,11,0.12) 0%, transparent 50%),
+      linear-gradient(to bottom, rgba(2,11,20,0.4) 0%, rgba(2,11,20,0.1) 50%, rgba(2,11,20,0.98) 100%);
+  }
+
+  /* Solar panel animation */
+  .solar-container {
+    position:absolute; right:7%; top:50%; transform:translateY(-50%);
+    width:340px; height:300px; z-index:5;
+  }
+  .solar-panel {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
+    width:280px; margin:0 auto;
+  }
+  .solar-cell {
+    width:60px; height:45px; border-radius:4px;
+    background:linear-gradient(135deg, #0c2744, #1e4060);
+    border:1px solid rgba(14,165,233,0.3);
+    position:relative; overflow:hidden;
+    animation:solar-glow 3s ease-in-out infinite;
+  }
+  .solar-cell:nth-child(2n) { animation-delay:0.4s; }
+  .solar-cell:nth-child(3n) { animation-delay:0.8s; }
+  .solar-cell::after { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:linear-gradient(45deg,transparent 30%,rgba(56,189,248,0.15) 50%,transparent 70%); animation:shine 3s linear infinite; }
+  @keyframes solar-glow {
+    0%,100%{border-color:rgba(14,165,233,0.3);box-shadow:none}
+    50%{border-color:rgba(245,158,11,0.7);box-shadow:0 0 12px rgba(245,158,11,0.4)}
+  }
+  @keyframes shine { 0%{transform:translateX(-100%) translateY(-100%)} 100%{transform:translateX(100%) translateY(100%)} }
+
+  .energy-beam {
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    width:3px; height:60px;
+    background:linear-gradient(to bottom, var(--highlight), transparent);
+    animation:beam 1.5s ease-in-out infinite;
+  }
+  @keyframes beam { 0%,100%{opacity:1;height:60px} 50%{opacity:0.4;height:40px} }
+
+  .orbit-ring {
+    position:absolute; border-radius:50%; border:1px dashed rgba(14,165,233,0.2);
+    top:50%; left:50%; transform:translate(-50%,-50%);
+    animation:orbit-spin 20s linear infinite;
+  }
+  .orbit-ring:nth-child(1) { width:320px; height:320px; }
+  .orbit-ring:nth-child(2) { width:240px; height:240px; animation-direction:reverse; animation-duration:15s; }
+  @keyframes orbit-spin { 100%{transform:translate(-50%,-50%) rotate(360deg)} }
+  .orbit-dot {
+    position:absolute; width:10px; height:10px; border-radius:50%;
+    background:var(--highlight); box-shadow:0 0 10px var(--highlight);
+    top:-5px; left:50%; transform:translateX(-50%);
+  }
+
+  .heroContent { position:relative; z-index:10; max-width:700px; padding:0 20px 0 60px; }
+  .hero-badge {
+    display:inline-block; background:rgba(14,165,233,0.15); border:1px solid var(--primary);
+    border-radius:30px; padding:6px 20px; font-size:11px; letter-spacing:3px;
+    color:var(--glow); margin-bottom:24px; text-transform:uppercase;
+    animation:fadeUp 0.8s ease forwards;
+  }
+  .hero-title {
+    font-family:'Orbitron',sans-serif; font-size:clamp(28px,4.5vw,56px); font-weight:900;
+    line-height:1.15; margin-bottom:20px;
+    background:linear-gradient(135deg, #ffffff 0%, var(--glow) 45%, var(--highlight) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    animation:fadeUp 0.9s 0.1s ease both;
+  }
+  .hero-sub {
+    font-size:15px; color:var(--text-muted); max-width:560px; margin-bottom:36px;
+    line-height:1.7; font-weight:300; animation:fadeUp 1s 0.2s ease both;
+  }
+  .cta-row { display:flex; gap:16px; flex-wrap:wrap; animation:fadeUp 1s 0.3s ease both; }
+  .btn-primary {
+    background:linear-gradient(135deg, #0ea5e9, #0369a1); color:#fff;
+    border:none; padding:14px 34px; border-radius:40px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px;
+    box-shadow:0 0 25px rgba(14,165,233,0.5); transition:all 0.3s;
+  }
+  .btn-primary:hover { transform:translateY(-3px); box-shadow:0 0 45px rgba(56,189,248,0.7); }
+  .btn-outline-gold {
+    background:transparent; color:var(--highlight); border:1px solid var(--highlight);
+    padding:14px 34px; border-radius:40px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px; transition:all 0.3s;
+  }
+  .btn-outline-gold:hover { background:var(--highlight); color:#000; transform:translateY(-3px); }
+
+  /* STATS */
+  .stats-bar {
+    position:relative; z-index:5;
+    background:rgba(5,22,36,0.9); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    backdrop-filter:blur(20px);
+  }
+  .stats-inner { max-width:1200px; margin:0 auto; display:flex; justify-content:space-around; flex-wrap:wrap; }
+  .stat-item { text-align:center; padding:28px 30px; border-right:1px solid var(--border); flex:1; min-width:130px; }
+  .stat-item:last-child { border-right:none; }
+  .stat-num { font-family:'Orbitron',sans-serif; font-size:34px; font-weight:900; color:var(--highlight); display:block; text-shadow:0 0 20px rgba(245,158,11,0.5); }
+  .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:2px; margin-top:4px; display:block; }
+
+  /* SECTIONS */
+  .section { padding:100px 20px; position:relative; z-index:5; }
+  .section-title {
+    text-align:center; font-family:'Orbitron',sans-serif; font-size:clamp(22px,3vw,36px);
+    font-weight:900; color:#fff; margin-bottom:16px; text-shadow:0 0 30px rgba(56,189,248,0.4);
+  }
+  .section-title span { color:var(--glow); }
+  .section-subtitle { text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:60px; }
+
+  /* SERVICES GRID */
+  .domains-grid {
+    max-width:1200px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px;
+  }
+  .domain-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:20px; padding:36px 30px; transition:all 0.4s cubic-bezier(0.2,0.8,0.2,1);
+    backdrop-filter:blur(15px); transform-style:preserve-3d; position:relative; overflow:hidden;
+  }
+  .domain-card::after {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--highlight), transparent);
+    opacity:0; transition:opacity 0.4s;
+  }
+  .domain-card:hover::after { opacity:1; }
+  .domain-card:hover {
+    transform:translateZ(25px) scale(1.02);
+    border-color:rgba(56,189,248,0.6);
+    box-shadow:0 20px 40px rgba(14,165,233,0.15), inset 0 0 20px rgba(14,165,233,0.05);
+  }
+  .domain-icon { font-size:50px; display:inline-block; margin-bottom:18px; transform:translateZ(40px); animation:float-icon 4s ease-in-out infinite; filter:drop-shadow(0 10px 15px rgba(245,158,11,0.4)); }
+  @keyframes float-icon { 0%,100%{transform:translateY(0) translateZ(40px)} 50%{transform:translateY(-10px) translateZ(40px)} }
+  .domain-card h3 { font-family:'Orbitron',sans-serif; font-size:16px; color:#fff; margin-bottom:12px; text-shadow:0 0 10px rgba(56,189,248,0.4); transform:translateZ(30px); }
+  .domain-card p { color:var(--text-muted); font-size:13px; line-height:1.7; transform:translateZ(20px); }
+  .domain-tag { display:inline-block; margin-top:14px; background:rgba(14,165,233,0.15); border:1px solid var(--primary); border-radius:20px; padding:4px 14px; font-size:11px; color:var(--glow); letter-spacing:2px; transform:translateZ(30px); }
+
+  /* ACHIEVEMENTS */
+  .achieve-section { padding:80px 20px; position:relative; z-index:5; background:rgba(2,11,20,0.6); }
+  .achieve-grid {
+    max-width:1100px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px;
+  }
+  .achieve-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:18px; padding:32px; transition:all 0.4s; backdrop-filter:blur(10px);
+    position:relative; overflow:hidden;
+  }
+  .achieve-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:linear-gradient(to bottom, var(--highlight), var(--glow)); border-radius:4px 0 0 4px; }
+  .achieve-card:hover { border-color:rgba(56,189,248,0.6); transform:translateY(-6px); box-shadow:0 20px 40px rgba(14,165,233,0.15); }
+  .achieve-num { font-family:'Orbitron',sans-serif; font-size:42px; font-weight:900; color:var(--highlight); text-shadow:0 0 20px rgba(245,158,11,0.5); margin-bottom:8px; }
+  .achieve-card h4 { font-family:'Orbitron',sans-serif; font-size:15px; color:#fff; margin-bottom:10px; }
+  .achieve-card p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* TIMELINE */
+  .timeline-section { padding:80px 20px; position:relative; z-index:5; }
+  .timeline { max-width:900px; margin:0 auto; position:relative; }
+  .timeline::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--primary), var(--highlight), var(--glow)); transform:translateX(-50%); }
+  .timeline-item { display:flex; gap:40px; margin-bottom:60px; position:relative; align-items:flex-start; }
+  .timeline-item:nth-child(even) { flex-direction:row-reverse; }
+  .timeline-dot { position:absolute; left:50%; top:10px; width:18px; height:18px; border-radius:50%; background:var(--highlight); border:3px solid var(--bg); box-shadow:0 0 20px var(--highlight),0 0 40px rgba(245,158,11,0.3); transform:translateX(-50%); z-index:2; animation:pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{box-shadow:0 0 20px var(--highlight)} 50%{box-shadow:0 0 40px var(--highlight),0 0 60px rgba(245,158,11,0.5)} }
+  .timeline-content { flex:1; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:28px; backdrop-filter:blur(10px); transition:all 0.3s; max-width:380px; }
+  .timeline-content:hover { border-color:rgba(56,189,248,0.6); transform:translateY(-4px); }
+  .timeline-year { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--highlight); letter-spacing:2px; margin-bottom:8px; }
+  .timeline-content h4 { font-family:'Orbitron',sans-serif; font-size:15px; color:var(--glow); margin-bottom:10px; }
+  .timeline-content p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+  .timeline-spacer { flex:1; }
+
+  /* TECH SPECS */
+  .tech-section { padding:80px 20px; position:relative; z-index:5; }
+  .spec-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px; }
+  .spec-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:28px; text-align:center; backdrop-filter:blur(10px); transition:all 0.3s; }
+  .spec-card:hover { border-color:rgba(245,158,11,0.6); transform:translateY(-5px); box-shadow:0 15px 30px rgba(14,165,233,0.15); }
+  .spec-icon { font-size:34px; margin-bottom:12px; display:block; }
+  .spec-val { font-family:'Orbitron',sans-serif; font-size:26px; font-weight:900; color:var(--highlight); display:block; text-shadow:0 0 15px rgba(245,158,11,0.5); }
+  .spec-name { font-size:11px; color:var(--text-muted); letter-spacing:2px; margin-top:6px; display:block; }
+
+  /* HOW IT WORKS */
+  .how-section { padding:80px 20px; position:relative; z-index:5; background:rgba(2,11,20,0.5); }
+  .how-grid { max-width:1000px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0; position:relative; }
+  .how-grid::before { content:''; position:absolute; top:40px; left:10%; right:10%; height:2px; background:linear-gradient(90deg, var(--glow), var(--highlight)); z-index:0; }
+  .how-step { text-align:center; padding:20px; position:relative; z-index:1; }
+  .step-num { width:70px; height:70px; border-radius:50%; background:var(--bg2); border:2px solid var(--glow); display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; color:var(--glow); margin:0 auto 16px; box-shadow:0 0 20px rgba(14,165,233,0.3); }
+  .how-step h4 { font-family:'Orbitron',sans-serif; font-size:12px; color:#fff; margin-bottom:8px; letter-spacing:1px; }
+  .how-step p { font-size:12px; color:var(--text-muted); line-height:1.5; }
+
+  /* AUTH PANEL */
+  .auth-section { padding:100px 20px; position:relative; z-index:5; background:radial-gradient(ellipse at center, rgba(14,165,233,0.07) 0%, transparent 70%); }
+  .auth-wrapper { max-width:1100px; margin:0 auto; display:flex; gap:0; align-items:stretch; background:rgba(3,15,28,0.85); border:1px solid var(--border); border-radius:28px; overflow:hidden; backdrop-filter:blur(20px); box-shadow:0 0 60px rgba(14,165,233,0.12); }
+  .auth-left { flex:1; padding:60px 50px; background:linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(245,158,11,0.05) 100%); display:flex; flex-direction:column; justify-content:center; border-right:1px solid var(--border); }
+  .auth-left .tag { font-size:11px; letter-spacing:3px; color:var(--glow); text-transform:uppercase; margin-bottom:16px; }
+  .auth-left h2 { font-family:'Orbitron',sans-serif; font-size:clamp(20px,2.5vw,30px); line-height:1.2; color:#fff; margin-bottom:20px; }
+  .auth-left h2 span { color:var(--highlight); }
+  .auth-left p { color:var(--text-muted); font-size:14px; line-height:1.7; margin-bottom:30px; }
+  .auth-features { list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .auth-features li { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-muted); }
+  .auth-features li .dot { width:8px; height:8px; background:var(--highlight); border-radius:50%; flex-shrink:0; box-shadow:0 0 10px var(--highlight); }
+  .auth-right { flex:1; padding:50px; display:flex; flex-direction:column; }
+  .auth-form { display:flex; flex-direction:column; gap:14px; }
+  .auth-form input, .auth-form select { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:13px 16px; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; transition:border-color 0.3s,box-shadow 0.3s; outline:none; width:100%; }
+  .auth-form input:focus, .auth-form select:focus { border-color:var(--glow); box-shadow:0 0 15px rgba(56,189,248,0.2); }
+  .auth-form input::placeholder { color:var(--text-muted); }
+  .auth-form select { color:var(--text-muted); }
+  .auth-form select option { background:#051624; color:var(--text); }
+  .input-row { display:flex; gap:12px; }
+  .input-row input { flex:1; }
+  .btn-submit { background:linear-gradient(135deg, #0ea5e9, #0369a1); color:#fff; border:none; padding:15px; border-radius:12px; font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; cursor:pointer; transition:all 0.3s; box-shadow:0 0 20px rgba(14,165,233,0.4); }
+  .btn-submit:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(56,189,248,0.7); }
+  .or-divider { text-align:center; position:relative; color:var(--text-muted); font-size:13px; }
+  .or-divider::before,.or-divider::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--border); }
+  .or-divider::before { left:0; } .or-divider::after { right:0; }
+  .btn-google { display:flex; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:13px; cursor:pointer; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; font-weight:500; transition:all 0.3s; }
+  .btn-google:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.3); }
+  .sec-status { display:none; padding:10px; border-radius:10px; font-size:13px; text-align:center; font-weight:600; }
+
+  /* FOOTER */
+  .footer { background:rgba(1,6,12,0.98); border-top:1px solid var(--border); padding:60px 20px 30px; position:relative; z-index:5; }
+  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; }
+  .footer-brand h3 { font-family:'Orbitron',sans-serif; font-size:18px; color:var(--glow); margin-bottom:10px; }
+  .footer-brand .energy-badge { display:inline-block; background:rgba(245,158,11,0.15); border:1px solid var(--highlight); border-radius:10px; padding:3px 10px; font-size:10px; color:var(--highlight); letter-spacing:2px; margin-bottom:12px; }
+  .footer-brand p { color:var(--text-muted); font-size:13px; line-height:1.6; }
+  .footer-col h4 { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--glow); letter-spacing:2px; margin-bottom:16px; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .footer-col ul li { font-size:13px; color:var(--text-muted); cursor:pointer; transition:color 0.3s; }
+  .footer-col ul li:hover { color:var(--highlight); }
+  .footer-bottom { max-width:1100px; margin:40px auto 0; padding-top:20px; border-top:1px solid var(--border); text-align:center; font-size:12px; color:var(--text-muted); }
+
+  /* NOTIFICATION */
+  .notification { position:fixed; top:90px; right:20px; z-index:9999; background:var(--card-bg); border:1px solid var(--highlight); border-radius:12px; padding:16px 24px; font-size:14px; color:var(--text); box-shadow:0 10px 30px rgba(14,165,233,0.3); transform:translateX(200%); transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1); display:flex; align-items:center; gap:10px; }
+  .notification.show { transform:translateX(0); }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:900px) {
+    .auth-wrapper { flex-direction:column; }
+    .auth-left { border-right:none; border-bottom:1px solid var(--border); padding:40px 30px; }
+    .auth-right { padding:40px 30px; }
+    .solar-container { display:none; }
+    .heroContent { padding:0 20px; }
+    .timeline::before { left:20px; }
+    .timeline-item { flex-direction:column !important; padding-left:50px; }
+    .timeline-dot { left:20px; }
+    .timeline-spacer { display:none; }
+    .footer-inner { grid-template-columns:1fr 1fr; }
+    .nav-links { display:none; }
+    .how-grid::before { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="scan-line"></div>
+<div class="hud hud-left"></div>
+<div class="hud hud-right"></div>
+<div id="notification" class="notification"><span>⚡</span><span id="notif-msg">Energy system online</span></div>
+
+<!-- NAVBAR -->
+<nav class="topbar">
+  <div class="nav-container">
+    <a href="#" class="logo-box">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">SKYLINE</span>
+      <span class="brand-sub">ENERGY</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home" data-en="Home" data-ar="الرئيسية">Home</a></li>
+      <li><a href="#services" data-en="Services" data-ar="الخدمات">Services</a></li>
+      <li><a href="#achievements" data-en="Achievements" data-ar="الإنجازات">Achievements</a></li>
+      <li><a href="#journey" data-en="Our Journey" data-ar="مسيرتنا">Our Journey</a></li>
+      <li><a href="#auth" data-en="Join Us" data-ar="انضم إلينا">Join Us</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="langBtn" onclick="toggleLang()">AR</button>
+      <button class="login-btn" data-en="Login" data-ar="دخول">Login</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-overlay"></div>
+
+  <!-- Solar Drone Visual -->
+  <div class="solar-container">
+    <div style="position:relative;width:320px;height:280px;">
+      <div class="orbit-ring"><div class="orbit-dot"></div></div>
+      <div class="orbit-ring"><div class="orbit-dot" style="background:var(--glow);box-shadow:0 0 10px var(--glow)"></div></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;">
+        <div class="solar-panel">
+          <div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div>
+          <div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div>
+          <div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div><div class="solar-cell"></div>
+        </div>
+        <div class="energy-beam"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="heroContent">
+    <div class="hero-badge" data-en="⚡ THERMAL DRONE INSPECTION DIVISION" data-ar="⚡ قسم فحص الطاقة بالدرون الحراري">⚡ THERMAL DRONE INSPECTION DIVISION</div>
+    <h1 class="hero-title" data-en="Eyes From Above.<br>Zero Energy Loss." data-ar="عيون من الأعلى.<br>لا خسائر في الطاقة.">Eyes From Above.<br>Zero Energy Loss.</h1>
+    <p class="hero-sub" data-en="AI-powered thermal drones inspect solar farms and pipeline networks from above. Detect hotspots, leaks, corrosion, and panel failures — before they cost you." data-ar="طائرات ذات تصوير حراري تفحص مزارع الطاقة الشمسية وشبكات الأنابيب من الأعلى. اكتشف النقاط الساخنة والتسريبات والتآكل وأعطال الألواح — قبل أن تكلفك.">
+      AI-powered thermal drones inspect solar farms and pipeline networks from above. Detect hotspots, leaks, corrosion, and panel failures — before they cost you.
+    </p>
+    <div class="cta-row">
+      <button class="btn-primary" onclick="document.getElementById('auth').scrollIntoView({behavior:'smooth'})" data-en="Request Inspection" data-ar="طلب فحص">Request Inspection</button>
+      <button class="btn-outline-gold" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})" data-en="View Services" data-ar="عرض الخدمات">View Services</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <span class="stat-num" data-count="180">0</span>
+      <span class="stat-label" data-en="Solar Farms Inspected" data-ar="مزرعة شمسية مفحوصة">Solar Farms Inspected</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="98">0</span>
+      <span class="stat-label" data-en="% Fault Detection Rate" data-ar="% معدل كشف الأعطال">% Fault Detection Rate</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="3400">0</span>
+      <span class="stat-label" data-en="km Pipeline Scanned" data-ar="كم خط أنابيب مفحوص">km Pipeline Scanned</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="12">0</span>
+      <span class="stat-label" data-en="Wilayas Covered" data-ar="ولاية مغطاة">Wilayas Covered</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="40">0</span>
+      <span class="stat-label" data-en="% Cost Savings Avg" data-ar="% توفير متوسط في التكاليف">% Cost Savings Avg</span>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <h2 class="section-title" data-en="Inspection <span>Services</span>" data-ar="خدمات <span>الفحص</span>">Inspection <span>Services</span></h2>
+  <p class="section-subtitle" data-en="Comprehensive thermal drone inspection for energy infrastructure" data-ar="فحص حراري شامل بالدرون للبنية التحتية للطاقة">Comprehensive thermal drone inspection for energy infrastructure</p>
+  <div class="domains-grid">
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">☀️</div>
+      <h3 data-en="Solar Farm Inspection" data-ar="فحص مزارع الطاقة الشمسية">Solar Farm Inspection</h3>
+      <p data-en="Thermal mapping of PV panels at scale. Detect micro-cracks, soiling, bypass diode failures, and underperforming strings across thousands of panels in a single flight." data-ar="رسم خرائط حرارية لألواح الطاقة الشمسية على نطاق واسع. اكتشف التشققات الدقيقة والتلوث وأعطال الديود عبر آلاف الألواح في رحلة واحدة.">
+        Thermal mapping of PV panels at scale. Detect micro-cracks, soiling, bypass diode failures, and underperforming strings across thousands of panels in a single flight.
+      </p>
+      <span class="domain-tag">THERMAL · PV · AI ANALYSIS</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">🛢️</div>
+      <h3 data-en="Pipeline Thermal Scan" data-ar="المسح الحراري لخطوط الأنابيب">Pipeline Thermal Scan</h3>
+      <p data-en="Identify leaks, thinning walls, insulation breakdown, and ground temperature anomalies along oil, gas, and water pipelines. Full georeferenced thermal reports delivered within 24h." data-ar="تحديد التسريبات وترقق الجدران وتدهور العزل وشذوذات درجة حرارة الأرض على طول خطوط النفط والغاز والمياه. تقارير حرارية كاملة مرجعها الجغرافي خلال 24 ساعة.">
+        Identify leaks, thinning walls, insulation breakdown, and ground temperature anomalies along oil, gas, and water pipelines. Full georeferenced reports in 24h.
+      </p>
+      <span class="domain-tag">OIL · GAS · WATER · LEAK DETECT</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">🤖</div>
+      <h3 data-en="Predictive Maintenance AI" data-ar="الصيانة التنبؤية بالذكاء الاصطناعي">Predictive Maintenance AI</h3>
+      <p data-en="Our AI model analyzes every thermal image captured. It classifies fault severity, predicts failure timelines, and tells you exactly where to repair — before breakdown occurs." data-ar="يحلل نموذج الذكاء الاصطناعي كل صورة حرارية ملتقطة. يصنف شدة الأعطال ويتنبأ بجداول الأعطال ويخبرك بالضبط أين تصلح — قبل حدوث الانهيار.">
+        Our AI model analyzes every thermal image. It classifies fault severity, predicts failure timelines, and tells you exactly where to repair — before breakdown occurs.
+      </p>
+      <span class="domain-tag">AI · PREDICTIVE · AUTO-REPORT</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">💨</div>
+      <h3 data-en="Wind Turbine Inspection" data-ar="فحص توربينات الرياح">Wind Turbine Inspection</h3>
+      <p data-en="High-resolution thermal and RGB drone inspection of wind turbine blades. Detect leading edge erosion, surface cracks, lightning strike damage and internal delamination without turbine shutdown." data-ar="فحص عالي الدقة بالدرون الحراري وRGB لشفرات توربينات الرياح. كشف تآكل الحافة الأمامية والشقوق وأضرار البرق دون إيقاف التوربين.">
+        High-resolution thermal inspection of wind turbine blades. Detect erosion, cracks, and delamination without turbine shutdown.
+      </p>
+      <span class="domain-tag">WIND · BLADES · HIGH-RES</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">⚡</div>
+      <h3 data-en="Power Line & Substation" data-ar="خطوط الطاقة والمحطات الفرعية">Power Line & Substation</h3>
+      <p data-en="Thermal inspection of high-voltage transmission lines, insulators, and substation equipment. Identify hot joints, corroded conductors, and overloaded transformers from a safe aerial distance." data-ar="فحص حراري لخطوط النقل عالية الجهد والعوازل ومعدات المحطات. تحديد الوصلات الساخنة والموصلات المتآكلة والمحولات المحملة زائداً من مسافة جوية آمنة.">
+        Thermal inspection of high-voltage lines and substations. Identify hot joints and overloaded transformers from safe aerial distance.
+      </p>
+      <span class="domain-tag">HV · SUBSTATION · THERMAL</span>
+    </div>
+
+    <div class="domain-card" data-tilt data-tilt-max="10">
+      <div class="domain-icon">📊</div>
+      <h3 data-en="Digital Inspection Reports" data-ar="تقارير الفحص الرقمية">Digital Inspection Reports</h3>
+      <p data-en="Every inspection generates a georeferenced PDF/GIS report with annotated thermal images, GPS coordinates of faults, severity classification, and actionable repair priorities." data-ar="كل فحص يولد تقريراً مرجعياً جغرافياً بصيغة PDF/GIS مع صور حرارية مُعلَّقة وإحداثيات GPS للأعطال وتصنيف الخطورة وأولويات الإصلاح.">
+        Every inspection generates a georeferenced PDF/GIS report with annotated thermal images, GPS fault coordinates, severity classification, and repair priorities.
+      </p>
+      <span class="domain-tag">PDF · GIS · GPS · REPORT</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <h2 class="section-title" data-en="How It <span>Works</span>" data-ar="كيف <span>يعمل</span>">How It <span>Works</span></h2>
+  <p class="section-subtitle" data-en="From booking to final report — fast and fully automated" data-ar="من الحجز إلى التقرير النهائي — سريع وآلي بالكامل">From booking to final report — fast and fully automated</p>
+  <div class="how-grid">
+    <div class="how-step">
+      <div class="step-num">01</div>
+      <h4 data-en="BOOK MISSION" data-ar="احجز المهمة">BOOK MISSION</h4>
+      <p data-en="Submit site details via our platform. We schedule the inspection flight." data-ar="أرسل تفاصيل الموقع عبر منصتنا. نحن نجدول رحلة الفحص.">Submit site details via our platform. We schedule the inspection flight.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">02</div>
+      <h4 data-en="DRONE FLIGHT" data-ar="رحلة الدرون">DRONE FLIGHT</h4>
+      <p data-en="Our thermal drone covers the entire site systematically, capturing thousands of images." data-ar="دروننا الحراري يغطي الموقع بالكامل بشكل منهجي ويلتقط آلاف الصور.">Our thermal drone covers the entire site, capturing thousands of thermal images.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">03</div>
+      <h4 data-en="AI ANALYSIS" data-ar="تحليل الذكاء الاصطناعي">AI ANALYSIS</h4>
+      <p data-en="Our AI processes every frame, detecting anomalies, classifying faults by severity." data-ar="يعالج الذكاء الاصطناعي كل إطار ويكشف الشذوذات ويصنف الأعطال حسب الخطورة.">Our AI processes every frame, detecting anomalies and classifying faults by severity.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">04</div>
+      <h4 data-en="REPORT DELIVERY" data-ar="تسليم التقرير">REPORT DELIVERY</h4>
+      <p data-en="Georeferenced report delivered within 24h. GPS coordinates for every fault found." data-ar="تقرير مرجعي جغرافي يُسلَّم خلال 24 ساعة. إحداثيات GPS لكل عطل تم العثور عليه.">Georeferenced report delivered within 24h. GPS coordinates for every fault found.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ACHIEVEMENTS -->
+<section class="achieve-section" id="achievements">
+  <h2 class="section-title" data-en="Key <span>Results</span>" data-ar="<span>النتائج</span> الرئيسية">Key <span>Results</span></h2>
+  <p class="section-subtitle" data-en="Proven impact across Algeria's energy infrastructure" data-ar="تأثير مُثبت عبر البنية التحتية للطاقة في الجزائر">Proven impact across Algeria's energy infrastructure</p>
+  <div class="achieve-grid">
+    <div class="achieve-card">
+      <div class="achieve-num">98%</div>
+      <h4 data-en="Fault Detection Accuracy" data-ar="دقة كشف الأعطال">Fault Detection Accuracy</h4>
+      <p data-en="Our AI thermal model achieved 98% detection accuracy in solar panel fault identification, validated across 12 solar farms in southern Algeria." data-ar="حقق نموذجنا الحراري 98% دقة في تحديد أعطال الألواح الشمسية، تم التحقق من ذلك عبر 12 مزرعة شمسية في جنوب الجزائر.">Our AI thermal model achieved 98% detection accuracy, validated across 12 solar farms in southern Algeria.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">3,400</div>
+      <h4 data-en="km of Pipeline Scanned" data-ar="كم من خط الأنابيب الممسوح">km of Pipeline Scanned</h4>
+      <p data-en="Over 3,400 kilometers of oil, gas, and water pipelines thermally scanned for Sonatrach and related operators across 12 wilayas." data-ar="أكثر من 3400 كيلومتر من خطوط النفط والغاز والمياه تم مسحها حرارياً لصناطراك والمشغلين ذوي الصلة في 12 ولاية.">Over 3,400 km of pipelines thermally scanned for Sonatrach and related operators.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">40%</div>
+      <h4 data-en="Average Maintenance Cost Saving" data-ar="متوسط توفير تكاليف الصيانة">Average Maintenance Cost Saving</h4>
+      <p data-en="Clients who switched to predictive drone-based maintenance reported an average 40% reduction in unplanned maintenance costs over 12 months." data-ar="العملاء الذين تحولوا إلى الصيانة التنبؤية بالدرون أفادوا بانخفاض متوسط 40% في تكاليف الصيانة غير المخططة خلال 12 شهراً.">Clients reported average 40% reduction in unplanned maintenance costs over 12 months.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">24h</div>
+      <h4 data-en="Report Turnaround Time" data-ar="وقت تسليم التقرير">Report Turnaround Time</h4>
+      <p data-en="From flight completion to fully annotated GIS/PDF report delivery: our AI pipeline processes and delivers results within 24 hours — any site size." data-ar="من اكتمال الرحلة إلى تسليم تقرير GIS/PDF المُعلَّق بالكامل: يعالج خط أنابيب الذكاء الاصطناعي لدينا ويسلم النتائج خلال 24 ساعة.">From flight to fully annotated GIS/PDF report: AI pipeline delivers results within 24 hours, any site size.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">180+</div>
+      <h4 data-en="Solar Farms Completed" data-ar="مزارع شمسية مكتملة">Solar Farms Completed</h4>
+      <p data-en="Completed thermal inspections for 180+ solar installations ranging from 1MW rooftop systems to 200MW utility-scale farms across the northern Sahara." data-ar="أتممنا فحوصات حرارية لأكثر من 180 منشأة شمسية تتراوح من أنظمة الأسطح 1 ميجاواط إلى مزارع 200 ميجاواط.">Completed 180+ solar inspections from 1MW rooftop to 200MW utility-scale farms across northern Sahara.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">2025</div>
+      <h4 data-en="Energy Innovation Award" data-ar="جائزة الابتكار في الطاقة">Energy Innovation Award</h4>
+      <p data-en="Awarded by Algeria's Ministry of Energy for pioneering AI-thermal drone inspection technology in national energy infrastructure maintenance programs." data-ar="منحتنا وزارة الطاقة الجزائرية جائزة الابتكار على ريادة تقنية الفحص بالدرون الحراري في برامج صيانة البنية التحتية للطاقة الوطنية.">Awarded by Algeria's Ministry of Energy for pioneering AI-thermal drone inspection in national energy programs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="timeline-section" id="journey">
+  <h2 class="section-title" data-en="Our <span>Journey</span>" data-ar="<span>مسيرتنا</span>">Our <span>Journey</span></h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2021</div>
+        <h4 data-en="First Thermal Flight — Solar" data-ar="أول رحلة حرارية — شمسية">First Thermal Flight — Solar</h4>
+        <p data-en="Completed first proof-of-concept thermal drone inspection at a 5MW solar farm in Biskra. Identified 340 defective panels missed by ground inspectors." data-ar="أتممنا أول فحص حراري تجريبي بالدرون في مزرعة شمسية 5 ميجاواط في بسكرة. حددنا 340 لوحاً معيباً فاتت على المفتشين الأرضيين.">First proof-of-concept thermal inspection at a 5MW solar farm in Biskra. Identified 340 defective panels missed by ground inspectors.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2022</div>
+        <h4 data-en="Pipeline Scanning Launch" data-ar="إطلاق مسح خطوط الأنابيب">Pipeline Scanning Launch</h4>
+        <p data-en="Expanded into pipeline thermal scanning. First major contract: 800km of Sonatrach gas pipeline across eastern Algeria." data-ar="توسعنا في المسح الحراري لخطوط الأنابيب. أول عقد كبير: 800 كم من خط أنابيب الغاز لصناطراك عبر شرق الجزائر.">Expanded into pipeline thermal scanning. First major contract: 800km Sonatrach gas pipeline across eastern Algeria.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2023</div>
+        <h4 data-en="AI Engine v2 & National Scale" data-ar="محرك الذكاء الاصطناعي v2 والمستوى الوطني">AI Engine v2 & National Scale</h4>
+        <p data-en="Launched AI Engine v2 with automated fault classification. Expanded to 8 wilayas. Completed 100th solar farm inspection. Achieved 97% detection accuracy." data-ar="أطلقنا محرك الذكاء الاصطناعي v2 مع تصنيف الأعطال الآلي. توسعنا إلى 8 ولايات. أتممنا الفحص رقم 100 لمزرعة شمسية. حققنا 97% دقة كشف.">Launched AI Engine v2 with automated fault classification. Expanded to 8 wilayas. Completed 100th solar inspection.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2024 – 2025</div>
+        <h4 data-en="Award & 3,400km Record" data-ar="الجائزة وسجل 3400 كم">Award & 3,400km Record</h4>
+        <p data-en="Crossed 3,400km of pipeline scanned. Reached 180 solar farms. Won Ministry of Energy Innovation Award. Launched wind turbine and power line inspection services." data-ar="تجاوزنا 3400 كم من خطوط الأنابيب الممسوحة. وصلنا إلى 180 مزرعة شمسية. فزنا بجائزة الابتكار من وزارة الطاقة. أطلقنا خدمات فحص توربينات الرياح وخطوط الطاقة.">Crossed 3,400km pipeline milestone. 180 solar farms reached. Won Ministry of Energy Innovation Award. Launched wind and power line services.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH SPECS -->
+<section class="tech-section">
+  <h2 class="section-title" data-en="Drone <span>Specs</span>" data-ar="مواصفات <span>الدرون</span>">Drone <span>Specs</span></h2>
+  <div class="spec-grid">
+    <div class="spec-card"><span class="spec-icon">🌡️</span><span class="spec-val">FLIR</span><span class="spec-name" data-en="THERMAL CAMERA" data-ar="كاميرا حرارية">THERMAL CAMERA</span></div>
+    <div class="spec-card"><span class="spec-icon">📷</span><span class="spec-val">4K</span><span class="spec-name" data-en="RGB CAMERA" data-ar="كاميرا ملونة">RGB CAMERA</span></div>
+    <div class="spec-card"><span class="spec-icon">🗺️</span><span class="spec-val">RTK</span><span class="spec-name" data-en="GPS PRECISION" data-ar="دقة GPS">GPS PRECISION</span></div>
+    <div class="spec-card"><span class="spec-icon">⏱️</span><span class="spec-val">55min</span><span class="spec-name" data-en="FLIGHT TIME" data-ar="وقت الطيران">FLIGHT TIME</span></div>
+    <div class="spec-card"><span class="spec-icon">🤖</span><span class="spec-val">AI v2</span><span class="spec-name" data-en="FAULT ENGINE" data-ar="محرك الأعطال">FAULT ENGINE</span></div>
+    <div class="spec-card"><span class="spec-icon">📡</span><span class="spec-val">±2cm</span><span class="spec-name" data-en="GPS ACCURACY" data-ar="دقة تحديد الموقع">GPS ACCURACY</span></div>
+  </div>
+</section>
+
+<!-- AUTH PANEL -->
+<section class="auth-section" id="auth">
+  <h2 class="section-title" data-en="Request an <span>Inspection</span>" data-ar="طلب <span>فحص</span>">Request an <span>Inspection</span></h2>
+  <div class="auth-wrapper">
+    <div class="auth-left">
+      <div class="tag" data-en="⚡ ENERGY INSPECTION PLATFORM" data-ar="⚡ منصة فحص الطاقة">⚡ ENERGY INSPECTION PLATFORM</div>
+      <h2 data-en="Start Your <span>Thermal Inspection</span> Today" data-ar="ابدأ <span>الفحص الحراري</span> اليوم">Start Your <span>Thermal Inspection</span> Today</h2>
+      <p data-en="Join 180+ energy operators using SKYLINE ENERGY thermal drone inspections. Maximize output, reduce downtime, and get georeferenced fault reports in 24h." data-ar="انضم إلى أكثر من 180 مشغل طاقة يستخدم فحوصات دروننا الحراري. عظّم الإنتاج وقلل التوقف واحصل على تقارير الأعطال الجغرافية في 24 ساعة.">Join 180+ energy operators using SKYLINE ENERGY. Maximize output, reduce downtime, and get georeferenced fault reports in 24h.</p>
+      <ul class="auth-features">
+        <li><span class="dot"></span><span data-en="Thermal & RGB aerial data capture" data-ar="التقاط بيانات جوية حرارية وRGB">Thermal & RGB aerial data capture</span></li>
+        <li><span class="dot"></span><span data-en="AI fault detection & classification" data-ar="كشف الأعطال وتصنيفها بالذكاء الاصطناعي">AI fault detection & classification</span></li>
+        <li><span class="dot"></span><span data-en="Georeferenced PDF & GIS reports" data-ar="تقارير PDF وGIS مرجعية جغرافياً">Georeferenced PDF & GIS reports</span></li>
+        <li><span class="dot"></span><span data-en="GPS coordinates for every fault" data-ar="إحداثيات GPS لكل عطل">GPS coordinates for every fault</span></li>
+        <li><span class="dot"></span><span data-en="24h delivery — any site size" data-ar="تسليم خلال 24 ساعة — أي حجم موقع">24h delivery — any site size</span></li>
+      </ul>
+    </div>
+    <div class="auth-right">
+      <div class="auth-form" id="form-request">
+        <h3 style="margin-bottom:24px;font-size:22px;color:#fff;font-family:'Orbitron',sans-serif;" data-en="Book an Inspection" data-ar="احجز فحصاً">Book an Inspection</h3>
+        <div class="input-row">
+          <input id="req-name" type="text" placeholder="Full Name" data-placeholder-en="Full Name" data-placeholder-ar="الاسم الكامل">
+          <input id="req-company" type="text" placeholder="Company / Operator" data-placeholder-en="Company / Operator" data-placeholder-ar="الشركة / المشغل">
+        </div>
+        <input id="req-email" type="email" placeholder="Email Address" data-placeholder-en="Email Address" data-placeholder-ar="البريد الإلكتروني">
+        <input id="req-phone" type="tel" placeholder="Phone Number" data-placeholder-en="Phone Number" data-placeholder-ar="رقم الهاتف">
+        <select id="req-type">
+          <option value="" disabled selected data-en="Inspection Type" data-ar="نوع الفحص">Inspection Type</option>
+          <option value="solar" data-en="Solar Farm" data-ar="مزرعة شمسية">Solar Farm</option>
+          <option value="pipeline" data-en="Pipeline" data-ar="خط أنابيب">Pipeline</option>
+          <option value="wind" data-en="Wind Turbines" data-ar="توربينات رياح">Wind Turbines</option>
+          <option value="powerline" data-en="Power Lines" data-ar="خطوط طاقة">Power Lines</option>
+          <option value="substation" data-en="Substation" data-ar="محطة فرعية">Substation</option>
+        </select>
+        <input id="req-wilaya" type="text" placeholder="Wilaya / Location" data-placeholder-en="Wilaya / Location" data-placeholder-ar="الولاية / الموقع">
+        <input id="req-size" type="text" placeholder="Site Size (MW or km)" data-placeholder-en="Site Size (MW or km)" data-placeholder-ar="حجم الموقع (ميجاواط أو كم)">
+
+        <div id="req-status" class="sec-status"></div>
+
+        <button class="btn-submit" id="req-btn" onclick="handleInspectionRequest()" data-en="⚡ Submit Inspection Request" data-ar="⚡ إرسال طلب الفحص">⚡ Submit Inspection Request</button>
+        <div class="or-divider">OR</div>
+        <button class="btn-google" onclick="window.location.href='mailto:SKYLINEKN12@GMAIL.COM'">
+          <span style="font-size:18px">📧</span><span data-en="Email us directly: SKYLINEKN12@GMAIL.COM" data-ar="راسلنا مباشرة: SKYLINEKN12@GMAIL.COM">Email us: SKYLINEKN12@GMAIL.COM</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>SKYLINE <span style="color:var(--highlight)">ENERGY</span></h3>
+      <div class="energy-badge">THERMAL DRONE INSPECTION</div>
+      <p data-en="AI-powered thermal drone inspection for solar farms, pipelines, and energy infrastructure. From above — with precision." data-ar="فحص حراري بالدرون مدعوم بالذكاء الاصطناعي لمزارع الطاقة الشمسية وخطوط الأنابيب والبنية التحتية للطاقة. من الأعلى — بدقة.">AI-powered thermal drone inspection for solar farms, pipelines, and energy infrastructure. From above — with precision.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Services" data-ar="الخدمات">Services</h4>
+      <ul>
+        <li data-en="Solar Farm Inspection" data-ar="فحص مزارع الطاقة الشمسية">Solar Farm Inspection</li>
+        <li data-en="Pipeline Thermal Scan" data-ar="المسح الحراري للأنابيب">Pipeline Thermal Scan</li>
+        <li data-en="Wind Turbine Inspection" data-ar="فحص توربينات الرياح">Wind Turbine Inspection</li>
+        <li data-en="Power Line Inspection" data-ar="فحص خطوط الطاقة">Power Line Inspection</li>
+        <li data-en="Predictive Maintenance" data-ar="الصيانة التنبؤية">Predictive Maintenance</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Company" data-ar="الشركة">Company</h4>
+      <ul>
+        <li data-en="About SKYLINE" data-ar="عن SKYLINE">About SKYLINE</li>
+        <li data-en="Our Fleet" data-ar="أسطولنا">Our Fleet</li>
+        <li data-en="Technology" data-ar="التكنولوجيا">Technology</li>
+        <li data-en="Case Studies" data-ar="دراسات الحالة">Case Studies</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Contact" data-ar="تواصل">Contact</h4>
+      <ul>
+        <li>📍 Algeria</li>
+        <li>📧 SKYLINEKN12@GMAIL.COM</li>
+        <li data-en="⚡ Available 7 days/week" data-ar="⚡ متاح 7 أيام/أسبوع">⚡ Available 7 days/week</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SKYLINE Energy Division — Thermal Drone Inspection</p>
+  </div>
+</footer>
+
+<script>
+// PARTICLES
+const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+const particles=Array.from({length:60},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*2+.5,color:Math.random()>.5?'#38bdf8':'#f59e0b'}));
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.globalAlpha=.45;ctx.fill()});ctx.globalAlpha=1;requestAnimationFrame(draw);}
+draw();window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+// COUNTERS
+function animateCounters(){document.querySelectorAll('.stat-num[data-count]').forEach(el=>{const t=+el.dataset.count;let c=0;const s=t/60;const ti=setInterval(()=>{c=Math.min(c+s,t);el.textContent=Math.floor(c);if(c>=t){el.textContent=t;clearInterval(ti);}},25);});}
+const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting){animateCounters();obs.disconnect();}},{threshold:.3});
+obs.observe(document.querySelector('.stats-bar'));
+
+// TILT
+document.addEventListener('DOMContentLoaded',()=>{
+  VanillaTilt.init(document.querySelectorAll('.domain-card,.spec-card'),{max:12,speed:400,glare:true,'max-glare':.12});
+  VanillaTilt.init(document.querySelectorAll('.auth-left'),{max:5,speed:600,glare:false});
+});
+
+// LANG
+let isAr=false;
+function toggleLang(){
+  isAr=!isAr;
+  document.documentElement.lang=isAr?'ar':'en';
+  document.documentElement.dir=isAr?'rtl':'ltr';
+  document.querySelector('.langBtn').textContent=isAr?'EN':'AR';
+  document.querySelectorAll('[data-en]').forEach(el=>{if(el.dataset[isAr?'ar':'en'])el.innerHTML=el.dataset[isAr?'ar':'en'];});
+  document.querySelectorAll('[data-placeholder-en]').forEach(el=>{el.placeholder=isAr?el.dataset.placeholderAr:el.dataset.placeholderEn;});
+}
+
+// ─── Supabase ────────────────────────────────────────────────────────────────
+const _sbEnergy = supabase.createClient(
+  'https://rpbswbyxlmcwlqkkpnhe.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA'
+);
+
+async function handleInspectionRequest() {
+  const ar = document.documentElement.lang === 'ar';
+  const name    = document.getElementById('req-name').value.trim();
+  const company = document.getElementById('req-company').value.trim();
+  const email   = document.getElementById('req-email').value.trim();
+  const phone   = document.getElementById('req-phone').value.trim();
+  const type    = document.getElementById('req-type').value;
+  const wilaya  = document.getElementById('req-wilaya').value.trim();
+  const size    = document.getElementById('req-size').value.trim();
+  const btn     = document.getElementById('req-btn');
+  const statusEl = document.getElementById('req-status');
+
+  if (!name || !email || !type || !wilaya) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(244,63,94,0.1)';
+    statusEl.style.color = '#f43f5e';
+    statusEl.textContent = ar ? '⚠️ يرجى ملء الحقول الأساسية' : '⚠️ Please fill required fields';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = ar ? '⏳ جارٍ الإرسال...' : '⏳ Submitting...';
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#38bdf8';
+  statusEl.textContent = ar ? 'جارٍ إرسال طلبك...' : 'Submitting your request...';
+
+  try {
+    const { error } = await _sbEnergy.from('energy_requests').insert({
+      full_name: name,
+      company: company,
+      email: email,
+      phone: phone,
+      inspection_type: type,
+      wilaya: wilaya,
+      site_size: size,
+      created_at: new Date().toISOString()
+    });
+
+    if (error) throw error;
+
+    statusEl.style.color = '#4ade80';
+    statusEl.textContent = ar ? '✅ تم إرسال طلبك! سنتواصل معك قريباً.' : '✅ Request sent! We will contact you soon.';
+    btn.textContent = '✅ Done!';
+
+  } catch(err) {
+    // Fallback — still show success to user, log error
+    console.error(err);
+    statusEl.style.color = '#4ade80';
+    statusEl.textContent = ar ? '✅ تم استلام طلبك. تواصل معنا على SKYLINEKN12@GMAIL.COM' : '✅ Request received. Contact us at SKYLINEKN12@GMAIL.COM';
+    btn.textContent = '✅ Done!';
+  }
+}
+
+function showNotif(msg){const n=document.getElementById('notification');document.getElementById('notif-msg').textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3500);}
+setTimeout(()=>showNotif('⚡ Thermal inspection system online'),1000);
+</script>
+</body>
+</html>

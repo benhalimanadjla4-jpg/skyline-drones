@@ -1,0 +1,40 @@
+<div class="p-6 h-full flex flex-col">
+    
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h2 class="text-xl font-bold tracking-tight text-white group" data-i18n="drones_fleet">Drones Fleet Status</h2>
+            <p class="text-[10px] text-slate-500 mt-0.5">Real-time telemetry and battery tracking</p>
+        </div>
+        
+        <div class="relative group">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors"></i>
+            <input type="text" placeholder="Filter Drones..." class="pl-9 pr-4 py-2 bg-[#1f293a]/40 rounded-xl border border-slate-800 text-sm text-slate-300 placeholder:text-slate-600 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 outline-none transition-all w-60">
+        </div>
+    </div>
+
+    <div class="flex-1 rounded-2xl border border-slate-800/60 bg-[#111827]/60 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] overflow-hidden">
+        
+        <table class="w-full text-sm text-left">
+            
+            <thead class="text-[11px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800/80">
+                <tr>
+                    <th scope="col" class="px-6 py-4">Drone ID</th>
+                    <th scope="col" class="px-5 py-4">Model</th>
+                    <th scope="col" class="px-5 py-4">Status</th>
+                    <th scope="col" class="px-5 py-4 text-center">Altitude</th>
+                    <th scope="col" class="px-5 py-4 text-center">Battery</th>
+                    <th scope="col" class="px-5 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            
+            <tbody id="drones-table-body" class="divide-y divide-slate-800/40">
+                </tbody>
+        </table>
+
+        <div id="table-loading" class="p-8 text-center text-slate-600 flex flex-col items-center gap-3">
+            <i data-lucide="loader-circle" class="w-8 h-8 animate-spin text-cyan-500"></i>
+            <p class="text-xs font-medium">Fetching telemetry...</p>
+        </div>
+
+    </div>
+</div>

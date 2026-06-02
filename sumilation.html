@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skyline LAND — خريطة الحقل</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #050A0E; color: #E8F4F0; min-height: 100vh; }
+
+header {
+  background: #0B1218;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-size: 18px; font-weight: 700; color: #00E5A0; }
+.stats { display: flex; gap: 24px; font-size: 13px; }
+.stat-g { color: #00E5A0; font-weight: 700; }
+.stat-r { color: #FF3B5C; font-weight: 700; }
+.stat-w { color: #E8F4F0; }
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  height: calc(100vh - 57px);
+}
+
+/* ── صورة الحقل ── */
+.field-wrap {
+  position: relative;
+  background: #000;
+  overflow: hidden;
+}
+
+#field-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* النقاط فوق الصورة */
+.dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid white;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 0.2s;
+  z-index: 10;
+}
+.dot:hover { transform: translate(-50%, -50%) scale(1.5); z-index: 20; }
+.dot-green { background: #00E5A0; box-shadow: 0 0 12px rgba(0,229,160,0.8); }
+.dot-red   { background: #FF3B5C; box-shadow: 0 0 12px rgba(255,59,92,0.8); }
+
+/* tooltip عند hover */
+.dot-tip {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(5,10,14,0.95);
+  border: 1px solid rgba(0,229,160,0.3);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  display: none;
+  z-index: 30;
+  font-family: monospace;
+}
+.dot:hover .dot-tip { display: block; }
+
+/* رسالة قبل رفع الصورة */
+.empty-field {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #5A7A6E;
+  font-size: 14px;
+  text-align: center;
+}
+.empty-field .icon { font-size: 48px; opacity: 0.4; }
+
+/* ── Panel جانبي ── */
+.panel {
+  background: #0B1218;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-title {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00E5A0;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* رفع الملفات */
+.upload-section { padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.upload-label {
+  display: block;
+  border: 2px dashed rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+  font-size: 12px;
+  color: #5A7A6E;
+}
+.upload-label:hover { border-color: #00E5A0; color: #00E5A0; }
+
+/* تفاصيل النقطة المحددة */
+.detail-section { padding: 14px; flex: 1; overflow-y: auto; }
+.detail-empty { color: #5A7A6E; font-size: 13px; text-align: center; padding: 30px 0; }
+
+.diag-badge {
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.badge-green { background: rgba(0,229,160,0.1); color: #00FF88; border: 1px solid rgba(0,229,160,0.3); }
+.badge-red   { background: rgba(255,59,92,0.1);  color: #FF6B8A; border: 1px solid rgba(255,59,92,0.3); }
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 12px;
+}
+.info-key { color: #5A7A6E; }
+.info-val { font-family: monospace; font-size: 11px; }
+
+/* قائمة النتائج */
+.results-list { flex: 1; overflow-y: auto; padding: 8px; }
+.r-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px;
+  cursor: pointer; margin-bottom: 3px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.r-item:hover { background: #111920; border-color: rgba(255,255,255,0.07); }
+.r-item.active { background: rgba(0,229,160,0.07); border-color: rgba(0,229,160,0.25); }
+.r-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.r-dot-g { background: #00E5A0; }
+.r-dot-r { background: #FF3B5C; }
+.r-name { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-conf { font-family: monospace; font-size: 11px; }
+.r-conf-g { color: #00E5A0; }
+.r-conf-r { color: #FF3B5C; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🌿 Skyline LAND — خريطة الحقل</div>
+  <div class="stats">
+    <span class="stat-w">إجمالي: <span id="s-total">0</span></span>
+    <span class="stat-g">🟢 صحي: <span id="s-healthy">0</span></span>
+    <span class="stat-r">🔴 مريض: <span id="s-diseased">0</span></span>
+    <span class="stat-w">نسبة الصحة: <span id="s-rate" style="color:#F5C842">0%</span></span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- صورة الحقل مع النقاط -->
+  <div class="field-wrap" id="field-wrap">
+
+    <!-- رسالة البداية -->
+    <div class="empty-field" id="empty-field">
+      <div class="icon">🖼️</div>
+      <div>ارفعي صورة الدرون من الجانب</div>
+      <div style="font-size:11px;margin-top:4px">ثم ارفعي results.json</div>
+      <div style="font-size:11px;color:#334">النقاط الحمراء والخضراء ستظهر فوق الصورة</div>
+    </div>
+
+    <!-- الصورة -->
+    <img id="field-img" src="" alt="" style="display:none"/>
+
+    <!-- النقاط تُضاف هنا تلقائياً بـ JavaScript -->
+    <div id="dots-layer"></div>
+
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+    <div class="panel-title">🛰️ لوحة التحكم</div>
+
+    <!-- رفع الملفات -->
+    <div class="upload-section">
+
+      <!-- ① صورة الدرون -->
+      <label class="upload-label" for="img-input">
+        🖼️ ① ارفعي صورة الدرون<br>
+        <span style="font-size:10px">(overview_field.jpg أو أي صورة)</span>
+      </label>
+      <input type="file" id="img-input" accept="image/*" style="display:none" onchange="loadImage(this)"/>
+
+      <!-- ② النتائج -->
+      <label class="upload-label" for="json-input" style="margin-bottom:0">
+        📊 ② ارفعي النتائج<br>
+        <span style="font-size:10px">(results.json أو overview_info.json)</span>
+      </label>
+      <input type="file" id="json-input" accept=".json" style="display:none" onchange="loadResults(this)"/>
+
+    </div>
+
+    <!-- تفاصيل النقطة المحددة -->
+    <div class="detail-section" id="detail-section">
+      <div class="detail-empty" id="detail-empty">
+        اضغط على نقطة لرؤية تفاصيلها
+      </div>
+      <div id="detail-content" style="display:none"></div>
+    </div>
+
+    <!-- قائمة النتائج -->
+    <div class="results-list" id="results-list"></div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════
+//  متغيرات
+// ══════════════════════════════════
+const SUPABASE_URL = "https://rpbswbyxlmcwlqkkpnhe.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA";
+
+let allData    = [];
+let imgLoaded  = false;
+let selectedI  = -1;
+
+// ══════════════════════════════════
+//  تحميل صورة الدرون
+// ══════════════════════════════════
+function loadImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('field-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('empty-field').style.display = 'none';
+    imgLoaded = true;
+
+    // انتظر تحميل الصورة ثم ارسم النقاط
+    img.onload = () => drawDots();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════
+//  تحميل النتائج من JSON
+// ══════════════════════════════════
+function loadResults(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // يقبل كلا الشكلين: مصفوفة مباشرة أو {results:[...]}
+      allData = Array.isArray(parsed) ? parsed : (parsed.results || parsed.captures || []);
+      // فلترة نقاط overview
+      allData = allData.filter(d => d.flag !== 'overview' && d.flag !== 'gray');
+      renderStats();
+      renderList();
+      if (imgLoaded) drawDots();
+    } catch { alert('خطأ في قراءة الملف'); }
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════
+//  تحميل من Supabase تلقائياً
+// ══════════════════════════════════
+async function loadSupabase() {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/field_results?select=*&order=created_at.asc`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await r.json();
+    if (data && data.length > 0) {
+      allData = data.filter(d => d.flag !== 'overview' && d.flag !== 'gray');
+      renderStats();
+      renderList();
+      if (imgLoaded) drawDots();
+    }
+  } catch(e) {}
+}
+
+// ══════════════════════════════════
+//  رسم النقاط فوق الصورة
+// ══════════════════════════════════
+function drawDots() {
+  if (!imgLoaded || allData.length === 0) return;
+
+  const img  = document.getElementById('field-img');
+  const wrap = document.getElementById('field-wrap');
+  const layer = document.getElementById('dots-layer');
+  layer.innerHTML = '';
+
+  // حجم الصورة المعروضة فعلياً (object-fit: contain)
+  const wW = wrap.clientWidth;
+  const wH = wrap.clientHeight;
+  const iW = img.naturalWidth;
+  const iH = img.naturalHeight;
+
+  // حساب الأبعاد الفعلية مع contain
+  const scale = Math.min(wW / iW, wH / iH);
+  const dispW = iW * scale;
+  const dispH = iH * scale;
+  const offX  = (wW - dispW) / 2;
+  const offY  = (wH - dispH) / 2;
+
+  // حدود GPS لكل النقاط
+  const lats = allData.map(d => d.latitude);
+  const lons  = allData.map(d => d.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+  const rangeL = maxLat - minLat || 0.0001;
+  const rangeLo = maxLon - minLon || 0.0001;
+
+  // رسم كل نقطة
+  allData.forEach((item, i) => {
+    // تحويل GPS → نسبة مئوية على الصورة
+    const px = (item.longitude - minLon) / rangeLo;  // 0..1 أفقي
+    const py = 1 - (item.latitude - minLat) / rangeL; // 0..1 عمودي (معكوس)
+
+    // تحويل النسبة → بيكسل على الصورة المعروضة
+    const x = offX + px * dispW;
+    const y = offY + py * dispH;
+
+    const isG = item.flag === 'green';
+    const dot = document.createElement('div');
+    dot.className = `dot ${isG ? 'dot-green' : 'dot-red'}`;
+    dot.style.left = x + 'px';
+    dot.style.top  = y + 'px';
+
+    // tooltip
+    dot.innerHTML = `
+      <div class="dot-tip">
+        ${isG ? '🟢' : '🔴'} ${item.image}<br>
+        ${item.confidence}% | ${item.latitude?.toFixed(5)}, ${item.longitude?.toFixed(5)}
+      </div>`;
+
+    dot.onclick = () => selectItem(item, i);
+    layer.appendChild(dot);
+  });
+}
+
+// ══════════════════════════════════
+//  اختيار نقطة
+// ══════════════════════════════════
+function selectItem(item, idx) {
+  selectedI = idx;
+  const isG = item.flag === 'green';
+
+  document.getElementById('detail-empty').style.display   = 'none';
+  document.getElementById('detail-content').style.display = 'block';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="diag-badge ${isG ? 'badge-green' : 'badge-red'}">
+      ${isG ? '✅ المنطقة صحية' : '⚠️ المنطقة مريضة'}
+    </div>
+    <div class="info-row"><span class="info-key">الصورة</span><span class="info-val">${item.image}</span></div>
+    <div class="info-row"><span class="info-key">Latitude</span><span class="info-val">${item.latitude?.toFixed(7)}</span></div>
+    <div class="info-row"><span class="info-key">Longitude</span><span class="info-val">${item.longitude?.toFixed(7)}</span></div>
+    <div class="info-row"><span class="info-key">Altitude</span><span class="info-val">${item.altitude} m</span></div>
+    <div class="info-row"><span class="info-key">ثقة النموذج</span><span class="info-val ${isG ? 'r-conf-g' : 'r-conf-r'}">${item.confidence}%</span></div>
+  `;
+
+  // تمييز في القائمة
+  document.querySelectorAll('.r-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+// ══════════════════════════════════
+//  إحصاءات
+// ══════════════════════════════════
+function renderStats() {
+  const h = allData.filter(d => d.flag === 'green').length;
+  const d = allData.length - h;
+  document.getElementById('s-total').textContent    = allData.length;
+  document.getElementById('s-healthy').textContent  = h;
+  document.getElementById('s-diseased').textContent = d;
+  document.getElementById('s-rate').textContent     = allData.length
+    ? Math.round(h / allData.length * 100) + '%' : '0%';
+}
+
+// ══════════════════════════════════
+//  قائمة النتائج
+// ══════════════════════════════════
+function renderList() {
+  const c = document.getElementById('results-list');
+  c.innerHTML = allData.map((item, i) => {
+    const isG = item.flag === 'green';
+    return `
+      <div class="r-item ${i===selectedI?'active':''}" onclick="selectItem(allData[${i}], ${i})">
+        <div class="r-dot ${isG?'r-dot-g':'r-dot-r'}"></div>
+        <span class="r-name">${item.image}</span>
+        <span class="r-conf ${isG?'r-conf-g':'r-conf-r'}">${item.confidence}%</span>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════
+//  إعادة رسم عند تغيير حجم النافذة
+// ══════════════════════════════════
+window.addEventListener('resize', () => { if (imgLoaded) drawDots(); });
+
+// تحميل من Supabase
+loadSupabase();
+setInterval(loadSupabase, 30000);
+</script>
+</body>
+</html>

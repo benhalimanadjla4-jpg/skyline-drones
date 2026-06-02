@@ -1,0 +1,62 @@
+<div class="flex items-center gap-4">
+    <div class="relative group">
+        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+        <input type="text" placeholder="Search fields or analyses..." 
+               class="bg-[#111827] border border-white/5 rounded-2xl pl-12 pr-4 py-2.5 text-sm w-80 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all">
+    </div>
+</div>
+
+<div class="flex items-center gap-6">
+    <div class="relative group">
+        <button id="notif-btn" class="relative text-slate-400 hover:text-white transition-colors" onclick="toggleDropdown('notif-dropdown', event)">
+            <i data-lucide="bell" class="w-6 h-6"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-[#0B1120] rounded-full text-[10px] text-white flex items-center justify-center font-bold">3</span>
+        </button>
+        <div id="notif-dropdown" class="dropdown-menu absolute right-0 mt-4 w-72 bg-[#111827] border border-white/10 rounded-2xl shadow-xl hidden z-50 overflow-hidden">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center bg-[#0B1120]">
+                <h3 class="font-bold text-white border-none" data-i18n="notifications">Notifications</h3>
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-bold">3 New</span>
+            </div>
+            <div class="max-h-80 overflow-y-auto">
+                <div class="p-4 border-b border-slate-800/50 hover:bg-white/5 transition-colors cursor-pointer">
+                    <p class="text-xs font-bold text-white mb-1">New analysis complete</p>
+                    <p class="text-[10px] text-slate-400">Sector A analysis ready for review</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative pl-6 border-l border-white/5">
+        <button class="flex items-center gap-3 text-left focus:outline-none" onclick="toggleDropdown('profile-dropdown', event)">
+            <div class="hidden md:block text-right">
+                <p id="topbar-user-name" class="text-sm font-bold text-white">Agriculture User</p>
+                <p class="text-[10px] text-emerald-500 font-medium">Premium Plan</p>
+            </div>
+            <img id="topbar-user-img" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-10 h-10 rounded-xl bg-emerald-500/10 p-1 border border-emerald-500/20 object-cover">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 hidden md:block"></i>
+        </button>
+
+        <div id="profile-dropdown" class="dropdown-menu absolute right-0 mt-4 w-56 bg-[#111827] border border-white/10 rounded-2xl shadow-xl hidden z-50 overflow-hidden">
+            <div class="p-4 border-b border-white/5 bg-[#0B1120]">
+                <p id="dropdown-user-name" class="text-sm font-bold text-white">Agriculture User</p>
+                <p id="dropdown-user-email" class="text-[10px] text-slate-400">admin@skyline-land.dz</p>
+            </div>
+            <div class="py-2">
+                <a href="/pages/settings.html" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 text-slate-300 hover:text-white transition-colors group border-none">
+                    <i data-lucide="user" class="w-4 h-4 text-emerald-500/70 group-hover:text-emerald-400"></i>
+                    <span data-i18n="profile">Profile</span>
+                </a>
+                <a href="/pages/settings.html" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 text-slate-300 hover:text-white transition-colors group border-none">
+                    <i data-lucide="settings" class="w-4 h-4 text-emerald-500/70 group-hover:text-emerald-400"></i>
+                    <span data-i18n="settings">Settings</span>
+                </a>
+            </div>
+            <div class="border-t border-white/5 py-2">
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-red-500 hover:text-red-400 transition-colors group">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span data-i18n="logout" class="font-bold">Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

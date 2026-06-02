@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Help Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --neon-cyan: #00E5FF; --glass-bg: rgba(15, 23, 42, 0.6); }
+        body { background-color: #0B1120; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .faq-item:hover { border-color: var(--neon-cyan); background: rgba(0, 229, 255, 0.03); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+</head>
+<body class="antialiased overflow-hidden">
+
+<div class="flex h-screen w-full">
+    <aside id="sidebar-container" class="w-72 bg-[#0F172A] border-r border-white/5 z-50"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+        <header id="topbar-container" class="h-20 sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-md border-b border-white/5"></header>
+
+        <div class="p-8 max-w-5xl mx-auto w-full space-y-12 pb-20">
+            <div class="text-center space-y-4">
+                <h1 class="text-5xl font-black text-white tracking-tight" data-i18n="help_center">Help Center</h1>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto" data-i18n="help_desc">Everything you need to know about Skyline LAND platform and drone operations.</p>
+            </div>
+
+            <div class="relative max-w-2xl mx-auto">
+                <i data-lucide="search" class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5"></i>
+                <input type="text" data-i18n-placeholder="search_help" class="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-16 pr-6 outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all text-white" placeholder="Search for guides, tutorials...">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-8 rounded-[2rem] faq-item transition-all border border-white/5 group">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 transition-transform">
+                        <i data-lucide="plane"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3" data-i18n="faq_drone_setup">Drone Setup Guide</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="faq_drone_setup_desc">Learn how to calibrate your drone sensors and connect to the AirSim environment.</p>
+                </div>
+
+                <div class="glass-card p-8 rounded-[2rem] faq-item transition-all border border-white/5 group">
+                    <div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400 mb-6 group-hover:scale-110 transition-transform">
+                        <i data-lucide="leaf"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3" data-i18n="faq_analysis">AI Crop Analysis</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="faq_analysis_desc">Understanding NDVI indices and how our AI detects plant diseases in real-time.</p>
+                </div>
+            </div>
+
+            <div class="glass-card p-10 rounded-[3rem] border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent text-center space-y-6">
+                <h2 class="text-2xl font-bold text-white" data-i18n="still_need_help">Still need help?</h2>
+                <p class="text-slate-400" data-i18n="contact_desc">Our technical team is available 24/7 for mission-critical support.</p>
+                <div class="flex justify-center gap-4">
+                    <button class="px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all uppercase text-xs tracking-widest" data-i18n="contact_us">Contact Support</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/language.js"></script>
+<script>
+    async function loadComponent(id, path) {
+        try {
+            const response = await fetch(path);
+            const html = await response.text();
+            document.getElementById(id).innerHTML = html;
+            
+            // تطبيق اللغة فور التحميل
+            const currentLang = localStorage.getItem('skyline_lang') || 'en';
+            if (typeof applyLanguage === 'function') applyLanguage(currentLang);
+            
+            if (window.lucide) lucide.createIcons();
+        } catch (e) { console.error("Error loading component:", e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadComponent('sidebar-container', '/components/sidebar.html');
+        loadComponent('topbar-container', '/components/topbar.html');
+    });
+</script>
+</body>
+</html>

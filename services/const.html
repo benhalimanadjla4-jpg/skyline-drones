@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlTag">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKYLINE | Aerial Intelligence for Construction</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --primary: #D97706;
+    --glow: #F59E0B;
+    --highlight: #FCD34D;
+    --cyan: #78716C;
+    --dark: #1C1917;
+    --bg: #0C0A09;
+    --bg2: #151210;
+    --card-bg: rgba(28, 25, 23, 0.85);
+    --text: #F5F0E8;
+    --text-muted: #A8998A;
+    --border: rgba(217, 119, 6, 0.3);
+    --steel: #44403C;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Montserrat',sans-serif; overflow-x:hidden; }
+
+  /* Grid overlay */
+  body::before {
+    content:'';
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background-image:
+      linear-gradient(rgba(217,119,6,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(217,119,6,0.04) 1px, transparent 1px);
+    background-size:60px 60px;
+    pointer-events:none; z-index:0;
+  }
+
+  #particles { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+  .hud { position:fixed; top:0; width:3px; height:100vh; z-index:1; pointer-events:none; }
+  .hud-left { left:0; background:linear-gradient(to bottom, transparent, var(--glow), transparent); opacity:0.4; }
+  .hud-right { right:0; background:linear-gradient(to bottom, transparent, var(--primary), transparent); opacity:0.4; }
+
+  .scan-line {
+    position:fixed; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--glow), transparent);
+    z-index:2; pointer-events:none;
+    animation:scan 7s linear infinite;
+  }
+  @keyframes scan { 0%{top:0;opacity:0.6} 50%{opacity:0.2} 100%{top:100vh;opacity:0} }
+
+  /* NAVBAR */
+  .topbar {
+    position:fixed; top:0; left:0; right:0; z-index:1000;
+    background:rgba(12,10,9,0.92); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border); padding:0 40px;
+  }
+  .nav-container { max-width:1300px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:70px; }
+  .logo-box { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .brand-icon { width:40px; height:40px; border-radius:6px; border:2px solid var(--glow); background:rgba(217,119,6,0.15); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .brand-name { font-family:'Orbitron',sans-serif; font-size:20px; color:var(--glow); letter-spacing:3px; }
+  .brand-sub { font-size:9px; color:var(--text-muted); letter-spacing:2px; display:block; margin-top:-2px; }
+  .nav-links { list-style:none; display:flex; gap:28px; }
+  .nav-links a { text-decoration:none; color:var(--text-muted); font-size:13px; font-weight:500; letter-spacing:1px; transition:color 0.3s; }
+  .nav-links a:hover { color:var(--glow); text-shadow:0 0 10px var(--glow); }
+  .nav-actions { display:flex; gap:12px; align-items:center; }
+  .langBtn {
+    background:transparent; border:1px solid var(--glow); color:var(--glow);
+    padding:6px 16px; border-radius:4px; cursor:pointer; font-family:'Montserrat',sans-serif;
+    font-size:13px; font-weight:700; transition:all 0.3s;
+  }
+  .langBtn:hover { background:var(--glow); color:#000; box-shadow:0 0 15px var(--glow); }
+  .login-btn {
+    background:var(--primary); border:none; color:#000;
+    padding:8px 22px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700;
+    font-family:'Orbitron',sans-serif; letter-spacing:1px; transition:all 0.3s;
+  }
+  .login-btn:hover { background:var(--glow); box-shadow:0 0 20px rgba(245,158,11,0.5); }
+
+  /* HERO */
+  .hero { position:relative; min-height:100vh; display:flex; align-items:center; overflow:hidden; padding-top:70px; }
+  .hero-bg-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.12; z-index:1; }
+  .hero-overlay {
+    position:absolute; inset:0; z-index:2;
+    background:
+      radial-gradient(ellipse at 15% 60%, rgba(217,119,6,0.2) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 30%, rgba(120,113,108,0.1) 0%, transparent 50%),
+      linear-gradient(to bottom, rgba(12,10,9,0.4) 0%, rgba(12,10,9,0.2) 50%, rgba(12,10,9,0.97) 100%);
+  }
+
+  /* Blueprint animation */
+  .blueprint-container {
+    position:absolute; right:5%; top:50%; transform:translateY(-50%);
+    width:360px; height:360px; z-index:5;
+  }
+  .bp-outer {
+    width:100%; height:100%;
+    border:1px solid rgba(217,119,6,0.25);
+    position:relative; border-radius:4px;
+    animation:bp-rotate 20s linear infinite;
+  }
+  .bp-inner {
+    position:absolute; inset:30px;
+    border:1px solid rgba(245,158,11,0.4);
+    animation:bp-rotate 15s linear infinite reverse;
+  }
+  .bp-core {
+    position:absolute; inset:60px;
+    border:2px solid rgba(252,211,77,0.6);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .bp-icon { font-size:60px; animation:float-icon 4s ease-in-out infinite; }
+  .bp-line-h { position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(217,119,6,0.2); }
+  .bp-line-v { position:absolute; top:0; bottom:0; left:50%; width:1px; background:rgba(217,119,6,0.2); }
+  .bp-corner {
+    position:absolute; width:16px; height:16px;
+    border-color:var(--glow); border-style:solid;
+  }
+  .bp-corner.tl { top:-1px; left:-1px; border-width:2px 0 0 2px; }
+  .bp-corner.tr { top:-1px; right:-1px; border-width:2px 2px 0 0; }
+  .bp-corner.bl { bottom:-1px; left:-1px; border-width:0 0 2px 2px; }
+  .bp-corner.br { bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+  .bp-measure { position:absolute; font-family:'Orbitron',sans-serif; font-size:9px; color:var(--glow); letter-spacing:1px; opacity:0.6; }
+  .bp-measure.top { top:12px; left:50%; transform:translateX(-50%); }
+  .bp-measure.right { right:12px; top:50%; transform:translateY(-50%) rotate(90deg); }
+  @keyframes bp-rotate { 100%{transform:rotate(360deg)} }
+  @keyframes float-icon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+  .heroContent { position:relative; z-index:10; max-width:700px; padding:0 20px 0 60px; }
+  .hero-badge {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(217,119,6,0.15); border:1px solid rgba(217,119,6,0.4);
+    border-radius:4px; padding:8px 20px; font-size:11px; letter-spacing:3px;
+    color:var(--glow); margin-bottom:24px; text-transform:uppercase;
+    animation:fadeUp 0.8s ease forwards;
+  }
+  .hero-badge::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--glow); animation:blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .hero-title {
+    font-family:'Orbitron',sans-serif; font-size:clamp(28px,4vw,54px); font-weight:900;
+    line-height:1.15; margin-bottom:20px;
+    background:linear-gradient(135deg, #ffffff 0%, var(--glow) 60%, var(--highlight) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    animation:fadeUp 0.9s 0.1s ease both;
+  }
+  .hero-sub {
+    font-size:15px; color:var(--text-muted); max-width:560px; margin-bottom:36px;
+    line-height:1.7; font-weight:300; animation:fadeUp 1s 0.2s ease both;
+  }
+  .cta-row { display:flex; gap:16px; flex-wrap:wrap; animation:fadeUp 1s 0.3s ease both; }
+  .btn-primary {
+    background:linear-gradient(135deg, var(--primary), #92400E); color:#fff;
+    border:none; padding:14px 34px; border-radius:4px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px;
+    box-shadow:0 0 25px rgba(217,119,6,0.4); transition:all 0.3s;
+  }
+  .btn-primary:hover { transform:translateY(-3px); box-shadow:0 0 45px rgba(245,158,11,0.7); }
+  .btn-outline {
+    background:transparent; color:var(--text); border:1px solid var(--steel);
+    padding:14px 34px; border-radius:4px; font-family:'Orbitron',sans-serif;
+    font-size:12px; font-weight:700; cursor:pointer; letter-spacing:2px; transition:all 0.3s;
+  }
+  .btn-outline:hover { border-color:var(--glow); color:var(--glow); transform:translateY(-3px); }
+
+  /* STATS */
+  .stats-bar {
+    position:relative; z-index:5;
+    background:rgba(28,25,23,0.9); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    backdrop-filter:blur(20px);
+  }
+  .stats-inner { max-width:1200px; margin:0 auto; display:flex; justify-content:space-around; flex-wrap:wrap; }
+  .stat-item { text-align:center; padding:28px 30px; border-right:1px solid var(--border); flex:1; min-width:130px; }
+  .stat-item:last-child { border-right:none; }
+  .stat-num { font-family:'Orbitron',sans-serif; font-size:34px; font-weight:900; color:var(--glow); display:block; text-shadow:0 0 20px rgba(245,158,11,0.4); }
+  .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:2px; margin-top:4px; display:block; }
+
+  /* SECTIONS */
+  .section { padding:100px 20px; position:relative; z-index:5; }
+  .section-title {
+    text-align:center; font-family:'Orbitron',sans-serif; font-size:clamp(22px,3vw,36px);
+    font-weight:900; color:#fff; margin-bottom:16px;
+  }
+  .section-title span { color:var(--glow); }
+  .section-subtitle { text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:60px; }
+  .section-line { width:60px; height:3px; background:linear-gradient(90deg, var(--primary), var(--highlight)); margin:16px auto 60px; border-radius:2px; }
+
+  /* SERVICES GRID */
+  .services-grid {
+    max-width:1200px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px;
+  }
+  .service-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:8px; padding:36px 30px; transition:all 0.4s cubic-bezier(0.2,0.8,0.2,1);
+    backdrop-filter:blur(15px); transform-style:preserve-3d; position:relative; overflow:hidden;
+  }
+  .service-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, var(--primary), var(--highlight));
+    transform:scaleX(0); transform-origin:left; transition:transform 0.4s;
+  }
+  .service-card:hover::before { transform:scaleX(1); }
+  .service-card:hover {
+    transform:translateY(-8px);
+    border-color:rgba(245,158,11,0.5);
+    box-shadow:0 20px 40px rgba(217,119,6,0.15), inset 0 0 30px rgba(217,119,6,0.03);
+  }
+  .service-icon { font-size:48px; display:inline-block; margin-bottom:18px; filter:drop-shadow(0 8px 12px rgba(217,119,6,0.3)); }
+  .service-card h3 { font-family:'Orbitron',sans-serif; font-size:15px; color:#fff; margin-bottom:12px; }
+  .service-card p { color:var(--text-muted); font-size:13px; line-height:1.7; }
+  .service-tag { display:inline-block; margin-top:16px; background:rgba(217,119,6,0.15); border:1px solid rgba(217,119,6,0.4); border-radius:3px; padding:4px 14px; font-size:10px; color:var(--glow); letter-spacing:2px; text-transform:uppercase; }
+
+  /* HOW IT WORKS */
+  .process-section { padding:80px 20px; position:relative; z-index:5; background:rgba(28,25,23,0.5); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .process-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0; }
+  .process-step { padding:40px 30px; text-align:center; position:relative; }
+  .process-step:not(:last-child)::after { content:'→'; position:absolute; right:-10px; top:50%; transform:translateY(-50%); font-size:24px; color:var(--primary); opacity:0.5; }
+  .step-num { font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; color:rgba(217,119,6,0.15); line-height:1; margin-bottom:12px; }
+  .step-icon { font-size:36px; display:block; margin-bottom:12px; }
+  .process-step h4 { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--glow); letter-spacing:2px; margin-bottom:10px; }
+  .process-step p { font-size:12px; color:var(--text-muted); line-height:1.6; }
+
+  /* ACHIEVEMENTS */
+  .achieve-section { padding:80px 20px; position:relative; z-index:5; }
+  .achieve-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; }
+  .achieve-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:8px; padding:32px; transition:all 0.4s; backdrop-filter:blur(10px);
+  }
+  .achieve-card:hover { border-color:rgba(245,158,11,0.5); transform:translateY(-6px); box-shadow:0 20px 40px rgba(217,119,6,0.15); }
+  .achieve-num { font-family:'Orbitron',sans-serif; font-size:42px; font-weight:900; color:var(--glow); text-shadow:0 0 20px rgba(245,158,11,0.4); margin-bottom:8px; }
+  .achieve-card h4 { font-family:'Orbitron',sans-serif; font-size:14px; color:#fff; margin-bottom:10px; }
+  .achieve-card p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* TIMELINE */
+  .timeline-section { padding:80px 20px; position:relative; z-index:5; }
+  .timeline { max-width:900px; margin:0 auto; position:relative; }
+  .timeline::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--primary), var(--highlight), var(--glow)); transform:translateX(-50%); }
+  .timeline-item { display:flex; gap:40px; margin-bottom:60px; position:relative; align-items:flex-start; }
+  .timeline-item:nth-child(even) { flex-direction:row-reverse; }
+  .timeline-dot { position:absolute; left:50%; top:10px; width:18px; height:18px; border-radius:2px; background:var(--glow); border:3px solid var(--bg); box-shadow:0 0 20px var(--glow),0 0 40px rgba(245,158,11,0.3); transform:translateX(-50%); z-index:2; animation:pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{box-shadow:0 0 20px var(--glow)} 50%{box-shadow:0 0 40px var(--glow)} }
+  .timeline-content { flex:1; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:28px; backdrop-filter:blur(10px); transition:all 0.3s; max-width:380px; }
+  .timeline-content:hover { border-color:rgba(245,158,11,0.5); transform:translateY(-4px); }
+  .timeline-year { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--glow); letter-spacing:2px; margin-bottom:8px; }
+  .timeline-content h4 { font-family:'Orbitron',sans-serif; font-size:14px; color:var(--glow); margin-bottom:10px; }
+  .timeline-content p { font-size:13px; color:var(--text-muted); line-height:1.6; }
+  .timeline-spacer { flex:1; }
+
+  /* TECH SPECS */
+  .tech-section { padding:80px 20px; position:relative; z-index:5; background:rgba(28,25,23,0.5); }
+  .spec-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:18px; }
+  .spec-card { background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:28px; text-align:center; backdrop-filter:blur(10px); transition:all 0.3s; }
+  .spec-card:hover { border-color:rgba(245,158,11,0.5); transform:translateY(-5px); box-shadow:0 15px 30px rgba(217,119,6,0.15); }
+  .spec-icon { font-size:30px; margin-bottom:12px; display:block; }
+  .spec-val { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:900; color:var(--glow); display:block; text-shadow:0 0 15px rgba(245,158,11,0.4); }
+  .spec-name { font-size:10px; color:var(--text-muted); letter-spacing:2px; margin-top:6px; display:block; text-transform:uppercase; }
+
+  /* AUTH PANEL */
+  .auth-section { padding:100px 20px; position:relative; z-index:5; background:radial-gradient(ellipse at center, rgba(217,119,6,0.06) 0%, transparent 70%); }
+  .auth-wrapper { max-width:1100px; margin:0 auto; display:flex; gap:0; align-items:stretch; background:rgba(20,16,12,0.9); border:1px solid var(--border); border-radius:12px; overflow:hidden; backdrop-filter:blur(20px); box-shadow:0 0 60px rgba(217,119,6,0.1); }
+  .auth-left { flex:1; padding:60px 50px; background:linear-gradient(135deg, rgba(217,119,6,0.12) 0%, rgba(120,113,108,0.05) 100%); display:flex; flex-direction:column; justify-content:center; border-right:1px solid var(--border); }
+  .auth-left .tag { font-size:11px; letter-spacing:3px; color:var(--glow); text-transform:uppercase; margin-bottom:16px; }
+  .auth-left h2 { font-family:'Orbitron',sans-serif; font-size:clamp(20px,2.5vw,30px); line-height:1.2; color:#fff; margin-bottom:20px; }
+  .auth-left h2 span { color:var(--glow); }
+  .auth-left p { color:var(--text-muted); font-size:14px; line-height:1.7; margin-bottom:30px; }
+  .auth-features { list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .auth-features li { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-muted); }
+  .auth-features li .dot { width:8px; height:8px; background:var(--glow); border-radius:2px; flex-shrink:0; box-shadow:0 0 10px var(--glow); }
+  .auth-right { flex:1; padding:50px; display:flex; flex-direction:column; }
+  .auth-form { display:flex; flex-direction:column; gap:14px; }
+  .auth-form input, .auth-form select { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:13px 16px; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; transition:border-color 0.3s,box-shadow 0.3s; outline:none; width:100%; }
+  .auth-form input:focus, .auth-form select:focus { border-color:var(--glow); box-shadow:0 0 15px rgba(245,158,11,0.15); }
+  .auth-form input::placeholder { color:var(--text-muted); }
+  .auth-form select { color:var(--text-muted); }
+  .auth-form select option { background:#151210; color:var(--text); }
+  .input-row { display:flex; gap:12px; }
+  .input-row input { flex:1; }
+  .remember-row { display:flex; justify-content:space-between; align-items:center; }
+  .remember-row label { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); cursor:pointer; }
+  .btn-submit { background:linear-gradient(135deg, var(--primary), #92400E); color:#fff; border:none; padding:15px; border-radius:6px; font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; cursor:pointer; transition:all 0.3s; box-shadow:0 0 20px rgba(217,119,6,0.3); }
+  .btn-submit:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(245,158,11,0.5); }
+  .or-divider { text-align:center; position:relative; color:var(--text-muted); font-size:13px; }
+  .or-divider::before,.or-divider::after { content:''; position:absolute; top:50%; width:42%; height:1px; background:var(--border); }
+  .or-divider::before { left:0; } .or-divider::after { right:0; }
+  .btn-google { display:flex; align-items:center; justify-content:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:13px; cursor:pointer; color:var(--text); font-family:'Montserrat',sans-serif; font-size:14px; font-weight:500; transition:all 0.3s; }
+  .btn-google:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); }
+  .btn-google img { width:22px; height:22px; border-radius:50%; }
+
+  /* STATUS */
+  #sec-status { display:none; padding:10px; border-radius:6px; font-size:13px; text-align:center; font-weight:600; border:1px solid transparent; }
+
+  /* FOOTER */
+  .footer { background:rgba(8,6,5,0.98); border-top:1px solid var(--border); padding:60px 20px 30px; position:relative; z-index:5; }
+  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; }
+  .footer-brand .logo-mark { width:50px; height:50px; border-radius:6px; border:2px solid var(--glow); background:rgba(217,119,6,0.1); display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:14px; }
+  .footer-brand h3 { font-family:'Orbitron',sans-serif; font-size:18px; color:var(--glow); margin-bottom:10px; }
+  .footer-brand p { color:var(--text-muted); font-size:13px; line-height:1.6; }
+  .footer-col h4 { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--glow); letter-spacing:2px; margin-bottom:16px; text-transform:uppercase; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .footer-col ul li { font-size:13px; color:var(--text-muted); cursor:pointer; transition:color 0.3s; }
+  .footer-col ul li:hover { color:var(--glow); }
+  .footer-bottom { max-width:1100px; margin:40px auto 0; padding-top:20px; border-top:1px solid var(--border); text-align:center; font-size:12px; color:var(--text-muted); }
+
+  /* NOTIFICATION */
+  .notification { position:fixed; top:90px; right:20px; z-index:9999; background:var(--card-bg); border:1px solid var(--glow); border-radius:8px; padding:16px 24px; font-size:14px; color:var(--text); box-shadow:0 10px 30px rgba(217,119,6,0.25); transform:translateX(200%); transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1); display:flex; align-items:center; gap:10px; }
+  .notification.show { transform:translateX(0); }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:900px) {
+    .auth-wrapper { flex-direction:column; }
+    .auth-left { border-right:none; border-bottom:1px solid var(--border); padding:40px 30px; }
+    .auth-right { padding:40px 30px; }
+    .blueprint-container { display:none; }
+    .heroContent { padding:0 20px; }
+    .timeline::before { left:20px; }
+    .timeline-item { flex-direction:column !important; padding-left:50px; }
+    .timeline-dot { left:20px; }
+    .timeline-spacer { display:none; }
+    .footer-inner { grid-template-columns:1fr 1fr; }
+    .nav-links { display:none; }
+    .process-step:not(:last-child)::after { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="scan-line"></div>
+<div class="hud hud-left"></div>
+<div class="hud hud-right"></div>
+<div id="notification" class="notification"><span>🏗️</span><span id="notif-msg">Aerial survey system online</span></div>
+
+<!-- NAVBAR -->
+<nav class="topbar">
+  <div class="nav-container">
+    <a href="#" class="logo-box">
+      <div class="brand-icon">🏗️</div>
+      <div>
+        <span class="brand-name">SKYLINE</span>
+        <span class="brand-sub">CONSTRUCTION DIVISION</span>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home" data-en="Home" data-ar="الرئيسية">Home</a></li>
+      <li><a href="#services" data-en="Services" data-ar="الخدمات">Services</a></li>
+      <li><a href="#achievements" data-en="Achievements" data-ar="الإنجازات">Achievements</a></li>
+      <li><a href="#journey" data-en="Our Journey" data-ar="مسيرتنا">Our Journey</a></li>
+      <li><a href="#auth" data-en="Get Started" data-ar="ابدأ الآن">Get Started</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="langBtn" onclick="toggleLang()">AR</button>
+      <button class="login-btn" data-en="Login" data-ar="دخول">Login</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-overlay"></div>
+
+  <!-- Blueprint animation -->
+  <div class="blueprint-container">
+    <div class="bp-outer">
+      <div class="bp-line-h"></div>
+      <div class="bp-line-v"></div>
+      <div class="bp-corner tl"></div>
+      <div class="bp-corner tr"></div>
+      <div class="bp-corner bl"></div>
+      <div class="bp-corner br"></div>
+      <span class="bp-measure top">48.500 m</span>
+      <span class="bp-measure right">24.200 m</span>
+      <div class="bp-inner">
+        <div class="bp-core">
+          <span class="bp-icon">🏗️</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="heroContent">
+    <div class="hero-badge" data-en="🛸 AERIAL INTELLIGENCE — CONSTRUCTION DIVISION" data-ar="🛸 الذكاء الجوي — قسم البناء">🛸 AERIAL INTELLIGENCE — CONSTRUCTION DIVISION</div>
+    <h1 class="hero-title" data-en="Build Smarter.<br>Survey From Above." data-ar="بناء أذكى.<br>مسح من الأعلى.">Build Smarter.<br>Survey From Above.</h1>
+    <p class="hero-sub" data-en="Real-time topographic mapping, volumetric analysis, structural inspection, and progress monitoring for construction projects of any scale — from foundation to finishing." data-ar="رسم خرائط طبوغرافية فورية، تحليل حجمي، فحص هيكلي، ومتابعة تقدم مشاريع البناء من أي حجم — من الأساس إلى التشطيب.">
+      Real-time topographic mapping, volumetric analysis, structural inspection, and progress monitoring for construction projects of any scale — from foundation to finishing.
+    </p>
+    <div class="cta-row">
+      <button class="btn-primary" onclick="document.getElementById('auth').scrollIntoView({behavior:'smooth'})" data-en="Start Survey" data-ar="ابدأ المسح">Start Survey</button>
+      <button class="btn-outline" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})" data-en="Our Services" data-ar="خدماتنا">Our Services</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <span class="stat-num" data-count="320">0</span>
+      <span class="stat-label" data-en="Projects Completed" data-ar="مشروع منجز">Projects Completed</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="98">0</span>
+      <span class="stat-label" data-en="% Mapping Accuracy" data-ar="% دقة الرسم">% Mapping Accuracy</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="5">0</span>
+      <span class="stat-label" data-en="cm Survey Precision" data-ar="سم دقة المسح">cm Precision</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="12">0</span>
+      <span class="stat-label" data-en="Wilayas Covered" data-ar="ولاية مغطاة">Wilayas Covered</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="48">0</span>
+      <span class="stat-label" data-en="Hours Fastest Survey" data-ar="ساعة أسرع مسح">hr Fastest Survey</span>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <h2 class="section-title" data-en="Our <span>Services</span>" data-ar="<span>خدماتنا</span>">Our <span>Services</span></h2>
+  <p class="section-subtitle" data-en="Comprehensive aerial intelligence solutions for every phase of construction" data-ar="حلول ذكاء جوي شاملة لكل مرحلة من مراحل البناء">Comprehensive aerial intelligence solutions for every phase of construction</p>
+  <div class="section-line"></div>
+  <div class="services-grid">
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">🗺️</div>
+      <h3 data-en="Drone Topographic Survey" data-ar="مسح طبوغرافي بالدرون">Drone Topographic Survey</h3>
+      <p data-en="High-precision aerial mapping generates centimeter-accurate 3D terrain models in a fraction of traditional survey time. Supports DEM, DSM, and orthophoto output compatible with AutoCAD & BIM." data-ar="رسم خرائط جوية عالية الدقة تولد نماذج ثلاثية الأبعاد بدقة سنتيمترية في جزء من وقت المسح التقليدي. يدعم DEM وDSM وorthophoto متوافقاً مع AutoCAD وBIM.">
+        High-precision aerial mapping generates centimeter-accurate 3D terrain models. Supports DEM, DSM, and orthophoto output compatible with AutoCAD & BIM.
+      </p>
+      <span class="service-tag">3D · DEM · BIM · LIDAR</span>
+    </div>
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">📐</div>
+      <h3 data-en="Foundation Volume Analysis" data-ar="تحليل حجم الأساسات">Foundation Volume Analysis</h3>
+      <p data-en="Automated cut-and-fill volumetric calculations using point cloud data. Reduces earthwork cost estimation errors by up to 40% compared to manual methods, with full audit-ready reports." data-ar="حسابات حجمية آلية للقطع والردم باستخدام بيانات السحابة النقطية. يقلل أخطاء تقدير تكاليف أعمال الترابية بنسبة 40%، مع تقارير جاهزة للمراجعة.">
+        Automated cut-and-fill volumetric calculations using point cloud data. Reduces estimation errors by up to 40% with full audit-ready reports.
+      </p>
+      <span class="service-tag">VOLUME · CUT-FILL · POINTCLOUD</span>
+    </div>
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">🔍</div>
+      <h3 data-en="Structural Inspection" data-ar="الفحص الهيكلي">Structural Inspection</h3>
+      <p data-en="Close-range drone inspection of facades, rooftops, bridges, and concrete structures. AI detects cracks, spalling, corrosion, and deformation with thermal imaging for hidden defects." data-ar="فحص بالدرون من مسافة قريبة للواجهات والأسطح والجسور والهياكل الخرسانية. يكشف الذكاء الاصطناعي الشقوق والتآكل والتشوه بالتصوير الحراري للعيوب الخفية.">
+        AI-powered close-range inspection of facades, rooftops, and structures. Detects cracks, corrosion, and deformation with thermal imaging for hidden defects.
+      </p>
+      <span class="service-tag">AI · THERMAL · CRACK DETECT</span>
+    </div>
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">📊</div>
+      <h3 data-en="Progress Monitoring" data-ar="متابعة التقدم">Progress Monitoring</h3>
+      <p data-en="Weekly or on-demand drone flyovers generate time-lapse comparison reports, schedule deviation alerts, and 3D progress overlays against original plans. Keep stakeholders informed in real time." data-ar="رحلات جوية أسبوعية أو حسب الطلب تولد تقارير مقارنة time-lapse، وتنبيهات انحراف الجدول، وتراكبات ثلاثية الأبعاد مقابل الخطط الأصلية.">
+        Weekly flyovers generate time-lapse comparison reports, schedule deviation alerts, and 3D progress overlays against original plans.
+      </p>
+      <span class="service-tag">MONITORING · TIMELAPSE · 3D</span>
+    </div>
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">🌡️</div>
+      <h3 data-en="Thermal Energy Audit" data-ar="مراجعة الطاقة الحرارية">Thermal Energy Audit</h3>
+      <p data-en="Infrared drone surveys identify insulation gaps, moisture infiltration, and heat loss across building envelopes before finishing. Helps meet energy efficiency standards and HVAC planning." data-ar="مسوحات بالأشعة تحت الحمراء تحدد ثغرات العزل وتسرب الرطوبة وفقدان الحرارة عبر غلاف المبنى قبل التشطيب. يساعد في تلبية معايير كفاءة الطاقة وتخطيط HVAC.">
+        Infrared surveys identify insulation gaps, moisture infiltration, and heat loss before finishing. Helps meet energy efficiency standards and HVAC planning.
+      </p>
+      <span class="service-tag">INFRARED · HVAC · ENERGY</span>
+    </div>
+
+    <div class="service-card" data-tilt data-tilt-max="10">
+      <div class="service-icon">🛡️</div>
+      <h3 data-en="Site Safety Monitoring" data-ar="مراقبة سلامة الموقع">Site Safety Monitoring</h3>
+      <p data-en="Autonomous drone overwatch detects PPE compliance, restricted zone breaches, and hazardous conditions on active construction sites in real time — reducing workplace incidents by up to 60%." data-ar="مراقبة ذاتية تكشف الامتثال لمعدات الحماية الشخصية وخروقات المناطق المقيدة والظروف الخطرة في المواقع النشطة — تقليل حوادث مكان العمل بنسبة 60%.">
+        Autonomous overwatch detects PPE compliance, zone breaches, and hazardous conditions on active sites — reducing incidents by up to 60%.
+      </p>
+      <span class="service-tag">PPE · SAFETY · REALTIME</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="process-section">
+  <h2 class="section-title" data-en="How It <span>Works</span>" data-ar="كيف <span>يعمل</span>">How It <span>Works</span></h2>
+  <div class="section-line"></div>
+  <div class="process-grid">
+    <div class="process-step">
+      <div class="step-num">01</div>
+      <span class="step-icon">📋</span>
+      <h4 data-en="Brief & Plan" data-ar="الإحاطة والتخطيط">Brief & Plan</h4>
+      <p data-en="We analyze your site, project phase, and deliverable requirements to design the optimal flight mission." data-ar="نحلل موقعك ومرحلة المشروع ومتطلبات التسليم لتصميم مهمة الطيران المثلى.">We analyze your site and design the optimal flight mission.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-num">02</div>
+      <span class="step-icon">🛸</span>
+      <h4 data-en="Drone Deployment" data-ar="نشر الدرون">Drone Deployment</h4>
+      <p data-en="Our certified pilots deploy autonomous drones across your site, capturing thousands of high-res images and sensor readings." data-ar="يقوم طياروننا المعتمدون بنشر طائرات ذاتية عبر موقعك، وتسجيل آلاف الصور والقراءات.">Certified pilots deploy autonomous drones capturing high-res imagery and sensor data.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-num">03</div>
+      <span class="step-icon">🤖</span>
+      <h4 data-en="AI Processing" data-ar="المعالجة بالذكاء الاصطناعي">AI Processing</h4>
+      <p data-en="Raw data is processed through our photogrammetry and AI pipeline to generate 3D models, point clouds, and analytics reports." data-ar="تتم معالجة البيانات الخام عبر خط أنابيب التصوير الضوئي والذكاء الاصطناعي لتوليد نماذج ثلاثية الأبعاد وسحب النقاط وتقارير التحليلات.">Raw data processed through AI pipeline to generate 3D models and analytics.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-num">04</div>
+      <span class="step-icon">📤</span>
+      <h4 data-en="Delivery & Action" data-ar="التسليم والتنفيذ">Delivery & Action</h4>
+      <p data-en="Deliverables exported in your preferred format (CAD, PDF, GIS, BIM) with a dedicated engineer briefing and actionable recommendations." data-ar="يتم تصدير المخرجات بالتنسيق المفضل لديك (CAD وPDF وGIS وBIM) مع إحاطة مهندس مخصص وتوصيات قابلة للتنفيذ.">Deliverables exported in your format (CAD, GIS, BIM) with engineer briefing.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ACHIEVEMENTS -->
+<section class="achieve-section" id="achievements">
+  <h2 class="section-title" data-en="Key <span>Achievements</span>" data-ar="<span>أبرز</span> الإنجازات">Key <span>Achievements</span></h2>
+  <p class="section-subtitle" data-en="Proven results across Algeria's largest construction and infrastructure projects" data-ar="نتائج مُثبتة في أكبر مشاريع البناء والبنية التحتية في الجزائر">Proven results across Algeria's largest construction and infrastructure projects</p>
+  <div class="section-line"></div>
+  <div class="achieve-grid">
+    <div class="achieve-card">
+      <div class="achieve-num">98%</div>
+      <h4 data-en="Mapping Accuracy Rate" data-ar="معدل دقة الرسم">Mapping Accuracy Rate</h4>
+      <p data-en="Our photogrammetry pipeline delivers consistent 98% accuracy on orthomosaics and DEMs validated against ground control points across all terrain types." data-ar="يوفر خط أنابيب التصوير الضوئي لدينا دقة 98% باستمرار على الصور المتعامدة ونماذج الارتفاع الرقمية.">Our photogrammetry pipeline delivers 98% accuracy on orthomosaics and DEMs across all terrain types.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">320+</div>
+      <h4 data-en="Construction Projects Served" data-ar="مشروع بناء مُخدَم">Construction Projects Served</h4>
+      <p data-en="From residential towers to highway infrastructure, we have completed over 320 aerial intelligence missions across 12 Algerian wilayas." data-ar="من الأبراج السكنية إلى بنية الطرق السريعة، أكملنا أكثر من 320 مهمة ذكاء جوي في 12 ولاية جزائرية.">From residential towers to highway infrastructure, 320+ missions across 12 wilayas.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">40%</div>
+      <h4 data-en="Cost Estimation Error Reduction" data-ar="تقليل أخطاء تقدير التكاليف">Cost Estimation Error Reduction</h4>
+      <p data-en="Clients using our volumetric analysis report an average 40% reduction in earthwork cost estimation errors versus traditional manual surveying." data-ar="يُبلغ العملاء الذين يستخدمون تحليلنا الحجمي عن تقليل متوسط بنسبة 40% في أخطاء تقدير تكاليف الأعمال الترابية.">Clients report 40% fewer earthwork estimation errors versus traditional surveying.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">5cm</div>
+      <h4 data-en="Ground Sampling Distance" data-ar="مسافة أخذ عينات الأرض">Ground Sampling Distance</h4>
+      <p data-en="Industry-leading 5cm GSD precision using PPK-corrected drones, producing survey-grade accuracy accepted by Algerian engineering authorities." data-ar="دقة 5 سم GSD رائدة في الصناعة باستخدام طائرات مصحَّحة بـ PPK، تنتج دقة على مستوى المسح مقبولة من السلطات الهندسية الجزائرية.">Industry-leading 5cm GSD using PPK-corrected drones, survey-grade precision.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">60%</div>
+      <h4 data-en="Site Incident Reduction" data-ar="تقليل حوادث الموقع">Site Incident Reduction</h4>
+      <p data-en="Construction sites using our safety monitoring drones recorded a 60% reduction in workplace incidents within the first three months of deployment." data-ar="سجلت مواقع البناء التي تستخدم طائرات مراقبة السلامة لدينا انخفاضاً بنسبة 60% في حوادث مكان العمل خلال الأشهر الثلاثة الأولى.">Sites using our safety drones recorded 60% fewer incidents in the first 3 months.</p>
+    </div>
+    <div class="achieve-card">
+      <div class="achieve-num">2025</div>
+      <h4 data-en="National Innovation Prize — BTP Sector" data-ar="جائزة الابتكار الوطني — قطاع البناء">National Innovation Prize — BTP Sector</h4>
+      <p data-en="Recognized by Algeria's Ministry of Public Works for breakthrough application of drone photogrammetry in national infrastructure development." data-ar="حصلنا على اعتراف وزارة الأشغال العامة الجزائرية بتطبيق رائد للتصوير الضوئي بالدرون في تطوير البنية التحتية الوطنية.">Recognized by Algeria's Ministry of Public Works for breakthrough drone photogrammetry in national infrastructure.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="timeline-section" id="journey">
+  <h2 class="section-title" data-en="Our <span>Journey</span>" data-ar="<span>مسيرتنا</span>">Our <span>Journey</span></h2>
+  <div class="section-line"></div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2022</div>
+        <h4 data-en="First Site — Algiers Ring Road Survey" data-ar="أول موقع — مسح الطريق الدائري للجزائر">First Site — Algiers Ring Road Survey</h4>
+        <p data-en="Completed first topographic survey mission for a highway interchange project in the Algiers region using fixed-wing PPK drones. Delivered 3cm GSD orthomap in 72 hours." data-ar="أكملنا أول مهمة مسح طبوغرافي لمشروع تبادل طرق سريعة في منطقة الجزائر. سلمنا خريطة ortho بدقة 3 سم في 72 ساعة.">Completed first topographic survey for a highway interchange in Algiers using PPK drones. Delivered 3cm orthomap in 72 hours.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2023</div>
+        <h4 data-en="BIM Integration & Volumetric AI Launch" data-ar="تكامل BIM وإطلاق الذكاء الاصطناعي الحجمي">BIM Integration & Volumetric AI Launch</h4>
+        <p data-en="Launched AI-powered cut-and-fill volumetric analysis module. Signed first BIM integration contract with a major Oran residential developer covering 14 towers." data-ar="أطلقنا وحدة تحليل حجمي للقطع والردم مدعومة بالذكاء الاصطناعي. أبرمنا أول عقد تكامل BIM مع مطور سكني كبير في وهران يغطي 14 برجاً.">Launched AI volumetric analysis module. Signed first BIM integration contract for 14 residential towers in Oran.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-content">
+        <div class="timeline-year">2024</div>
+        <h4 data-en="National Expansion — 12 Wilayas" data-ar="التوسع الوطني — 12 ولاية">National Expansion — 12 Wilayas</h4>
+        <p data-en="Expanded operations to 12 wilayas covering major dam, rail, and urban projects. Introduced thermal structural inspection service. Exceeded 200 completed missions." data-ar="وسعنا العمليات إلى 12 ولاية تغطي مشاريع السدود والسكك الحديدية والمشاريع الحضرية الكبرى. قدمنا خدمة الفحص الهيكلي الحراري. تجاوزنا 200 مهمة منجزة.">Expanded to 12 wilayas covering dam, rail, and urban projects. Introduced thermal inspection. Exceeded 200 missions.</p>
+      </div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-spacer"></div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-spacer"></div>
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-year">2025</div>
+        <h4 data-en="National Prize & Ministry Partnership" data-ar="الجائزة الوطنية وشراكة الوزارة">National Prize & Ministry Partnership</h4>
+        <p data-en="Won National BTP Innovation Prize. Formal partnership with Ministry of Public Works for drone surveying on national infrastructure programs. 320+ projects delivered." data-ar="فزنا بجائزة الابتكار الوطني BTP. شراكة رسمية مع وزارة الأشغال العامة للمسح بالدرون في البرامج الوطنية. تسليم 320+ مشروع.">Won National BTP Innovation Prize. Ministry of Public Works partnership formalized. 320+ projects delivered.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH SPECS -->
+<section class="tech-section">
+  <h2 class="section-title" data-en="Drone <span>Specs</span>" data-ar="مواصفات <span>الدرون</span>">Drone <span>Specs</span></h2>
+  <div class="section-line"></div>
+  <div class="spec-grid">
+    <div class="spec-card"><span class="spec-icon">📸</span><span class="spec-val">42MP</span><span class="spec-name" data-en="Camera Resolution" data-ar="دقة الكاميرا">Camera</span></div>
+    <div class="spec-card"><span class="spec-icon">🎯</span><span class="spec-val">3cm</span><span class="spec-name" data-en="GSD Accuracy" data-ar="دقة GSD">GSD Accuracy</span></div>
+    <div class="spec-card"><span class="spec-icon">⏱️</span><span class="spec-val">90min</span><span class="spec-name" data-en="Flight Endurance" data-ar="تحمل الطيران">Endurance</span></div>
+    <div class="spec-card"><span class="spec-icon">📡</span><span class="spec-val">PPK</span><span class="spec-name" data-en="GPS Correction" data-ar="تصحيح GPS">GPS</span></div>
+    <div class="spec-card"><span class="spec-icon">🌡️</span><span class="spec-val">FLIR</span><span class="spec-name" data-en="Thermal Camera" data-ar="كاميرا حرارية">Thermal</span></div>
+    <div class="spec-card"><span class="spec-icon">🗺️</span><span class="spec-val">500ha</span><span class="spec-name" data-en="Area Per Flight" data-ar="مساحة لكل رحلة">Per Flight</span></div>
+  </div>
+</section>
+
+<!-- AUTH PANEL -->
+<section class="auth-section" id="auth">
+  <h2 class="section-title" data-en="Start Your <span>Project</span>" data-ar="ابدأ <span>مشروعك</span>">Start Your <span>Project</span></h2>
+  <div class="section-line"></div>
+  <div class="auth-wrapper">
+    <div class="auth-left">
+      <div class="tag" data-en="🏗️ CONSTRUCTION INTELLIGENCE PLATFORM" data-ar="🏗️ منصة ذكاء البناء">🏗️ CONSTRUCTION INTELLIGENCE PLATFORM</div>
+      <h2 data-en="Aerial Data for <span>Every Stage</span> of Your Build" data-ar="بيانات جوية لـ <span>كل مرحلة</span> من بنائك">Aerial Data for <span>Every Stage</span> of Your Build</h2>
+      <p data-en="Join 320+ construction projects already using SKYLINE's aerial intelligence platform. From site preparation to structural completion — total aerial visibility." data-ar="انضم إلى أكثر من 320 مشروع بناء يستخدم منصة الذكاء الجوي من SKYLINE. من إعداد الموقع إلى اكتمال الهيكل — رؤية جوية كاملة.">Join 320+ projects using SKYLINE aerial intelligence. Total visibility from preparation to completion.</p>
+      <ul class="auth-features">
+        <li><span class="dot"></span><span data-en="Live drone dashboard & mission control" data-ar="لوحة درون حية وتحكم في المهام">Live drone dashboard & mission control</span></li>
+        <li><span class="dot"></span><span data-en="Automated 3D model & report generation" data-ar="توليد نماذج ثلاثية الأبعاد وتقارير آلياً">Automated 3D model & report generation</span></li>
+        <li><span class="dot"></span><span data-en="BIM & AutoCAD integration ready" data-ar="جاهز للتكامل مع BIM وAutoCAD">BIM & AutoCAD integration ready</span></li>
+        <li><span class="dot"></span><span data-en="Multi-site progress comparison" data-ar="مقارنة تقدم متعدد المواقع">Multi-site progress comparison</span></li>
+        <li><span class="dot"></span><span data-en="Dedicated survey engineer support" data-ar="دعم مهندس مسح مخصص">Dedicated survey engineer support</span></li>
+      </ul>
+    </div>
+    <div class="auth-right">
+      <div class="auth-form" id="form-register">
+        <h3 style="margin-bottom:24px;font-size:22px;color:#fff;font-family:'Orbitron',sans-serif;" data-en="Request a Survey" data-ar="طلب مسح">Request a Survey</h3>
+        <input id="reg-name" type="text" placeholder="Full Name" data-placeholder-en="Full Name" data-placeholder-ar="الاسم الكامل">
+        <input id="reg-email" type="email" placeholder="Email Address" data-placeholder-en="Email Address" data-placeholder-ar="البريد الإلكتروني">
+        <input id="reg-company" type="text" placeholder="Company / Project Name" data-placeholder-en="Company / Project Name" data-placeholder-ar="الشركة / اسم المشروع">
+        <select id="reg-service">
+          <option value="" disabled selected data-en="Service Required" data-ar="الخدمة المطلوبة">Service Required</option>
+          <option value="topo" data-en="Topographic Survey" data-ar="مسح طبوغرافي">Topographic Survey</option>
+          <option value="volume" data-en="Volume Analysis" data-ar="تحليل حجمي">Volume Analysis</option>
+          <option value="inspection" data-en="Structural Inspection" data-ar="فحص هيكلي">Structural Inspection</option>
+          <option value="progress" data-en="Progress Monitoring" data-ar="متابعة التقدم">Progress Monitoring</option>
+          <option value="thermal" data-en="Thermal Energy Audit" data-ar="مراجعة الطاقة الحرارية">Thermal Energy Audit</option>
+          <option value="safety" data-en="Site Safety Monitoring" data-ar="مراقبة سلامة الموقع">Site Safety Monitoring</option>
+        </select>
+        <div class="input-row">
+          <input id="reg-pass" type="password" placeholder="Password" data-placeholder-en="Password" data-placeholder-ar="كلمة المرور">
+          <input id="reg-confirm" type="password" placeholder="Confirm Password" data-placeholder-en="Confirm Password" data-placeholder-ar="تأكيد كلمة المرور">
+        </div>
+        <div class="remember-row">
+          <label><input type="checkbox"> <span data-en="Remember me" data-ar="تذكرني">Remember me</span></label>
+        </div>
+        <div id="sec-status"></div>
+        <button class="btn-submit" id="reg-btn" onclick="handleRegister()" data-en="🏗️ Submit Request" data-ar="🏗️ إرسال الطلب">🏗️ Submit Request</button>
+        <div class="or-divider">OR</div>
+        <button class="btn-google" onclick="handleGoogle(this)">
+          <img src="https://www.google.com/favicon.ico" alt="Google">
+          <span data-en="Continue with Google" data-ar="المتابعة بـ Google">Continue with Google</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo-mark">🏗️</div>
+      <h3>SKYLINE</h3>
+      <p data-en="Aerial intelligence for construction. Mapping the future from above." data-ar="ذكاء جوي للبناء. رسم المستقبل من الأعلى.">Aerial intelligence for construction. Mapping the future from above.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Services" data-ar="الخدمات">Services</h4>
+      <ul>
+        <li data-en="Topographic Survey" data-ar="مسح طبوغرافي">Topographic Survey</li>
+        <li data-en="Volume Analysis" data-ar="تحليل حجمي">Volume Analysis</li>
+        <li data-en="Structural Inspection" data-ar="فحص هيكلي">Structural Inspection</li>
+        <li data-en="Progress Monitoring" data-ar="متابعة التقدم">Progress Monitoring</li>
+        <li data-en="Safety Monitoring" data-ar="مراقبة السلامة">Safety Monitoring</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Company" data-ar="الشركة">Company</h4>
+      <ul>
+        <li data-en="About SKYLINE" data-ar="عن SKYLINE">About SKYLINE</li>
+        <li data-en="Our Fleet" data-ar="أسطولنا">Our Fleet</li>
+        <li data-en="Technology" data-ar="التكنولوجيا">Technology</li>
+        <li data-en="Join Our Team" data-ar="انضم إلى فريقنا">Join Our Team</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-en="Contact" data-ar="تواصل">Contact</h4>
+      <ul>
+        <li>📍 Algeria</li>
+        <li>📧 skylinekn12@gmail.com</li>
+        <li>📞 +213 555 222 333</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SKYLINE Construction Intelligence Division</p>
+  </div>
+</footer>
+
+<script>
+// PARTICLES
+const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+const particles=Array.from({length:50},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+.5,color:Math.random()>.5?'#F59E0B':'#78716C'}));
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.globalAlpha=.4;ctx.fill()});ctx.globalAlpha=1;requestAnimationFrame(draw);}
+draw();window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+// COUNTERS
+function animateCounters(){document.querySelectorAll('.stat-num[data-count]').forEach(el=>{const t=+el.dataset.count;let c=0;const s=t/60;const ti=setInterval(()=>{c=Math.min(c+s,t);el.textContent=Math.floor(c);if(c>=t){el.textContent=t;clearInterval(ti);}},25);});}
+const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting){animateCounters();obs.disconnect();}},{threshold:.3});
+obs.observe(document.querySelector('.stats-bar'));
+
+// TILT
+document.addEventListener('DOMContentLoaded',()=>{
+  VanillaTilt.init(document.querySelectorAll('.service-card,.spec-card'),{max:12,speed:400,glare:true,'max-glare':.1});
+  VanillaTilt.init(document.querySelectorAll('.auth-left'),{max:5,speed:600,glare:false});
+});
+
+// LANG
+let isAr=false;
+function toggleLang(){isAr=!isAr;document.documentElement.lang=isAr?'ar':'en';document.documentElement.dir=isAr?'rtl':'ltr';document.querySelector('.langBtn').textContent=isAr?'EN':'AR';document.querySelectorAll('[data-en]').forEach(el=>{if(el.dataset[isAr?'ar':'en'])el.innerHTML=el.dataset[isAr?'ar':'en'];});document.querySelectorAll('[data-placeholder-en]').forEach(el=>{el.placeholder=isAr?el.dataset.placeholderAr:el.dataset.placeholderEn;});}
+
+// Supabase
+const _sbCon = supabase.createClient(
+  'https://rpbswbyxlmcwlqkkpnhe.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA'
+);
+
+async function handleRegister() {
+  const ar = document.documentElement.lang === 'ar';
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const company = document.getElementById('reg-company').value.trim();
+  const service = document.getElementById('reg-service').value;
+  const pass = document.getElementById('reg-pass').value;
+  const confirm = document.getElementById('reg-confirm').value;
+  const btn = document.getElementById('reg-btn');
+  const statusEl = document.getElementById('sec-status');
+
+  const show = (msg, color) => {
+    statusEl.style.display = 'block';
+    statusEl.style.color = color;
+    statusEl.style.background = color === '#f43f5e' ? 'rgba(244,63,94,0.1)' : 'rgba(245,158,11,0.1)';
+    statusEl.style.border = `1px solid ${color}`;
+    statusEl.textContent = msg;
+  };
+
+  if (!name || !email || !pass || !service) { show(ar ? '⚠️ يرجى ملء جميع الحقول' : '⚠️ Please fill all fields', '#f43f5e'); return; }
+  if (pass !== confirm) { show(ar ? '⚠️ كلمتا المرور غير متطابقتين' : '⚠️ Passwords do not match', '#f43f5e'); return; }
+  if (pass.length < 6) { show(ar ? '⚠️ 6 أحرف على الأقل' : '⚠️ Min 6 characters', '#f43f5e'); return; }
+
+  btn.disabled = true;
+  btn.textContent = ar ? '⏳ جارٍ الإرسال...' : '⏳ Submitting...';
+  show(ar ? 'جارٍ إنشاء الحساب...' : 'Creating account...', '#F59E0B');
+
+  try {
+    const { data, error } = await _sbCon.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, role: 'construction', company } }
+    });
+    if (error) throw error;
+    show(ar ? '✅ تم إرسال الطلب! تحقق من بريدك.' : '✅ Request submitted! Check your email.', '#5ddb6a');
+    btn.textContent = '✅ Done!';
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = ar ? '🏗️ إرسال الطلب' : '🏗️ Submit Request';
+    let msg = err.message;
+    if (msg.includes('already registered')) msg = ar ? 'البريد مسجل مسبقاً' : 'Email already registered';
+    show('❌ ' + msg, '#f43f5e');
+  }
+}
+
+async function handleGoogle(btn) {
+  btn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2px solid #F59E0B;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:10px;"></span>Authenticating...`;
+  btn.style.pointerEvents = 'none';
+  const { error } = await _sbCon.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/sky-line/services/auth-callback.html' }
+  });
+  if (error) { btn.innerHTML = '❌ Failed'; btn.style.pointerEvents = 'auto'; }
+}
+
+const st = document.createElement('style');
+st.textContent = '@keyframes spin{100%{transform:rotate(360deg)}}';
+document.head.appendChild(st);
+
+// Show notification on load
+setTimeout(() => {
+  const n = document.getElementById('notification');
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3500);
+}, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | My Missions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ── Loader ── */
+        #page-loader{position:fixed;inset:0;background:#0B1120;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+        #page-loader.hidden{display:none}
+
+        /* ── Modal ── */
+        #mission-modal{
+            position:fixed;inset:0;z-index:1000;
+            background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);
+            display:flex;align-items:center;justify-content:center;
+            opacity:0;pointer-events:none;transition:opacity 0.25s ease;
+        }
+        #mission-modal.open{opacity:1;pointer-events:all;}
+        .modal-box{
+            background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:1.5rem;
+            width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:2rem;
+            box-shadow:0 25px 60px rgba(0,0,0,0.6);
+            transform:translateY(20px);transition:transform 0.25s ease;
+            scrollbar-width:thin;scrollbar-color:#1e293b transparent;
+        }
+        #mission-modal.open .modal-box{transform:translateY(0);}
+        .modal-box::-webkit-scrollbar{width:4px;}
+        .modal-box::-webkit-scrollbar-thumb{background:#1e293b;border-radius:4px;}
+
+        /* ── Form fields ── */
+        .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem;}
+        .form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;}
+        .form-input{
+            background:#0B1120;border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;
+            padding:0.65rem 1rem;color:#e2e8f0;font-size:13px;font-family:inherit;
+            outline:none;transition:border-color 0.2s;width:100%;
+        }
+        .form-input:focus{border-color:rgba(16,185,129,0.5);box-shadow:0 0 0 3px rgba(16,185,129,0.08);}
+        .form-input::placeholder{color:#374151;}
+        textarea.form-input{resize:vertical;min-height:90px;}
+        select.form-input option{background:#111827;}
+
+        /* ── Status dots ── */
+        .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;}
+        .dot-pending    {background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,0.5);}
+        .dot-reviewing  {background:#818cf8;box-shadow:0 0 8px rgba(129,140,248,0.5);}
+        .dot-confirmed  {background:#22d3ee;box-shadow:0 0 8px rgba(34,211,238,0.5);}
+        .dot-in_progress{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.5);}
+        .dot-completed  {background:#94a3b8;box-shadow:0 0 6px rgba(148,163,184,0.3);}
+        .dot-cancelled  {background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.5);}
+
+        /* ── Mission card ── */
+        .mission-card{
+            background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
+            border-radius:1rem;padding:1.25rem 1.5rem;margin-bottom:0.625rem;
+            transition:all 0.2s;
+        }
+        .mission-card:hover{background:rgba(255,255,255,0.04);border-color:rgba(16,185,129,0.25);}
+
+        /* ── Admin notes card ── */
+        .admin-note-card{
+            background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);
+            border-radius:0.75rem;padding:0.75rem 1rem;margin-top:0.75rem;
+        }
+
+        /* ── Payment badge ── */
+        .pay-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;}
+        .pay-paid    {background:rgba(16,185,129,0.1); color:#10b981;border:1px solid rgba(16,185,129,0.2);}
+        .pay-partial {background:rgba(234,179,8,0.1);  color:#eab308;border:1px solid rgba(234,179,8,0.2);}
+        .pay-unpaid  {background:rgba(239,68,68,0.1);  color:#ef4444;border:1px solid rgba(239,68,68,0.2);}
+        .pay-refunded{background:rgba(129,140,248,0.1);color:#818cf8;border:1px solid rgba(129,140,248,0.2);}
+
+        /* ── Summary strip ── */
+        .summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.05);border-radius:1rem;overflow:hidden;margin-bottom:1.5rem;}
+        .summary-cell{background:#111827;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:4px;}
+        .summary-num{font-size:22px;font-weight:900;line-height:1;}
+        .summary-lbl{font-size:10px;color:#64748b;letter-spacing:0.5px;text-transform:uppercase;}
+
+        /* ── Filter btns ── */
+        .filter-btn{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#64748b;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px;}
+        .filter-btn:hover{background:rgba(255,255,255,0.07);color:#e2e8f0;}
+        .filter-btn.active{background:rgba(16,185,129,0.15);color:#34d399;border-color:rgba(16,185,129,0.3);}
+
+        /* ── Toast ── */
+        #toast{position:fixed;bottom:24px;right:24px;z-index:9000;background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:12px 20px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all 0.3s;pointer-events:none;display:flex;align-items:center;gap:8px;}
+        #toast.show{transform:translateY(0);opacity:1;}
+
+        /* scrollbar */
+        .custom-scrollbar::-webkit-scrollbar{width:6px;}
+        .custom-scrollbar::-webkit-scrollbar-thumb{background:#1e293b;border-radius:10px;}
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] antialiased overflow-hidden">
+
+<!-- Loader -->
+<div id="page-loader">
+    <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-emerald-400 text-xs font-black uppercase tracking-widest">Verifying Session...</p>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     REQUEST MISSION MODAL
+══════════════════════════════════════ -->
+<div id="mission-modal" onclick="handleModalOutsideClick(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg font-black text-white">Request a Drone Mission</h2>
+                <p class="text-slate-500 text-xs mt-1">Fill in your field details and we'll schedule a drone flight for you</p>
+            </div>
+            <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 transition-all text-slate-400">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Error box -->
+        <div id="form-error" class="hidden mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+
+        <!-- Form — writes to mission_requests table -->
+        <form id="mission-form" onsubmit="submitMissionRequest(event)">
+
+            <!-- Mission Title -->
+            <div class="form-group">
+                <label class="form-label">Mission Title *</label>
+                <input type="text" id="f-title" class="form-input" placeholder="e.g. Tomato field disease scan — sector B" required>
+            </div>
+
+            <!-- Row: Email + Phone -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Your Email *</label>
+                    <input type="email" id="f-email" class="form-input" placeholder="your@email.com" required readonly
+                           style="opacity:0.7;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="text" id="f-phone" class="form-input" placeholder="+213 5XX XXX XXX">
+                </div>
+            </div>
+
+            <!-- Row: Wilaya + Crop Type -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Wilaya *</label>
+                    <select id="f-wilaya" class="form-input" required>
+                        <option value="" disabled selected>Select wilaya...</option>
+                        <option>01 — Adrar</option><option>02 — Chlef</option><option>03 — Laghouat</option>
+                        <option>04 — Oum El Bouaghi</option><option>05 — Batna</option><option>06 — Béjaïa</option>
+                        <option>07 — Biskra</option><option>08 — Béchar</option><option>09 — Blida</option>
+                        <option>10 — Bouira</option><option>11 — Tamanrasset</option><option>12 — Tébessa</option>
+                        <option>13 — Tlemcen</option><option>14 — Tiaret</option><option>15 — Tizi Ouzou</option>
+                        <option>16 — Alger</option><option>17 — Djelfa</option><option>18 — Jijel</option>
+                        <option>19 — Sétif</option><option>20 — Saïda</option><option>21 — Skikda</option>
+                        <option>22 — Sidi Bel Abbès</option><option>23 — Annaba</option><option>24 — Guelma</option>
+                        <option>25 — Constantine</option><option>26 — Médéa</option><option>27 — Mostaganem</option>
+                        <option>28 — M'Sila</option><option>29 — Mascara</option><option>30 — Ouargla</option>
+                        <option>31 — Oran</option><option>32 — El Bayadh</option><option>33 — Illizi</option>
+                        <option>34 — Bordj Bou Arréridj</option><option>35 — Boumerdès</option><option>36 — El Tarf</option>
+                        <option>37 — Tindouf</option><option>38 — Tissemsilt</option><option>39 — El Oued</option>
+                        <option>40 — Khenchela</option><option>41 — Souk Ahras</option><option>42 — Tipaza</option>
+                        <option>43 — Mila</option><option>44 — Aïn Defla</option><option>45 — Naâma</option>
+                        <option>46 — Aïn Témouchent</option><option>47 — Ghardaïa</option><option>48 — Relizane</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Crop Type</label>
+                    <input type="text" id="f-crop" class="form-input" placeholder="e.g. Tomato, Wheat, Potato">
+                </div>
+            </div>
+
+            <!-- GPS Location -->
+            <div class="form-group">
+                <label class="form-label">GPS Location / Field Area *</label>
+                <input type="text" id="f-location" class="form-input"
+                       placeholder="e.g. 34.8500° N, 1.3167° E  — or field name / commune" required>
+                <span class="text-[10px] text-slate-600 mt-1">Enter GPS coordinates or a description of your field location</span>
+            </div>
+
+            <!-- Row: Area + Deadline -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Field Area (Hectares)</label>
+                    <input type="number" id="f-area" class="form-input" min="0.1" step="0.1" placeholder="e.g. 5.5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mission Deadline *</label>
+                    <input type="date" id="f-deadline" class="form-input" required>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+                <label class="form-label">Mission Description *</label>
+                <textarea id="f-description" class="form-input" rows="3"
+                          placeholder="Describe what you need: disease scanning, crop health check, irrigation mapping, pest detection..." required></textarea>
+            </div>
+
+            <!-- Payment note -->
+            <div class="mb-4 px-4 py-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-xs text-emerald-400">
+                💡 Payment will be arranged after the admin reviews and confirms your request.
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="submit-btn"
+                class="w-full mt-2 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-900/30">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                Send Mission Request
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 shadow-2xl transition-all duration-300"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-6">
+
+            <!-- Page title -->
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                        <i data-lucide="send" class="text-emerald-400 w-8 h-8"></i>
+                        My Mission Requests
+                    </h1>
+                    <p class="text-slate-500 mt-1 text-sm">Track your drone mission requests and check admin responses</p>
+                </div>
+                <button onclick="openModal()"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black rounded-xl transition-all shadow-lg shadow-emerald-900/30">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Request New Mission
+                </button>
+            </div>
+
+            <!-- Summary strip -->
+            <div class="summary-strip">
+                <div class="summary-cell">
+                    <span class="summary-num text-white" id="sum-total">—</span>
+                    <span class="summary-lbl">Total</span>
+                </div>
+                <div class="summary-cell">
+                    <span class="summary-num text-amber-400" id="sum-pending">—</span>
+                    <span class="summary-lbl">Pending</span>
+                </div>
+                <div class="summary-cell">
+                    <span class="summary-num text-emerald-400" id="sum-confirmed">—</span>
+                    <span class="summary-lbl">Confirmed</span>
+                </div>
+                <div class="summary-cell">
+                    <span class="summary-num text-cyan-400" id="sum-completed">—</span>
+                    <span class="summary-lbl">Completed</span>
+                </div>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+                <button class="filter-btn" onclick="setFilter('pending', this)">Pending</button>
+                <button class="filter-btn" onclick="setFilter('reviewing', this)">Reviewing</button>
+                <button class="filter-btn" onclick="setFilter('confirmed', this)">Confirmed</button>
+                <button class="filter-btn" onclick="setFilter('in_progress', this)">In Progress</button>
+                <button class="filter-btn" onclick="setFilter('completed', this)">Completed</button>
+                <button class="filter-btn" onclick="setFilter('cancelled', this)">Cancelled</button>
+
+                <!-- Search -->
+                <div class="ml-auto flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <input id="search-input" type="text" placeholder="Search..." oninput="renderMissions()"
+                        class="bg-transparent text-slate-200 text-xs outline-none placeholder-slate-600 w-40">
+                </div>
+            </div>
+
+            <!-- Missions list -->
+            <div id="missions-list" class="space-y-1">
+                <div class="mission-card animate-pulse">
+                    <div class="h-4 bg-slate-800 rounded w-1/3 mb-3"></div>
+                    <div class="h-3 bg-slate-800/60 rounded w-2/3"></div>
+                </div>
+                <div class="mission-card animate-pulse">
+                    <div class="h-4 bg-slate-800 rounded w-1/4 mb-3"></div>
+                    <div class="h-3 bg-slate-800/60 rounded w-1/2"></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script src="../js/language.js"></script>
+<script src="../js/core/main.js"></script>
+<script>
+
+/* ══════════════════════════════════════
+   SUPABASE
+══════════════════════════════════════ */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let allMissions  = [];
+let activeFilter = 'all';
+let currentUser  = null;
+
+/* ══════════════════════════════════════
+   AUTH — agriculture only
+══════════════════════════════════════ */
+async function initAuth() {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session?.user) {
+        window.location.replace('../agriculture/login.html');
+        return null;
+    }
+    // جلب الـ role من profiles
+    const { data: profile } = await _sb
+        .from('profiles')
+        .select('role, full_name, email, wilaya, phone')
+        .eq('id', session.user.id)
+        .single();
+
+    if (!profile || profile.role !== 'agriculture') {
+        await _sb.auth.signOut();
+        window.location.replace('../agriculture/login.html');
+        return null;
+    }
+
+    currentUser = { ...session.user, ...profile };
+    return currentUser;
+}
+
+/* ══════════════════════════════════════
+   LOAD — يجلب فقط مهام المستخدم الحالي
+══════════════════════════════════════ */
+async function loadMissions() {
+    const { data, error } = await _sb
+        .from('mission_requests')
+        .select('*')
+        .eq('profile_id', currentUser.id)       // فقط مهامه
+        .order('created_at', { ascending: false });
+
+    if (error) { console.error(error); showToast('❌ Failed to load missions', 'red'); return; }
+
+    allMissions = data || [];
+    updateSummary(allMissions);
+    renderMissions();
+}
+
+/* ── Summary ── */
+function updateSummary(data) {
+    document.getElementById('sum-total').textContent     = data.length;
+    document.getElementById('sum-pending').textContent   = data.filter(m => m.mission_status === 'pending').length;
+    document.getElementById('sum-confirmed').textContent = data.filter(m => ['confirmed','in_progress'].includes(m.mission_status)).length;
+    document.getElementById('sum-completed').textContent = data.filter(m => m.mission_status === 'completed').length;
+}
+
+/* ══════════════════════════════════════
+   RENDER
+══════════════════════════════════════ */
+function renderMissions() {
+    const list = document.getElementById('missions-list');
+    const q    = (document.getElementById('search-input')?.value || '').toLowerCase();
+
+    let filtered = activeFilter === 'all'
+        ? allMissions
+        : allMissions.filter(m => m.mission_status === activeFilter);
+
+    if (q) filtered = filtered.filter(m =>
+        (m.mission_title       || '').toLowerCase().includes(q) ||
+        (m.wilaya              || '').toLowerCase().includes(q) ||
+        (m.gps_location        || '').toLowerCase().includes(q) ||
+        (m.mission_description || '').toLowerCase().includes(q)
+    );
+
+    if (!filtered.length) {
+        list.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 text-slate-600">
+                <i data-lucide="inbox" class="w-12 h-12 mb-4 opacity-30"></i>
+                <p class="text-sm font-semibold">No mission requests yet. Click "Request New Mission" to get started!</p>
+            </div>`;
+        lucide.createIcons();
+        return;
+    }
+
+    /* Status labels + colors */
+    const STATUS = {
+        pending:     { dot:'dot-pending',     label:'Pending Review' },
+        reviewing:   { dot:'dot-reviewing',   label:'Under Review' },
+        confirmed:   { dot:'dot-confirmed',   label:'Confirmed' },
+        in_progress: { dot:'dot-in_progress', label:'In Progress' },
+        completed:   { dot:'dot-completed',   label:'Completed' },
+        cancelled:   { dot:'dot-cancelled',   label:'Cancelled' },
+    };
+    const PAY = {
+        unpaid:   { cls:'pay-unpaid',   label:'Unpaid' },
+        partial:  { cls:'pay-partial',  label:'Partial' },
+        paid:     { cls:'pay-paid',     label:'Paid' },
+        refunded: { cls:'pay-refunded', label:'Refunded' },
+    };
+
+    list.innerHTML = filtered.map(m => {
+        const st       = STATUS[m.mission_status] || STATUS.pending;
+        const py       = PAY[m.payment_status]    || PAY.unpaid;
+        const deadline = m.mission_deadline
+            ? new Date(m.mission_deadline).toLocaleDateString('en-GB')
+            : '—';
+        const created  = m.created_at
+            ? new Date(m.created_at).toLocaleDateString('en-GB')
+            : '—';
+        const amount   = m.payment_amount ? m.payment_amount.toLocaleString() + ' DA' : '—';
+
+        /* Admin note (يظهر فقط إذا كتب الـ admin ملاحظة) */
+        const adminNote = m.admin_notes
+            ? `<div class="admin-note-card mt-3">
+                <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1.5">📋 Admin Note</p>
+                <p class="text-xs text-slate-300 leading-relaxed">${m.admin_notes}</p>
+               </div>`
+            : '';
+
+        /* Payment info (يظهر إذا حدد الـ admin مبلغاً) */
+        const payInfo = m.payment_amount
+            ? `<div class="flex items-center gap-2 mt-1">
+                <span class="text-[10px] text-slate-600 uppercase font-bold">Amount:</span>
+                <span class="text-xs text-emerald-400 font-bold">${amount}</span>
+               </div>`
+            : '';
+
+        return `
+        <div class="mission-card" id="card-${m.id}">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+                <!-- Left -->
+                <div class="flex-1 min-w-0">
+
+                    <!-- Top row: status + title + payment -->
+                    <div class="flex items-center gap-2 flex-wrap mb-2">
+                        <span class="status-dot ${st.dot}"></span>
+                        <span class="text-xs font-black uppercase tracking-wide text-slate-200">${st.label}</span>
+                        <span class="text-slate-600 text-xs">•</span>
+                        <span class="text-sm font-bold text-white truncate max-w-[260px]">${m.mission_title || '—'}</span>
+                        <span class="pay-badge ${py.cls} ml-auto">${py.label}</span>
+                    </div>
+
+                    <!-- Details grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1.5 mt-2">
+                        <div>
+                            <div class="text-[10px] text-slate-600 uppercase font-bold mb-0.5">Wilaya</div>
+                            <div class="text-xs text-slate-300">${m.wilaya || '—'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-600 uppercase font-bold mb-0.5">GPS / Field</div>
+                            <div class="text-xs text-slate-300 truncate">${m.gps_location || '—'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-600 uppercase font-bold mb-0.5">Area</div>
+                            <div class="text-xs text-slate-300">${m.field_area_ha ? m.field_area_ha + ' ha' : '—'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-600 uppercase font-bold mb-0.5">Deadline</div>
+                            <div class="text-xs text-slate-300">${deadline}</div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    ${m.mission_description
+                        ? `<p class="text-xs text-slate-500 mt-2 line-clamp-2">${m.mission_description}</p>`
+                        : ''}
+
+                    ${payInfo}
+
+                    <!-- Admin note (if any) -->
+                    ${adminNote}
+
+                    <!-- Submitted date -->
+                    <p class="text-[10px] text-slate-700 mt-2">Submitted: ${created}</p>
+                </div>
+
+                <!-- Right: actions -->
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                    <button onclick="exportPDF('${m.id}')"
+                        class="p-2 bg-slate-800/60 hover:bg-emerald-600 rounded-lg transition-all" title="Export PDF">
+                        <i data-lucide="file-down" class="w-4 h-4 text-slate-300"></i>
+                    </button>
+                    ${m.mission_status === 'pending'
+                        ? `<button onclick="cancelRequest('${m.id}')"
+                            class="p-2 bg-slate-800/60 hover:bg-red-500/30 rounded-lg transition-all" title="Cancel Request">
+                            <i data-lucide="x-circle" class="w-4 h-4 text-slate-400 hover:text-red-400"></i>
+                           </button>`
+                        : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+/* ══════════════════════════════════════
+   FILTER + SEARCH
+══════════════════════════════════════ */
+function setFilter(status, btn) {
+    activeFilter = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderMissions();
+}
+
+/* ══════════════════════════════════════
+   MODAL
+══════════════════════════════════════ */
+function openModal() {
+    /* Pre-fill email from current user */
+    if (currentUser) {
+        document.getElementById('f-email').value  = currentUser.email || '';
+        document.getElementById('f-phone').value  = currentUser.phone || '';
+        /* Pre-select wilaya if known */
+        const wilayaSel = document.getElementById('f-wilaya');
+        if (currentUser.wilaya) {
+            Array.from(wilayaSel.options).forEach(opt => {
+                if (opt.text.toLowerCase().includes(currentUser.wilaya.toLowerCase())) {
+                    wilayaSel.value = opt.value || opt.text;
+                }
+            });
+        }
+    }
+    document.getElementById('form-error').classList.add('hidden');
+    document.getElementById('mission-modal').classList.add('open');
+    lucide.createIcons();
+}
+
+function closeModal() {
+    document.getElementById('mission-modal').classList.remove('open');
+    document.getElementById('mission-form').reset();
+}
+
+function handleModalOutsideClick(e) {
+    if (e.target === document.getElementById('mission-modal')) closeModal();
+}
+
+/* ══════════════════════════════════════
+   SUBMIT — writes to mission_requests
+══════════════════════════════════════ */
+async function submitMissionRequest(e) {
+    e.preventDefault();
+    const btn    = document.getElementById('submit-btn');
+    const errBox = document.getElementById('form-error');
+    errBox.classList.add('hidden');
+
+    const title    = document.getElementById('f-title').value.trim();
+    const email    = document.getElementById('f-email').value.trim();
+    const phone    = document.getElementById('f-phone').value.trim();
+    const wilaya   = document.getElementById('f-wilaya').value;
+    const crop     = document.getElementById('f-crop').value.trim();
+    const location = document.getElementById('f-location').value.trim();
+    const area     = parseFloat(document.getElementById('f-area').value) || null;
+    const deadline = document.getElementById('f-deadline').value;
+    const desc     = document.getElementById('f-description').value.trim();
+
+    if (!title || !email || !wilaya || !location || !deadline || !desc) {
+        errBox.textContent = '⚠️ Please fill all required fields.';
+        errBox.classList.remove('hidden');
+        return;
+    }
+
+    /* Deadline must be in the future */
+    if (new Date(deadline) < new Date()) {
+        errBox.textContent = '⚠️ Deadline must be a future date.';
+        errBox.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span> Sending...`;
+
+    const payload = {
+        profile_id:          currentUser.id,
+        email,
+        phone:               phone || null,
+        wilaya,
+        crop_type:           crop  || null,
+        mission_title:       title,
+        mission_description: desc,
+        gps_location:        location,
+        field_area_ha:       area,
+        mission_deadline:    deadline,
+        mission_status:      'pending',   // الأدمن يغيرها
+        payment_status:      'unpaid',    // الأدمن يغيرها
+    };
+
+    const { error } = await _sb.from('mission_requests').insert([payload]);
+
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Send Mission Request`;
+    lucide.createIcons();
+
+    if (error) {
+        errBox.textContent = '❌ ' + error.message;
+        errBox.classList.remove('hidden');
+        return;
+    }
+
+    showToast('✅ Mission request sent! Admin will review it shortly.', 'green');
+    closeModal();
+    await loadMissions();
+}
+
+/* ══════════════════════════════════════
+   CANCEL (pending only)
+══════════════════════════════════════ */
+async function cancelRequest(id) {
+    if (!confirm('Cancel this mission request?')) return;
+    const { error } = await _sb
+        .from('mission_requests')
+        .update({ mission_status: 'cancelled' })
+        .eq('id', id)
+        .eq('profile_id', currentUser.id);   // أمان إضافي
+
+    if (error) { showToast('❌ ' + error.message, 'red'); return; }
+    showToast('🗑️ Request cancelled.', 'yellow');
+    await loadMissions();
+}
+
+/* ══════════════════════════════════════
+   EXPORT PDF
+══════════════════════════════════════ */
+function exportPDF(id) {
+    const m = allMissions.find(x => x.id === id);
+    if (!m) return;
+
+    const report = document.createElement('div');
+    report.style.cssText = 'padding:40px;background:#fff;color:#000;font-family:Inter,sans-serif;direction:ltr;';
+    report.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #000;padding-bottom:12px;margin-bottom:28px;">
+            <div>
+                <h1 style="font-weight:900;font-size:24px;margin:0;">SKYLINE | MISSION REQUEST REPORT</h1>
+                <p style="color:#64748b;font-size:12px;margin-top:4px;">Generated: ${new Date().toLocaleString('en-GB')}</p>
+            </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            ${[
+                ['Mission Title',  m.mission_title],
+                ['Status',         m.mission_status?.toUpperCase()],
+                ['Email',          m.email],
+                ['Phone',          m.phone || '—'],
+                ['Wilaya',         m.wilaya],
+                ['Crop Type',      m.crop_type || '—'],
+                ['GPS / Location', m.gps_location],
+                ['Field Area',     m.field_area_ha ? m.field_area_ha + ' ha' : '—'],
+                ['Deadline',       m.mission_deadline ? new Date(m.mission_deadline).toLocaleDateString('en-GB') : '—'],
+                ['Payment',        m.payment_status?.toUpperCase()],
+                ['Amount',         m.payment_amount ? m.payment_amount + ' DA' : '—'],
+                ['Description',    m.mission_description],
+                ['Admin Notes',    m.admin_notes || '—'],
+            ].map(([k,v]) => `
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                    <td style="padding:10px 8px;font-weight:700;color:#475569;width:35%;">${k}</td>
+                    <td style="padding:10px 8px;color:#0f172a;">${v || '—'}</td>
+                </tr>`).join('')}
+        </table>
+        <p style="margin-top:40px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:14px;">
+            Skyline Agricultural Drone Platform — ${new Date().getFullYear()}
+        </p>`;
+
+    html2pdf().set({
+        margin: 0.5, filename: `MissionRequest_${id.slice(0,8)}.pdf`,
+        html2canvas: { scale: 3 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }).from(report).save();
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+function showToast(msg, color='green') {
+    const toast = document.getElementById('toast');
+    const cls   = { green:'text-emerald-400', red:'text-red-400', yellow:'text-yellow-400' };
+    toast.className = `show ${cls[color]||''}`;
+    toast.textContent = msg;
+    setTimeout(() => { toast.className = ''; }, 3500);
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = await initAuth();
+    if (!user) return;
+
+    document.getElementById('page-loader').classList.add('hidden');
+
+    /* Load sidebar + topbar */
+    if (typeof loadComponent === 'function') {
+        await Promise.all([
+            loadComponent('sidebar-container', '../components/sidebar.html'),
+            loadComponent('topbar-container',  '../components/topbar.html'),
+        ]).catch(() => {});
+    }
+
+    lucide.createIcons();
+
+    /* Lang */
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (typeof applyLanguage === 'function') applyLanguage(lang);
+
+    /* Real-time — يتحدث تلقائياً إذا غيّر الـ admin الحالة */
+    _sb.channel('my-missions-' + user.id)
+        .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'mission_requests',
+            filter: `profile_id=eq.${user.id}`
+        }, () => loadMissions())
+        .subscribe();
+
+    await loadMissions();
+});
+</script>
+</body>
+</html>

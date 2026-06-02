@@ -1,0 +1,23 @@
+<div class="p-8 h-full flex flex-col justify-between">
+    
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-xl font-bold tracking-tight text-white group" data-i18n="missions_status">Missions Status</h2>
+            <p class="text-[10px] text-slate-500 mt-0.5" data-i18n="running_completed">Running & completed projects tracking</p>
+        </div>
+        
+        <div class="relative group">
+            <button class="flex items-center gap-2.5 px-4 py-2 bg-[#1f293a]/50 rounded-xl border border-slate-800 text-sm text-slate-400 hover:text-white transition-all card-hover-effect">
+                <span data-i18n="this_year">This Year</span>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-600"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="relative flex-1 group">
+        <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-cyan-500/10 blur-3xl rounded-full opacity-50"></div>
+        
+        <canvas id="missionsBarChart" class="w-full h-full animate-fade-in" style="max-height: 200px;"></canvas>
+    </div>
+
+</div>

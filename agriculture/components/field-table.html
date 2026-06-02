@@ -1,0 +1,40 @@
+<div class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 overflow-hidden card-hover-effect">
+    <div class="p-6 border-b border-white/5 flex justify-between items-center">
+        <h3 class="font-bold">Recent Field Diagnostics</h3>
+        <button class="text-xs text-emerald-400 font-bold hover:underline">View All</button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-white/5 text-slate-500 uppercase text-[10px] font-bold">
+                <tr>
+                    <th class="px-6 py-4">Field / Crop</th>
+                    <th class="px-6 py-4">Detected Issue</th>
+                    <th class="px-6 py-4">Severity</th>
+                    <th class="px-6 py-4">AI Confidence</th>
+                    <th class="px-6 py-4">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">North Wheat B1</div>
+                        <div class="text-[10px] text-slate-500">Triticum aestivum</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                            Leaf Rust
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-full text-[10px] font-bold">Moderate</span>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-emerald-400">92%</td>
+                    <td class="px-6 py-4 text-right">
+                        <button class="px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-bold group-hover:bg-emerald-500 group-hover:text-white transition-all">View Advice</button>
+                    </td>
+                </tr>
+                </tbody>
+        </table>
+    </div>
+</div>

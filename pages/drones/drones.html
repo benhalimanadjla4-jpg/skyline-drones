@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYLINE | Drones Fleet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Tajawal:wght@300;400;700" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal { animation: modal-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .modal-backdrop { backdrop-filter: blur(12px); background-color: rgba(7, 11, 20, 0.85); }
+        select option { background-color: #111827 !important; color: #ffffff !important; padding: 15px !important; }
+        .btn-glow-cyan:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); transform: translateY(-2px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 0.8; }
+
+        /* Battery bar */
+        .battery-bar { width: 60px; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+        .battery-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+        /* Toast */
+        #toast { position:fixed; bottom:28px; right:28px; z-index:9999; display:none; }
+        #toast.show { display:block; animation: fadeIn .3s; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg,#1e293b 25%,#263245 50%,#1e293b 75%); background-size: 200%; animation: shimmer 1.5s infinite; border-radius:8px; }
+        @keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+    </style>
+</head>
+<body class="bg-[#0B1120] text-slate-200 font-['Inter'] transition-all duration-300 antialiased overflow-hidden">
+
+<div class="flex h-screen overflow-hidden">
+    <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col transition-all duration-300 z-50 shadow-2xl"></aside>
+
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
+        <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
+
+        <div class="p-8 space-y-8">
+
+            <!-- Page Title -->
+            <div class="animate-fade-in">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.2rem)] font-black tracking-tight text-white">
+                            <i data-lucide="plane" class="inline mr-3 text-cyan-400 w-8 h-8"></i>
+                            <span data-i18n="fleet_management">Fleet Management</span>
+                        </h1>
+                        <p data-i18n="fleet_desc" class="text-slate-500 mt-1 max-w-xl">Monitor and manage all registered drones in real-time.</p>
+                    </div>
+                    <button onclick="toggleDroneModal(true)" class="flex items-center gap-2 px-5 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 font-bold hover:bg-cyan-500/20 transition-all card-hover-effect">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span data-i18n="add_drone">Add Drone</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div id="drones-stats-grid" class="animate-fade-in" style="animation-delay: 0.1s">
+                <div class="flex flex-wrap md:flex-nowrap gap-4 w-full">
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 card-hover-effect w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                                <i data-lucide="plane" class="text-cyan-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 data-i18n="total_drones" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Drones</h3>
+                        <p id="stat-total" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 card-hover-effect w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                <i data-lucide="radio" class="text-emerald-400 w-5 h-5"></i>
+                            </div>
+                            <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                        <h3 data-i18n="active_in_flight" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Active / In Flight</h3>
+                        <p id="stat-active" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 card-hover-effect w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                                <i data-lucide="wrench" class="text-amber-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 data-i18n="in_maintenance" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">In Maintenance</h3>
+                        <p id="stat-maintenance" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                    <div class="bg-[#111827]/60 rounded-[1.5rem] p-5 border border-slate-800 card-hover-effect w-full md:w-64">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-red-500/10 rounded-xl border border-red-500/20">
+                                <i data-lucide="lock" class="text-red-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 data-i18n="reserved" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Reserved</h3>
+                        <p id="stat-reserved" class="text-3xl font-black text-white leading-none">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drones Table -->
+            <div class="bg-[#111827]/50 backdrop-blur-md rounded-[2rem] border border-slate-800/50 overflow-hidden card-hover-effect animate-fade-in" style="animation-delay: 0.2s">
+                <div class="p-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/50">
+                    <div>
+                        <h2 data-i18n="drones_list" class="text-xl font-bold text-white">Drones List</h2>
+                        <p data-i18n="drones_list_desc" class="text-[11px] text-slate-500 mt-1">All registered drones from the database</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <div class="relative w-72">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                            <input id="searchInput" type="text" placeholder="Search drone code or model..."
+                                   class="w-full pl-10 pr-4 py-2.5 bg-[#1f293a]/40 rounded-xl border border-slate-800 text-sm text-slate-300 outline-none focus:border-cyan-500/50">
+                        </div>
+                        <!-- Filter by status -->
+                        <select id="statusFilter" class="px-4 py-2 bg-slate-800/50 rounded-lg text-slate-400 text-sm border border-slate-700 outline-none focus:border-cyan-500/50 cursor-pointer">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="available">Available</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="reserved">Reserved</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-[11px] text-slate-500 uppercase tracking-widest bg-[#0B1120]/40 border-b border-slate-800/80">
+                            <tr>
+                                <th class="px-5 py-4">Drone ID</th>
+                                <th class="px-5 py-4">Model</th>
+                                <th class="px-5 py-4">Manufacture Date</th>
+                                <th class="px-5 py-4">Specs</th>
+                                <th class="px-5 py-4">Assigned Service</th>
+                                <th class="px-5 py-4 text-center">Battery</th>
+                                <th class="px-5 py-4 text-center">Status</th>
+                                <th class="px-5 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drones-full-table-body" class="divide-y divide-slate-800/40">
+                            <!-- skeleton rows -->
+                            <tr><td colspan="8" class="px-5 py-8 text-center text-slate-500">
+                                <i data-lucide="loader-2" class="w-6 h-6 animate-spin inline text-cyan-400"></i>
+                                <span class="ml-2">Loading drones...</span>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-5 border-t border-slate-800/50 flex items-center justify-between flex-wrap gap-2">
+                    <p id="pagination-info" class="text-xs text-slate-500">Loading...</p>
+                    <div class="flex gap-2" id="pagination-btns">
+                        <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Previous</button>
+                        <span id="page-indicator" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-bold">1</span>
+                        <button id="btn-next" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg bg-slate-800/50 text-slate-400 text-xs disabled:opacity-40">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Add Drone Modal -->
+<div id="drone-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
+    <div class="bg-[#111827] border border-white/10 w-full max-w-lg rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] animate-modal relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-500/10 to-transparent pointer-events-none"></div>
+        <div class="relative p-8">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-cyan-500/20 rounded-2xl border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                        <i data-lucide="plane" class="text-cyan-400 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white tracking-tight">Add New Drone</h2>
+                        <p class="text-slate-500 text-[10px] uppercase tracking-[2px] font-bold">Drone Command System</p>
+                    </div>
+                </div>
+                <button onclick="toggleDroneModal(false)" class="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-rose-400 transition-all">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Modal error -->
+            <div id="modal-error" class="hidden mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+
+            <form id="droneForm" class="space-y-5" onsubmit="return false;">
+                <div class="space-y-4">
+                    <input id="f-code" type="text" required
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600"
+                           placeholder="Drone Code (e.g. DRN-001)">
+                    <input id="f-model" type="text" required
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600"
+                           placeholder="Model Name">
+                    <input id="f-date" type="date"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-slate-300 focus:border-cyan-500 outline-none transition-all">
+                    <input id="f-specs" type="text"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600"
+                           placeholder="Specifications (e.g., 4K Camera, 50km range)">
+                    <input id="f-battery" type="number" min="0" max="100"
+                           class="w-full bg-[#0B1120]/80 border border-slate-800 rounded-2xl px-5 py-4 text-sm focus:border-cyan-500 outline-none transition-all placeholder:text-slate-600"
+                           placeholder="Battery Level (0-100)">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Assigned Service</label>
+                    <div class="relative group">
+                        <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
+                        <select id="f-service" class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl pl-12 pr-10 py-4 text-sm text-slate-300 focus:border-cyan-500 outline-none appearance-none cursor-pointer transition-all">
+                            <option value="agriculture">Agriculture</option>
+                            <option value="surveillance">Surveillance</option>
+                            <option value="security">Security</option>
+                            <option value="delivery">Delivery</option>
+                            <option value="mapping">Mapping</option>
+                            <option value="entertainment">Entertainment</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Status</label>
+                    <div class="relative group">
+                        <i data-lucide="activity" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
+                        <select id="f-status" class="w-full bg-[#0B1120] border border-slate-800 rounded-2xl pl-12 pr-10 py-4 text-sm text-slate-300 focus:border-cyan-500 outline-none appearance-none cursor-pointer transition-all">
+                            <option value="available">Available</option>
+                            <option value="active">Active</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="reserved">Reserved</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="pt-6 flex items-center gap-4">
+                    <button type="button" onclick="toggleDroneModal(false)"
+                            class="flex-1 px-4 py-4 rounded-2xl text-slate-500 font-bold text-xs uppercase tracking-widest hover:bg-white/5 hover:text-slate-300 transition-all border border-transparent hover:border-slate-800">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveBtn" onclick="saveDrone()"
+                            class="flex-[1.5] px-4 py-4 bg-gradient-to-r from-cyan-500 via-cyan-600 to-blue-600 text-[#0B1120] rounded-2xl font-black text-xs uppercase tracking-[2px] btn-glow-cyan transition-all active:scale-95 shadow-[0_10px_20px_rgba(6,182,212,0.3)]">
+                        Save Drone
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border"></div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/language.js"></script>
+<script src="/js/core/main.js"></script>
+
+<script>
+/* ── Supabase ── */
+const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ── Pagination state ── */
+const PAGE_SIZE = 20;
+let currentPage = 0;
+let totalCount  = 0;
+let allDrones   = [];   // filtered list
+
+/* ── Status helpers ── */
+const STATUS_STYLES = {
+    active:      { dot: 'bg-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    available:   { dot: 'bg-cyan-400',    badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
+    maintenance: { dot: 'bg-amber-400',   badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+    reserved:    { dot: 'bg-red-400',     badge: 'bg-red-500/10 text-red-400 border-red-500/20' },
+    offline:     { dot: 'bg-slate-500',   badge: 'bg-slate-500/10 text-slate-400 border-slate-700' },
+};
+
+function batteryColor(v) {
+    if (v >= 70) return '#10b981';
+    if (v >= 30) return '#f59e0b';
+    return '#ef4444';
+}
+
+function statusBadge(status) {
+    const s = STATUS_STYLES[status] || STATUS_STYLES.offline;
+    return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black border ${s.badge}">
+        <span class="w-1.5 h-1.5 rounded-full ${s.dot}"></span>
+        ${status?.toUpperCase() || 'UNKNOWN'}
+    </span>`;
+}
+
+/* ── Toast ── */
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    if (type === 'success') {
+        t.className = 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 show';
+    } else {
+        t.className = 'px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl border bg-red-500/10 text-red-400 border-red-500/30 show';
+    }
+    setTimeout(() => t.className = t.className.replace(' show',''), 3000);
+}
+
+/* ══════════════════════════════
+   LOAD DRONES from Supabase
+══════════════════════════════ */
+async function loadDrones() {
+    const tbody = document.getElementById('drones-full-table-body');
+
+    try {
+        /* جلب كل الدرونات مع العدد */
+        const { data, error, count } = await _sb
+            .from('drones')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        totalCount = count || data.length;
+        allDrones  = data || [];
+
+        /* Stats */
+        document.getElementById('stat-total').textContent       = totalCount;
+        document.getElementById('stat-active').textContent      = data.filter(d => d.status === 'active' || d.status === 'available').length;
+        document.getElementById('stat-maintenance').textContent = data.filter(d => d.status === 'maintenance').length;
+        document.getElementById('stat-reserved').textContent    = data.filter(d => d.status === 'reserved').length;
+
+        renderTable();
+
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-8 text-center text-red-400">
+            <i data-lucide="alert-circle" class="w-5 h-5 inline mr-2"></i>${err.message}
+        </td></tr>`;
+        lucide.createIcons();
+    }
+}
+
+/* ── Render filtered/paged table ── */
+function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const filter = document.getElementById('statusFilter').value;
+
+    let filtered = allDrones.filter(d => {
+        const matchSearch = !search ||
+            (d.drone_code || '').toLowerCase().includes(search) ||
+            (d.model      || '').toLowerCase().includes(search);
+        const matchStatus = !filter || d.status === filter;
+        return matchSearch && matchStatus;
+    });
+
+    const total   = filtered.length;
+    const start   = currentPage * PAGE_SIZE;
+    const pageData = filtered.slice(start, start + PAGE_SIZE);
+
+    const tbody = document.getElementById('drones-full-table-body');
+
+    if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">
+            No drones found.
+        </td></tr>`;
+    } else {
+        tbody.innerHTML = pageData.map(d => {
+            const batt = d.battery_level ?? 0;
+            const date = d.manufacture_date ? new Date(d.manufacture_date).toLocaleDateString() : '—';
+            return `<tr class="hover:bg-white/[0.02] transition-colors">
+                <td class="px-5 py-4">
+                    <span class="font-mono text-cyan-400 text-xs font-bold">${d.drone_code || '—'}</span>
+                </td>
+                <td class="px-5 py-4 text-slate-200 font-medium">${d.model || '—'}</td>
+                <td class="px-5 py-4 text-slate-400 text-xs">${date}</td>
+                <td class="px-5 py-4 text-slate-500 text-xs max-w-[160px] truncate" title="${d.specifications || ''}">${d.specifications || '—'}</td>
+                <td class="px-5 py-4">
+                    <span class="px-2 py-1 rounded-lg bg-slate-800/60 text-slate-400 text-[10px] font-bold uppercase border border-slate-700/40">${d.assigned_service || '—'}</span>
+                </td>
+                <td class="px-5 py-4 text-center">
+                    <div class="flex flex-col items-center gap-1">
+                        <div class="battery-bar"><div class="battery-fill" style="width:${batt}%;background:${batteryColor(batt)}"></div></div>
+                        <span class="text-[10px] font-bold" style="color:${batteryColor(batt)}">${batt}%</span>
+                    </div>
+                </td>
+                <td class="px-5 py-4 text-center">${statusBadge(d.status)}</td>
+                <td class="px-5 py-4 text-right">
+                    <button onclick="deleteDrone('${d.id}', '${d.drone_code}')"
+                        class="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    /* Pagination info */
+    const from = total === 0 ? 0 : start + 1;
+    const to   = Math.min(start + PAGE_SIZE, total);
+    document.getElementById('pagination-info').textContent = `Showing ${from}–${to} of ${total} drones`;
+    document.getElementById('page-indicator').textContent  = currentPage + 1;
+    document.getElementById('btn-prev').disabled = currentPage === 0;
+    document.getElementById('btn-next').disabled = to >= total;
+
+    lucide.createIcons();
+}
+
+function changePage(dir) {
+    currentPage += dir;
+    if (currentPage < 0) currentPage = 0;
+    renderTable();
+}
+
+/* ── Search & Filter live ── */
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('searchInput').addEventListener('input',  () => { currentPage = 0; renderTable(); });
+    document.getElementById('statusFilter').addEventListener('change',() => { currentPage = 0; renderTable(); });
+});
+
+/* ══════════════════════════════
+   SAVE NEW DRONE to Supabase
+══════════════════════════════ */
+async function saveDrone() {
+    const code    = document.getElementById('f-code').value.trim();
+    const model   = document.getElementById('f-model').value.trim();
+    const date    = document.getElementById('f-date').value;
+    const specs   = document.getElementById('f-specs').value.trim();
+    const battery = parseInt(document.getElementById('f-battery').value) || 100;
+    const service = document.getElementById('f-service').value;
+    const status  = document.getElementById('f-status').value;
+
+    const errBox  = document.getElementById('modal-error');
+    const saveBtn = document.getElementById('saveBtn');
+
+    errBox.classList.add('hidden');
+
+    if (!code || !model) {
+        errBox.textContent = '⚠️ Drone Code and Model are required.';
+        errBox.classList.remove('hidden');
+        return;
+    }
+
+    /* Loading */
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+        const { error } = await _sb.from('drones').insert({
+            drone_code:       code,
+            model:            model,
+            manufacture_date: date || null,
+            specifications:   specs || null,
+            battery_level:    battery,
+            assigned_service: service,
+            status:           status,
+        });
+
+        if (error) throw error;
+
+        /* Success */
+        toggleDroneModal(false);
+        document.getElementById('droneForm').reset();
+        showToast(`✅ Drone "${code}" added successfully!`);
+        await loadDrones(); /* refresh */
+
+    } catch (err) {
+        errBox.textContent = '❌ ' + (err.message || 'Failed to save drone');
+        errBox.classList.remove('hidden');
+    } finally {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save Drone';
+    }
+}
+
+/* ══════════════════════════════
+   DELETE DRONE
+══════════════════════════════ */
+async function deleteDrone(id, code) {
+    if (!confirm(`Delete drone "${code}"?`)) return;
+
+    const { error } = await _sb.from('drones').delete().eq('id', id);
+
+    if (error) {
+        showToast('❌ ' + error.message, 'error');
+    } else {
+        showToast(`🗑️ Drone "${code}" deleted.`);
+        await loadDrones();
+    }
+}
+
+/* ── Modal toggle ── */
+function toggleDroneModal(show) {
+    const modal = document.getElementById('drone-modal');
+    if (show) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('modal-error').classList.add('hidden');
+        document.getElementById('droneForm').reset();
+        lucide.createIcons();
+    } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', async () => {
+    await Promise.all([
+        loadComponent?.('sidebar-container', '/components/sidebar.html'),
+        loadComponent?.('topbar-container',  '/components/topbar.html'),
+    ]);
+
+    const lang = localStorage.getItem('skyline_lang') || 'en';
+    if (window.updatePageText) updatePageText(lang);
+
+    lucide.createIcons();
+    await loadDrones();
+});
+</script>
+
+</body>
+</html>

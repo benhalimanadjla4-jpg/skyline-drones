@@ -195,7 +195,7 @@
     </ul>
     <div class="nav-actions">
       <button class="langBtn" onclick="toggleLang()">AR</button>
-      <button class="login-btn" onclick="window.location.href='/agriculture/login.html'" data-en="Login" data-ar="دخول">Login</button>
+      <button class="login-btn" onclick="window.location.href='/skyline-drones/agriculture/login.html'" data-en="Login" data-ar="دخول">Login</button>
     </div>
   </div>
 </nav>
@@ -400,7 +400,7 @@
 
         <p class="switch-link">
           <span data-en="Already a member?" data-ar="عضو بالفعل؟">Already a member?</span>
-          <button onclick="window.location.href='/agriculture/login.html'" data-en="Log In" data-ar="سجّل دخولك">Log In</button>
+          <button onclick="window.location.href='/skyline-drones/agriculture/login.html'" data-en="Log In" data-ar="سجّل دخولك">Log In</button>
         </p>
       </div>
     </div>
@@ -439,7 +439,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <a href="../sky.html" class="back-btn">← <span data-en="Back to SKYLINE Home" data-ar="العودة إلى الرئيسية">Back to SKYLINE Home</span></a>
+    <a href="/skyline-drones/sky.html" class="back-btn">← <span data-en="Back to SKYLINE Home" data-ar="العودة إلى الرئيسية">Back to SKYLINE Home</span></a>
     <p style="margin-top:14px">© 2026 SKYLINE Smart Agriculture Division</p>
   </div>
 </footer>
@@ -546,7 +546,7 @@ async function handleRegister() {
     btn.style.opacity = '1';
     showNotif(ar ? '🌱 مرحباً بك في مجتمع الزراعة الذكية!' : '🌱 Welcome to the AgriCloud!');
 
-    setTimeout(() => { window.location.replace('/agriculture/index.html'); }, 1400);
+    setTimeout(() => { window.location.replace('/skyline-drones/agriculture/index.html'); }, 1400);
 
   } catch (err) {
     btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';

@@ -10,8 +10,15 @@ async function loadComponent(containerId, filePath) {
     const container = document.getElementById(containerId);
     if (!container) return;
     try {
-        const res = await fetch(filePath);
-        if (!res.ok) throw new Error(`HTTP ${res.status} – ${filePath}`);
+        // auto base path for GitHub Pages
+        const base = '/skyline-drones';
+        const normalizedPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+        const fullPath = normalizedPath.startsWith('/skyline-drones')
+            ? normalizedPath
+            : base + normalizedPath;
+
+        const res = await fetch(fullPath);
+        if (!res.ok) throw new Error(`HTTP ${res.status} – ${fullPath}`);
         container.innerHTML = await res.text();
     } catch (e) {
         console.error('loadComponent error:', e);
@@ -86,7 +93,7 @@ window.toggleNotifyPanel = function () {
 };
 
 window.runSystemCheck = function () {
-    window.location.href = 'pages/settings/settings.html';
+    window.location.href = '/skyline-drones/pages/settings/settings.html';
 };
 
 /* ══════════════════════════════════════
@@ -113,7 +120,7 @@ function syncUserUI() {
 }
 
 window.logout = function () {
-    window.location.href = 'login.html';
+    window.location.href = '/skyline-drones/login.html';
 };
 
 /* ══════════════════════════════════════
@@ -122,7 +129,7 @@ window.logout = function () {
 document.addEventListener('DOMContentLoaded', async () => {
     initLanguage();
 
-    // تحميل المكونات — مسارات نسبية بدون / في البداية
+    // تحميل المكونات — الدالة تضيف /skyline-drones تلقائياً
     await Promise.all([
         loadComponent('sidebar-container', 'components/sidebar.html'),
         loadComponent('topbar-container',  'components/topbar.html'),
@@ -143,5 +150,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(syncUserUI, 1000);
 });
 
-window.addEventListener('storage',       syncUserUI);
+window.addEventListener('storage',        syncUserUI);
 window.addEventListener('profileUpdated', syncUserUI);

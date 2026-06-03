@@ -4,16 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skyline Dashboard | Intelligent Drone System</title>
+
+    <!-- ✅ إذا لا يوجد session → روّح لـ sky.html -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    (async () => {
+        const _sb = supabase.createClient(
+            'https://rpbswbyxlmcwlqkkpnhe.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA'
+        );
+        const { data: { session } } = await _sb.auth.getSession();
+        if (!session) {
+            window.location.replace('/skyline-drones/sky.html');
+        }
+    })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Tajawal:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="/skyline-drones/css/main.css">
+    <link rel="stylesheet" href="/skyline-drones/css/animations.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         .custom-scrollbar::-webkit-scrollbar{width:6px}
         .custom-scrollbar::-webkit-scrollbar-thumb{background:#1e293b;border-radius:10px}
@@ -21,15 +35,11 @@
         .chov:hover{transform:translateY(-3px);box-shadow:0 16px 36px -8px rgba(6,182,212,0.14);border-color:rgba(6,182,212,0.28)}
         .leaflet-container{background:#0B1120!important}
         .leaflet-tile{filter:brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7)}
-
-        /* Toast */
         #toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:none;padding:11px 18px;border-radius:14px;font-size:13px;font-weight:700;}
         #toast.show{display:block;animation:tIn .3s ease}
         #toast.success{background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.3)}
         #toast.error{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3)}
         @keyframes tIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-        /* Pill */
         .pill{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border:1px solid;}
         .pill-active      {background:rgba(16,185,129,.1);color:#34d399;border-color:rgba(16,185,129,.25);}
         .pill-available   {background:rgba(6,182,212,.1); color:#22d3ee;border-color:rgba(6,182,212,.25);}
@@ -42,8 +52,6 @@
         .pill-in_progress {background:rgba(16,185,129,.1);color:#34d399;border-color:rgba(16,185,129,.25);}
         .pill-completed   {background:rgba(100,116,139,.1);color:#94a3b8;border-color:rgba(100,116,139,.3);}
         .pill-cancelled   {background:rgba(239,68,68,.1); color:#f87171;border-color:rgba(239,68,68,.25);}
-
-        /* Battery bar */
         .bat-bar{width:52px;height:5px;background:#1e293b;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;}
         .bat-fill{height:100%;border-radius:3px;transition:width .5s}
     </style>
@@ -52,13 +60,9 @@
 
 <div class="flex h-screen overflow-hidden">
     <aside id="sidebar-container" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col z-50 shadow-2xl"></aside>
-
     <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-[#0B1120]">
         <header id="topbar-container" class="h-20 flex items-center justify-between px-8 bg-[#0B1120]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40"></header>
-
         <div class="p-8 space-y-8">
-
-            <!-- ══ WELCOME ROW ══ -->
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 class="text-3xl font-black text-white flex items-center gap-3">
@@ -71,92 +75,62 @@
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
                 </button>
             </div>
-
-            <!-- ══ STATS GRID (6 cards) ══ -->
             <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                <!-- filled by JS -->
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov col-span-2 md:col-span-1">
-                    <div class="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 w-fit mb-3">
-                        <i data-lucide="plane" class="text-cyan-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 w-fit mb-3"><i data-lucide="plane" class="text-cyan-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Total Fleet</p>
                     <p id="s-fleet" class="text-3xl font-black text-white">—</p>
                     <p id="s-fleet-sub" class="text-[10px] text-slate-600 mt-0.5">—</p>
                 </div>
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov">
-                    <div class="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 w-fit mb-3">
-                        <i data-lucide="users" class="text-emerald-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 w-fit mb-3"><i data-lucide="users" class="text-emerald-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Total Users</p>
                     <p id="s-users" class="text-3xl font-black text-white">—</p>
                     <p id="s-users-sub" class="text-[10px] text-slate-600 mt-0.5">—</p>
                 </div>
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov">
-                    <div class="p-2 bg-rose-500/10 rounded-xl border border-rose-500/20 w-fit mb-3">
-                        <i data-lucide="send" class="text-rose-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-rose-500/10 rounded-xl border border-rose-500/20 w-fit mb-3"><i data-lucide="send" class="text-rose-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Mission Requests</p>
                     <p id="s-missions" class="text-3xl font-black text-white">—</p>
                     <p id="s-missions-sub" class="text-[10px] text-slate-600 mt-0.5">— pending</p>
                 </div>
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov">
-                    <div class="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 w-fit mb-3">
-                        <i data-lucide="brain-circuit" class="text-purple-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 w-fit mb-3"><i data-lucide="brain-circuit" class="text-purple-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Diagnostics</p>
                     <p id="s-diags" class="text-3xl font-black text-white">—</p>
                     <p id="s-diags-sub" class="text-[10px] text-slate-600 mt-0.5">avg — % conf.</p>
                 </div>
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov">
-                    <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 w-fit mb-3">
-                        <i data-lucide="battery-low" class="text-amber-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 w-fit mb-3"><i data-lucide="battery-low" class="text-amber-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Avg Battery</p>
                     <p id="s-battery" class="text-3xl font-black text-white">—</p>
                     <p class="text-[10px] text-slate-600 mt-0.5">fleet average</p>
                 </div>
                 <div class="bg-[#111827]/65 rounded-2xl p-5 border border-slate-800 chov">
-                    <div class="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 w-fit mb-3">
-                        <i data-lucide="shopping-bag" class="text-indigo-400 w-5 h-5"></i>
-                    </div>
+                    <div class="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 w-fit mb-3"><i data-lucide="shopping-bag" class="text-indigo-400 w-5 h-5"></i></div>
                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Orders</p>
                     <p id="s-orders" class="text-3xl font-black text-white">—</p>
                     <p id="s-orders-sub" class="text-[10px] text-slate-600 mt-0.5">services</p>
                 </div>
             </div>
-
-            <!-- ══ CHARTS ROW ══ -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Missions by status (doughnut) -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov p-6">
-                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                        <i data-lucide="send" class="w-4 h-4 text-rose-400"></i> Mission Requests
-                    </h3>
+                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4 text-rose-400"></i> Mission Requests</h3>
                     <p id="chart1-sub" class="text-[10px] text-slate-500 mb-4">— requests</p>
                     <div style="height:180px"><canvas id="chart-missions"></canvas></div>
                 </div>
-                <!-- Users by role -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov p-6">
-                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                        <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i> Users by Role
-                    </h3>
+                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-emerald-400"></i> Users by Role</h3>
                     <p id="chart2-sub" class="text-[10px] text-slate-500 mb-4">— users</p>
                     <div style="height:180px"><canvas id="chart-users"></canvas></div>
                 </div>
-                <!-- Drones by status -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov p-6">
-                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                        <i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i> Fleet Status
-                    </h3>
+                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i> Fleet Status</h3>
                     <p id="chart3-sub" class="text-[10px] text-slate-500 mb-4">— drones</p>
                     <div style="height:180px"><canvas id="chart-fleet"></canvas></div>
                 </div>
             </div>
-
-            <!-- ══ MAP + AI INSIGHTS ══ -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                <!-- Map (span 2) -->
                 <div class="lg:col-span-2 bg-[#111827]/55 rounded-[2.5rem] border border-slate-800/50 chov overflow-hidden relative" style="height:340px">
                     <div class="absolute top-4 left-4 z-[1000] flex items-center gap-2 bg-[#111827]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
                         <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
@@ -164,15 +138,12 @@
                     </div>
                     <div id="fleet-map" class="w-full h-full"></div>
                 </div>
-
-                <!-- AI Fleet Insights -->
                 <div class="bg-[#111827]/65 rounded-[2rem] border border-emerald-500/20 chov p-6 relative overflow-hidden">
                     <div class="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/8 rounded-full blur-3xl"></div>
                     <div class="flex items-center gap-2 mb-6">
                         <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                         <p class="text-emerald-400 text-[10px] font-black uppercase tracking-[.2em]">Fleet Health</p>
                     </div>
-                    <!-- Health bar -->
                     <div class="mb-6">
                         <div class="flex justify-between items-end mb-2">
                             <span class="text-slate-400 text-[10px] uppercase font-bold">Health Score</span>
@@ -200,7 +171,6 @@
                             <p id="fi-offline" class="text-xl font-black text-slate-400">—</p>
                         </div>
                     </div>
-                    <!-- Pending missions alert -->
                     <div id="pending-alert" class="hidden mt-4 px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-xl">
                         <p class="text-amber-400 text-xs font-bold">
                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
@@ -209,17 +179,11 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ══ TWO TABLES ROW ══ -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <!-- Recent Mission Requests -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i data-lucide="send" class="w-4 h-4 text-rose-400"></i> Recent Mission Requests
-                        </h3>
-                        <a href="/missions-admin.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="send" class="w-4 h-4 text-rose-400"></i> Recent Mission Requests</h3>
+                        <a href="/skyline-drones/pages/missions/missions.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
@@ -232,25 +196,17 @@
                                 </tr>
                             </thead>
                             <tbody id="missions-tbody" class="divide-y divide-slate-800/40">
-                                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">
-                                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-rose-400"></i>
-                                </td></tr>
+                                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500"><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-rose-400"></i></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
-                <!-- Fleet Overview table -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i> Fleet Overview
-                        </h3>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i> Fleet Overview</h3>
                         <div class="flex items-center gap-2">
-                            <input id="drone-search" type="text" placeholder="Search..."
-                                oninput="filterDrones()"
-                                class="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-1 text-xs text-slate-300 outline-none focus:border-cyan-500/50 w-28">
-                            <a href="/drones.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
+                            <input id="drone-search" type="text" placeholder="Search..." oninput="filterDrones()" class="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-1 text-xs text-slate-300 outline-none focus:border-cyan-500/50 w-28">
+                            <a href="/skyline-drones/pages/drones/drones.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -264,91 +220,58 @@
                                 </tr>
                             </thead>
                             <tbody id="drones-tbody" class="divide-y divide-slate-800/40">
-                                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">
-                                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-cyan-400"></i>
-                                </td></tr>
+                                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500"><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-cyan-400"></i></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
-
-            <!-- ══ BOTTOM ROW: Recent Diagnostics + Recent Users ══ -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <!-- Recent Diagnostics -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i data-lucide="scan-line" class="w-4 h-4 text-purple-400"></i> Recent AI Diagnostics
-                        </h3>
-                        <a href="/diagnosis.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="scan-line" class="w-4 h-4 text-purple-400"></i> Recent AI Diagnostics</h3>
+                        <a href="/skyline-drones/pages/diagnosis/diagnosis.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
                     </div>
                     <div class="divide-y divide-slate-800/40" id="diags-list">
-                        <div class="px-5 py-6 text-center text-slate-500 text-xs">
-                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-purple-400"></i>
-                        </div>
+                        <div class="px-5 py-6 text-center text-slate-500 text-xs"><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-purple-400"></i></div>
                     </div>
                 </div>
-
-                <!-- Recent Users -->
                 <div class="bg-[#111827]/55 rounded-[2rem] border border-slate-800/50 chov overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i> Recently Joined
-                        </h3>
-                        <a href="/users.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-emerald-400"></i> Recently Joined</h3>
+                        <a href="/skyline-drones/pages/users/users.html" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold">View All →</a>
                     </div>
                     <div class="divide-y divide-slate-800/40" id="users-list">
-                        <div class="px-5 py-6 text-center text-slate-500 text-xs">
-                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-emerald-400"></i>
-                        </div>
+                        <div class="px-5 py-6 text-center text-slate-500 text-xs"><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline text-emerald-400"></i></div>
                     </div>
                 </div>
-
             </div>
-
         </div>
     </main>
 </div>
 
 <div id="toast"></div>
 
-<script src="js/language.js"></script>
-<script src="js/core/main.js"></script>
+<script src="/skyline-drones/js/language.js"></script>
+<script src="/skyline-drones/js/core/main.js"></script>
 <script>
-
-/* ══════════════════════════════════════
-   SUPABASE
-══════════════════════════════════════ */
 const SUPABASE_URL  = 'https://rpbswbyxlmcwlqkkpnhe.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYnN3Ynl4bG1jd2xxa2twbmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDM4OTYsImV4cCI6MjA5MzAxOTg5Nn0.7gdbzv9TQDvF-vxE--1kVMO438YrTcTANuS_CavXfXA';
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/* ── State ── */
-let allDrones   = [];
-let allMissions = [];   // mission_requests
-let allUsers    = [];
-let allDiags    = [];
-let allOrders   = [];
+let allDrones=[], allMissions=[], allUsers=[], allDiags=[], allOrders=[];
 let _map, _markersLayer;
 const CHARTS = {};
 
-/* ── Toast ── */
 function showToast(msg, type='success') {
     const t = document.getElementById('toast');
     t.textContent = msg; t.className = type + ' show';
     setTimeout(() => t.className = '', 3200);
 }
 
-/* ── Date ── */
 document.getElementById('dash-date').textContent =
     new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-/* ══════════════════════════════════════
-   LOAD ALL
-══════════════════════════════════════ */
 async function loadAll() {
     try {
         const [drones, missions, users, diags, orders] = await Promise.all([
@@ -358,170 +281,80 @@ async function loadAll() {
             _sb.from('diagnostics').select('*').order('analyzed_at', { ascending: false }),
             _sb.from('orders').select('*').order('ordered_at', { ascending: false }),
         ]);
-
-        allDrones   = drones.data   || [];
-        allMissions = missions.data || [];
-        allUsers    = users.data    || [];
-        allDiags    = diags.data    || [];
-        allOrders   = orders.data   || [];
-
-        updateStats();
-        renderCharts();
-        renderMissionsTable();
-        renderDronesTable(allDrones);
-        renderDiagsList();
-        renderUsersList();
-        updateFleetInsights();
-        addMapMarkers();
-
-    } catch(err) {
-        showToast('❌ ' + err.message, 'error');
-        console.error(err);
-    }
+        allDrones=drones.data||[]; allMissions=missions.data||[];
+        allUsers=users.data||[]; allDiags=diags.data||[]; allOrders=orders.data||[];
+        updateStats(); renderCharts(); renderMissionsTable();
+        renderDronesTable(allDrones); renderDiagsList(); renderUsersList();
+        updateFleetInsights(); addMapMarkers();
+    } catch(err) { showToast('❌ ' + err.message, 'error'); }
 }
 
-/* ══════════════════════════════════════
-   STATS CARDS
-══════════════════════════════════════ */
 function updateStats() {
-    const totalDrones = allDrones.length;
-    const availDrones = allDrones.filter(d => d.status === 'available').length;
-    const batAvg      = (() => {
-        const b = allDrones.filter(d => d.battery_level != null);
-        return b.length ? Math.round(b.reduce((s,d)=>s+d.battery_level,0)/b.length) : 0;
-    })();
-    const pendingMR   = allMissions.filter(m => m.mission_status === 'pending').length;
-    const avgConf     = (() => {
-        const d = allDiags.filter(x => x.cnn_confidence_pct != null);
-        return d.length ? Math.round(d.reduce((s,x)=>s+x.cnn_confidence_pct,0)/d.length) : 0;
-    })();
-
-    document.getElementById('s-fleet').textContent      = totalDrones;
-    document.getElementById('s-fleet-sub').textContent  = availDrones + ' available';
-    document.getElementById('s-users').textContent      = allUsers.length;
-    document.getElementById('s-users-sub').textContent  = allUsers.filter(u=>u.role==='agriculture').length + ' agriculture';
-    document.getElementById('s-missions').textContent   = allMissions.length;
-    document.getElementById('s-missions-sub').textContent = pendingMR + ' pending';
-    document.getElementById('s-diags').textContent      = allDiags.length;
-    document.getElementById('s-diags-sub').textContent  = 'avg ' + avgConf + '% conf.';
-    document.getElementById('s-battery').textContent    = batAvg + '%';
-    document.getElementById('s-orders').textContent     = allOrders.length;
-    document.getElementById('s-orders-sub').textContent = 'service orders';
+    const availDrones = allDrones.filter(d=>d.status==='available').length;
+    const batAvg = (() => { const b=allDrones.filter(d=>d.battery_level!=null); return b.length?Math.round(b.reduce((s,d)=>s+d.battery_level,0)/b.length):0; })();
+    const pendingMR = allMissions.filter(m=>m.mission_status==='pending').length;
+    const avgConf = (() => { const d=allDiags.filter(x=>x.cnn_confidence_pct!=null); return d.length?Math.round(d.reduce((s,x)=>s+x.cnn_confidence_pct,0)/d.length):0; })();
+    document.getElementById('s-fleet').textContent=allDrones.length;
+    document.getElementById('s-fleet-sub').textContent=availDrones+' available';
+    document.getElementById('s-users').textContent=allUsers.length;
+    document.getElementById('s-users-sub').textContent=allUsers.filter(u=>u.role==='agriculture').length+' agriculture';
+    document.getElementById('s-missions').textContent=allMissions.length;
+    document.getElementById('s-missions-sub').textContent=pendingMR+' pending';
+    document.getElementById('s-diags').textContent=allDiags.length;
+    document.getElementById('s-diags-sub').textContent='avg '+avgConf+'% conf.';
+    document.getElementById('s-battery').textContent=batAvg+'%';
+    document.getElementById('s-orders').textContent=allOrders.length;
+    document.getElementById('s-orders-sub').textContent='service orders';
 }
 
-/* ══════════════════════════════════════
-   CHARTS
-══════════════════════════════════════ */
-const PALETTE = ['#06B6D4','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#fbbf24','#818cf8','#34d399'];
-
-function mkChart(id, labels, data, colors) {
-    const ctx = document.getElementById(id);
-    if (!ctx) return;
-    if (CHARTS[id]) CHARTS[id].destroy();
-    CHARTS[id] = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels,
-            datasets: [{
-                data,
-                backgroundColor: (colors||PALETTE).slice(0, labels.length),
-                borderColor: 'rgba(11,17,32,0.8)',
-                borderWidth: 3,
-            }]
-        },
-        options: {
-            responsive:true, maintainAspectRatio:false, cutout:'65%',
-            plugins: { legend:{ position:'bottom', labels:{ color:'#94a3b8', font:{ size:9, weight:'bold' }, padding:10 } } }
-        }
-    });
+const PALETTE=['#06B6D4','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#fbbf24','#818cf8','#34d399'];
+function mkChart(id,labels,data,colors) {
+    const ctx=document.getElementById(id); if(!ctx)return;
+    if(CHARTS[id])CHARTS[id].destroy();
+    CHARTS[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:(colors||PALETTE).slice(0,labels.length),borderColor:'rgba(11,17,32,0.8)',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9,weight:'bold'},padding:10}}}}});
 }
 
 function renderCharts() {
-    /* Mission requests by status */
-    const msCounts = {};
-    allMissions.forEach(m => { const s=m.mission_status||'pending'; msCounts[s]=(msCounts[s]||0)+1; });
-    document.getElementById('chart1-sub').textContent = allMissions.length + ' requests';
-    mkChart('chart-missions', Object.keys(msCounts), Object.values(msCounts),
-        ['#fbbf24','#818cf8','#22d3ee','#34d399','#94a3b8','#f87171']);
-
-    /* Users by role */
-    const uCounts = {};
-    allUsers.forEach(u => { const r=u.role||'unknown'; uCounts[r]=(uCounts[r]||0)+1; });
-    document.getElementById('chart2-sub').textContent = allUsers.length + ' users';
-    mkChart('chart-users', Object.keys(uCounts), Object.values(uCounts),
-        ['#fbbf24','#34d399','#a78bfa','#818cf8','#64748b']);
-
-    /* Drones by status */
-    const dCounts = {};
-    allDrones.forEach(d => { const s=d.status||'unknown'; dCounts[s]=(dCounts[s]||0)+1; });
-    document.getElementById('chart3-sub').textContent = allDrones.length + ' drones';
-    mkChart('chart-fleet', Object.keys(dCounts), Object.values(dCounts),
-        ['#22d3ee','#34d399','#fbbf24','#f87171','#94a3b8']);
+    const msCounts={};allMissions.forEach(m=>{const s=m.mission_status||'pending';msCounts[s]=(msCounts[s]||0)+1;});
+    document.getElementById('chart1-sub').textContent=allMissions.length+' requests';
+    mkChart('chart-missions',Object.keys(msCounts),Object.values(msCounts),['#fbbf24','#818cf8','#22d3ee','#34d399','#94a3b8','#f87171']);
+    const uCounts={};allUsers.forEach(u=>{const r=u.role||'unknown';uCounts[r]=(uCounts[r]||0)+1;});
+    document.getElementById('chart2-sub').textContent=allUsers.length+' users';
+    mkChart('chart-users',Object.keys(uCounts),Object.values(uCounts),['#fbbf24','#34d399','#a78bfa','#818cf8','#64748b']);
+    const dCounts={};allDrones.forEach(d=>{const s=d.status||'unknown';dCounts[s]=(dCounts[s]||0)+1;});
+    document.getElementById('chart3-sub').textContent=allDrones.length+' drones';
+    mkChart('chart-fleet',Object.keys(dCounts),Object.values(dCounts),['#22d3ee','#34d399','#fbbf24','#f87171','#94a3b8']);
 }
 
-/* ══════════════════════════════════════
-   MISSION REQUESTS TABLE
-══════════════════════════════════════ */
-const PAY_CLS = { unpaid:'bg-red-500/10 text-red-400 border-red-500/20', partial:'bg-amber-500/10 text-amber-400 border-amber-500/20', paid:'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-
+const PAY_CLS={unpaid:'bg-red-500/10 text-red-400 border-red-500/20',partial:'bg-amber-500/10 text-amber-400 border-amber-500/20',paid:'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'};
 function renderMissionsTable() {
-    const tbody = document.getElementById('missions-tbody');
-    const recent = allMissions.slice(0, 6);
-    if (!recent.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500 text-xs">No requests yet</td></tr>`;
-        return;
-    }
-    tbody.innerHTML = recent.map(m => {
-        const pyCls = PAY_CLS[m.payment_status] || PAY_CLS.unpaid;
-        const msCls = `pill pill-${m.mission_status||'pending'}`;
+    const tbody=document.getElementById('missions-tbody');
+    const recent=allMissions.slice(0,6);
+    if(!recent.length){tbody.innerHTML=`<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500 text-xs">No requests yet</td></tr>`;return;}
+    tbody.innerHTML=recent.map(m=>{
+        const pyCls=PAY_CLS[m.payment_status]||PAY_CLS.unpaid;
         return `<tr class="hover:bg-white/[0.02] transition-colors">
-            <td class="px-4 py-3">
-                <p class="text-white font-semibold text-xs truncate max-w-[160px]">${m.mission_title||'—'}</p>
-                <p class="text-slate-500 text-[10px]">${m.email||'—'}</p>
-            </td>
+            <td class="px-4 py-3"><p class="text-white font-semibold text-xs truncate max-w-[160px]">${m.mission_title||'—'}</p><p class="text-slate-500 text-[10px]">${m.email||'—'}</p></td>
             <td class="px-4 py-3 text-slate-400 text-xs">${m.wilaya||'—'}</td>
-            <td class="px-4 py-3 text-center">
-                <span class="pill border ${pyCls}">${(m.payment_status||'unpaid').toUpperCase()}</span>
-            </td>
-            <td class="px-4 py-3 text-center">
-                <span class="${msCls}">${(m.mission_status||'pending').replace('_',' ').toUpperCase()}</span>
-            </td>
+            <td class="px-4 py-3 text-center"><span class="pill border ${pyCls}">${(m.payment_status||'unpaid').toUpperCase()}</span></td>
+            <td class="px-4 py-3 text-center"><span class="pill pill-${m.mission_status||'pending'}">${(m.mission_status||'pending').replace('_',' ').toUpperCase()}</span></td>
         </tr>`;
     }).join('');
     lucide.createIcons();
 }
 
-/* ══════════════════════════════════════
-   DRONES TABLE
-══════════════════════════════════════ */
 function renderDronesTable(drones) {
-    const tbody = document.getElementById('drones-tbody');
-    if (!drones.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500 text-xs">No drones</td></tr>`;
-        return;
-    }
-    tbody.innerHTML = drones.slice(0, 7).map(d => {
-        const bat = d.battery_level ?? null;
-        const batColor = bat === null ? '#64748b' : bat >= 60 ? '#10b981' : bat >= 30 ? '#f59e0b' : '#ef4444';
-        const batHTML = bat !== null
-            ? `<div class="flex items-center gap-1.5">
-                <div class="bat-bar"><div class="bat-fill" style="width:${bat}%;background:${batColor}"></div></div>
-                <span class="text-[10px] font-mono" style="color:${batColor}">${bat}%</span>
-               </div>`
-            : '<span class="text-slate-600 text-xs">—</span>';
-        const initials = (d.drone_code||'??').slice(0,2).toUpperCase();
-        const cIdx = ['from-cyan-500 to-blue-600','from-emerald-500 to-teal-600','from-purple-500 to-indigo-600','from-amber-500 to-orange-600'];
-        const cCol = cIdx[Math.abs((d.drone_code||'').charCodeAt(0)||0) % cIdx.length];
+    const tbody=document.getElementById('drones-tbody');
+    if(!drones.length){tbody.innerHTML=`<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500 text-xs">No drones</td></tr>`;return;}
+    tbody.innerHTML=drones.slice(0,7).map(d=>{
+        const bat=d.battery_level??null;
+        const batColor=bat===null?'#64748b':bat>=60?'#10b981':bat>=30?'#f59e0b':'#ef4444';
+        const batHTML=bat!==null?`<div class="flex items-center gap-1.5"><div class="bat-bar"><div class="bat-fill" style="width:${bat}%;background:${batColor}"></div></div><span class="text-[10px] font-mono" style="color:${batColor}">${bat}%</span></div>`:'<span class="text-slate-600 text-xs">—</span>';
+        const initials=(d.drone_code||'??').slice(0,2).toUpperCase();
+        const cIdx=['from-cyan-500 to-blue-600','from-emerald-500 to-teal-600','from-purple-500 to-indigo-600','from-amber-500 to-orange-600'];
+        const cCol=cIdx[Math.abs((d.drone_code||'').charCodeAt(0)||0)%cIdx.length];
         return `<tr class="hover:bg-white/[0.02] transition-colors">
-            <td class="px-4 py-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br ${cCol} flex items-center justify-center text-white text-[10px] font-black">${initials}</div>
-                    <div>
-                        <p class="text-white font-bold text-xs">${d.drone_code||'—'}</p>
-                        <p class="text-slate-600 text-[10px]">${d.assigned_service||'—'}</p>
-                    </div>
-                </div>
-            </td>
+            <td class="px-4 py-3"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-xl bg-gradient-to-br ${cCol} flex items-center justify-center text-white text-[10px] font-black">${initials}</div><div><p class="text-white font-bold text-xs">${d.drone_code||'—'}</p><p class="text-slate-600 text-[10px]">${d.assigned_service||'—'}</p></div></div></td>
             <td class="px-4 py-3 text-slate-400 text-xs truncate max-w-[100px]">${d.model||'—'}</td>
             <td class="px-4 py-3 text-center">${batHTML}</td>
             <td class="px-4 py-3 text-center"><span class="pill pill-${d.status||'offline'}">${d.status||'—'}</span></td>
@@ -531,169 +364,106 @@ function renderDronesTable(drones) {
 }
 
 function filterDrones() {
-    const q = document.getElementById('drone-search').value.toLowerCase();
-    renderDronesTable(allDrones.filter(d =>
-        (d.drone_code||'').toLowerCase().includes(q) ||
-        (d.model||'').toLowerCase().includes(q) ||
-        (d.status||'').toLowerCase().includes(q)
-    ));
+    const q=document.getElementById('drone-search').value.toLowerCase();
+    renderDronesTable(allDrones.filter(d=>(d.drone_code||'').toLowerCase().includes(q)||(d.model||'').toLowerCase().includes(q)||(d.status||'').toLowerCase().includes(q)));
 }
 
-/* ══════════════════════════════════════
-   DIAGNOSTICS LIST
-══════════════════════════════════════ */
-const INF_COLORS = { fungal:'text-orange-400', bacterial:'text-red-400', viral:'text-purple-400', healthy:'text-emerald-400', pest:'text-yellow-400' };
-
+const INF_COLORS={fungal:'text-orange-400',bacterial:'text-red-400',viral:'text-purple-400',healthy:'text-emerald-400',pest:'text-yellow-400'};
 function renderDiagsList() {
-    const el = document.getElementById('diags-list');
-    if (!allDiags.length) {
-        el.innerHTML = `<div class="px-5 py-6 text-center text-slate-500 text-xs">No diagnostics yet</div>`;
-        return;
-    }
-    el.innerHTML = allDiags.slice(0, 5).map(d => {
-        const conf = d.cnn_confidence_pct != null ? Math.round(d.cnn_confidence_pct) : '—';
-        const infCol = INF_COLORS[(d.infection_type||'').toLowerCase()] || 'text-slate-400';
-        const dt = d.analyzed_at ? new Date(d.analyzed_at).toLocaleDateString('en-GB') : '—';
-        const pct = typeof conf === 'number' ? conf : 0;
+    const el=document.getElementById('diags-list');
+    if(!allDiags.length){el.innerHTML=`<div class="px-5 py-6 text-center text-slate-500 text-xs">No diagnostics yet</div>`;return;}
+    el.innerHTML=allDiags.slice(0,5).map(d=>{
+        const conf=d.cnn_confidence_pct!=null?Math.round(d.cnn_confidence_pct):'—';
+        const infCol=INF_COLORS[(d.infection_type||'').toLowerCase()]||'text-slate-400';
+        const dt=d.analyzed_at?new Date(d.analyzed_at).toLocaleDateString('en-GB'):'—';
+        const pct=typeof conf==='number'?conf:0;
         return `<div class="px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
-            <div class="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 flex-shrink-0">
-                <i data-lucide="scan-line" class="w-3.5 h-3.5 text-purple-400"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-white font-semibold text-xs truncate">${d.disease_class||'—'}</p>
-                <p class="text-slate-500 text-[10px]">${d.disease_name_ar||''} • <span class="${infCol}">${d.infection_type||'—'}</span></p>
-            </div>
-            <div class="text-right flex-shrink-0">
-                <p class="text-xs font-black ${pct>=90?'text-emerald-400':pct>=70?'text-amber-400':'text-rose-400'}">${conf}%</p>
-                <p class="text-[10px] text-slate-600">${dt}</p>
-            </div>
+            <div class="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 flex-shrink-0"><i data-lucide="scan-line" class="w-3.5 h-3.5 text-purple-400"></i></div>
+            <div class="flex-1 min-w-0"><p class="text-white font-semibold text-xs truncate">${d.disease_class||'—'}</p><p class="text-slate-500 text-[10px]">${d.disease_name_ar||''} • <span class="${infCol}">${d.infection_type||'—'}</span></p></div>
+            <div class="text-right flex-shrink-0"><p class="text-xs font-black ${pct>=90?'text-emerald-400':pct>=70?'text-amber-400':'text-rose-400'}">${conf}%</p><p class="text-[10px] text-slate-600">${dt}</p></div>
         </div>`;
     }).join('');
     lucide.createIcons();
 }
 
-/* ══════════════════════════════════════
-   USERS LIST
-══════════════════════════════════════ */
-const ROLE_COL = { admin:'bg-amber-500', agriculture:'bg-emerald-500', security:'bg-purple-500', line:'bg-blue-500' };
-
+const ROLE_COL={admin:'bg-amber-500',agriculture:'bg-emerald-500',security:'bg-purple-500',line:'bg-blue-500'};
 function renderUsersList() {
-    const el = document.getElementById('users-list');
-    if (!allUsers.length) {
-        el.innerHTML = `<div class="px-5 py-6 text-center text-slate-500 text-xs">No users yet</div>`;
-        return;
-    }
-    el.innerHTML = allUsers.slice(0, 5).map(u => {
-        const initials = (u.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-        const bg = ROLE_COL[u.role] || 'bg-slate-500';
-        const dt = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB') : '—';
+    const el=document.getElementById('users-list');
+    if(!allUsers.length){el.innerHTML=`<div class="px-5 py-6 text-center text-slate-500 text-xs">No users yet</div>`;return;}
+    el.innerHTML=allUsers.slice(0,5).map(u=>{
+        const initials=(u.full_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+        const bg=ROLE_COL[u.role]||'bg-slate-500';
+        const dt=u.created_at?new Date(u.created_at).toLocaleDateString('en-GB'):'—';
         return `<div class="px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
             <div class="w-9 h-9 rounded-full ${bg} flex items-center justify-center text-white text-[11px] font-black flex-shrink-0">${initials}</div>
-            <div class="flex-1 min-w-0">
-                <p class="text-white font-semibold text-xs">${u.full_name||'—'}</p>
-                <p class="text-slate-500 text-[10px] truncate">${u.email||'—'}</p>
-            </div>
-            <div class="text-right flex-shrink-0">
-                <p class="text-[10px] font-black text-slate-400 uppercase">${u.role||'—'}</p>
-                <p class="text-[10px] text-slate-600">${dt}</p>
-            </div>
+            <div class="flex-1 min-w-0"><p class="text-white font-semibold text-xs">${u.full_name||'—'}</p><p class="text-slate-500 text-[10px] truncate">${u.email||'—'}</p></div>
+            <div class="text-right flex-shrink-0"><p class="text-[10px] font-black text-slate-400 uppercase">${u.role||'—'}</p><p class="text-[10px] text-slate-600">${dt}</p></div>
         </div>`;
     }).join('');
 }
 
-/* ══════════════════════════════════════
-   FLEET INSIGHTS + PENDING ALERT
-══════════════════════════════════════ */
 function updateFleetInsights() {
-    const total   = allDrones.length;
-    const avail   = allDrones.filter(d=>d.status==='available').length;
-    const active  = allDrones.filter(d=>d.status==='active').length;
-    const maint   = allDrones.filter(d=>d.status==='maintenance').length;
-    const offline = allDrones.filter(d=>d.status==='offline').length;
-    const health  = total ? Math.round(((avail+active)/total)*100) : 0;
-
-    document.getElementById('health-val').textContent  = health + '%';
-    document.getElementById('health-bar').style.width  = health + '%';
-    document.getElementById('fi-available').textContent= avail;
-    document.getElementById('fi-active').textContent   = active;
-    document.getElementById('fi-maint').textContent    = maint;
-    document.getElementById('fi-offline').textContent  = offline;
-
-    const pending = allMissions.filter(m => m.mission_status === 'pending').length;
-    const alertEl = document.getElementById('pending-alert');
-    if (pending > 0) {
-        document.getElementById('pending-count').textContent = pending;
-        alertEl.classList.remove('hidden');
-    } else {
-        alertEl.classList.add('hidden');
-    }
+    const total=allDrones.length;
+    const avail=allDrones.filter(d=>d.status==='available').length;
+    const active=allDrones.filter(d=>d.status==='active').length;
+    const maint=allDrones.filter(d=>d.status==='maintenance').length;
+    const offline=allDrones.filter(d=>d.status==='offline').length;
+    const health=total?Math.round(((avail+active)/total)*100):0;
+    document.getElementById('health-val').textContent=health+'%';
+    document.getElementById('health-bar').style.width=health+'%';
+    document.getElementById('fi-available').textContent=avail;
+    document.getElementById('fi-active').textContent=active;
+    document.getElementById('fi-maint').textContent=maint;
+    document.getElementById('fi-offline').textContent=offline;
+    const pending=allMissions.filter(m=>m.mission_status==='pending').length;
+    const alertEl=document.getElementById('pending-alert');
+    if(pending>0){document.getElementById('pending-count').textContent=pending;alertEl.classList.remove('hidden');}
+    else{alertEl.classList.add('hidden');}
     lucide.createIcons();
 }
 
-/* ══════════════════════════════════════
-   MAP
-══════════════════════════════════════ */
 function initMap() {
-    const el = document.getElementById('fleet-map');
-    if (!el) return;
-    _map = L.map('fleet-map', { zoomControl:false }).setView([28.0, 2.0], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(_map);
-    _markersLayer = L.layerGroup().addTo(_map);
-    L.control.zoom({ position:'bottomright' }).addTo(_map);
+    const el=document.getElementById('fleet-map'); if(!el)return;
+    _map=L.map('fleet-map',{zoomControl:false}).setView([28.0,2.0],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(_map);
+    _markersLayer=L.layerGroup().addTo(_map);
+    L.control.zoom({position:'bottomright'}).addTo(_map);
 }
 
 function addMapMarkers() {
-    if (!_markersLayer) return;
+    if(!_markersLayer)return;
     _markersLayer.clearLayers();
-
-    /* Mission request markers (GPS from gps_location text — try to parse) */
-    allMissions.forEach(m => {
-        if (!m.gps_location) return;
-        const match = m.gps_location.match(/([-\d.]+)[°\s,]+[NSns]?[,\s]+([-\d.]+)[°\s,]+[EWeW]?/);
-        if (!match) return;
-        const lat = parseFloat(match[1]), lng = parseFloat(match[2]);
-        if (isNaN(lat)||isNaN(lng)) return;
-        const color = m.mission_status==='in_progress'?'#10b981':m.mission_status==='confirmed'?'#22d3ee':'#fbbf24';
-        L.circleMarker([lat,lng], { radius:7, color, fillColor:color, fillOpacity:.75, weight:2 })
-         .bindPopup(`<b>${m.mission_title||'—'}</b><br>${m.email||''}<br>${m.mission_status||''}`)
-         .addTo(_markersLayer);
+    allMissions.forEach(m=>{
+        if(!m.gps_location)return;
+        const match=m.gps_location.match(/([-\d.]+)[°\s,]+[NSns]?[,\s]+([-\d.]+)[°\s,]+[EWeW]?/);
+        if(!match)return;
+        const lat=parseFloat(match[1]),lng=parseFloat(match[2]);
+        if(isNaN(lat)||isNaN(lng))return;
+        const color=m.mission_status==='in_progress'?'#10b981':m.mission_status==='confirmed'?'#22d3ee':'#fbbf24';
+        L.circleMarker([lat,lng],{radius:7,color,fillColor:color,fillOpacity:.75,weight:2}).bindPopup(`<b>${m.mission_title||'—'}</b><br>${m.email||''}<br>${m.mission_status||''}`).addTo(_markersLayer);
     });
-
-    /* Drone markers */
-    allDrones.forEach(d => {
-        if (!d.gps_lat || !d.gps_lng) return;
-        const color = d.status==='active'?'#06b6d4':d.status==='available'?'#10b981':'#f59e0b';
-        L.circleMarker([d.gps_lat, d.gps_lng], { radius:6, color, fillColor:color, fillOpacity:.9, weight:2 })
-         .bindPopup(`<b>${d.drone_code}</b><br>${d.model||''}<br>🔋${d.battery_level||'—'}%`)
-         .addTo(_markersLayer);
+    allDrones.forEach(d=>{
+        if(!d.gps_lat||!d.gps_lng)return;
+        const color=d.status==='active'?'#06b6d4':d.status==='available'?'#10b981':'#f59e0b';
+        L.circleMarker([d.gps_lat,d.gps_lng],{radius:6,color,fillColor:color,fillOpacity:.9,weight:2}).bindPopup(`<b>${d.drone_code}</b><br>${d.model||''}<br>🔋${d.battery_level||'—'}%`).addTo(_markersLayer);
     });
 }
 
-/* ══════════════════════════════════════
-   INIT
-══════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
-        loadComponent?.('sidebar-container', '/skyline-dronescomponents/sidebar.html'),
-        loadComponent?.('topbar-container',  '/skyline-dronescomponents/topbar.html'),
+        loadComponent?.('sidebar-container', '/skyline-drones/components/sidebar.html'),
+        loadComponent?.('topbar-container',  '/skyline-drones/components/topbar.html'),
     ]).catch(()=>{});
-
-    if (typeof highlightActiveLink === 'function') highlightActiveLink();
-    const lang = localStorage.getItem('skyline_lang') || 'en';
-    if (typeof updatePageText === 'function') updatePageText(lang);
-
+    if(typeof highlightActiveLink==='function') highlightActiveLink();
+    const lang=localStorage.getItem('skyline_lang')||'en';
+    if(typeof updatePageText==='function') updatePageText(lang);
     lucide.createIcons();
     initMap();
     await loadAll();
-
-    /* Real-time على كل الجداول المهمة */
-    ['drones','mission_requests','profiles','diagnostics','orders'].forEach(t => {
-        _sb.channel('dash-' + t)
-            .on('postgres_changes', { event:'*', schema:'public', table:t }, () => loadAll())
-            .subscribe();
+    ['drones','mission_requests','profiles','diagnostics','orders'].forEach(t=>{
+        _sb.channel('dash-'+t).on('postgres_changes',{event:'*',schema:'public',table:t},()=>loadAll()).subscribe();
     });
 });
 </script>
 </body>
 </html>
-

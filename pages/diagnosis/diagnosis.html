@@ -338,12 +338,13 @@ let currentUser = null;
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
+// إلى
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
-        loadComponent('sidebar-container', '/skyline-drones/components/sidebar.html'),
-        loadComponent('topbar-container',  '/skyline-drones/components/topbar.html'),
-    ]);
-    highlightActiveLink();
+        loadComponent?.('sidebar-container', '/skyline-drones/components/sidebar.html'),
+        loadComponent?.('topbar-container',  '/skyline-drones/components/topbar.html'),
+    ]).catch(()=>{});
+    if (typeof highlightActiveLink === 'function') highlightActiveLink();
     const lang = localStorage.getItem('skyline_lang') || 'en';
     if (window.updatePageText) updatePageText(lang);
     lucide.createIcons();
